@@ -65,7 +65,7 @@ export function createLiveMarketRefreshPlan(
   _edits: HoldingEdits,
 ): LiveMarketRefreshPlan {
   // Edit Mode's Yahoo selection affects a deliberate export/manual override.
-  // The public refresh has stable, provider-specific keys instead.
+  // The public refresh uses a stable OpenAI request contract instead.
   void _edits;
   const stocks: LiveMarketStockRequest[] = [];
   const unmappedTickers: Record<string, string> = {};
@@ -74,7 +74,7 @@ export function createLiveMarketRefreshPlan(
     const configured = AUDIT_TICKER_MARKET_KEYS[holding.ticker.trim().toUpperCase()];
     if (!configured) {
       unmappedTickers[holding.ticker] =
-        "No hybrid market source is configured for this holding.";
+        "No OpenAI market mapping is configured for this holding.";
       continue;
     }
     if (configured.currency !== holding.currency) {

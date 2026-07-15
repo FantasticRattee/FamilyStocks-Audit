@@ -3,6 +3,3 @@ EDIT_MODE_PASSWORD=replace-with-a-strong-password
 OPENAI_API_KEY=replace-with-a-new-openai-key
 # Optional: defaults to gpt-5.6 when omitted.
 OPENAI_MARKET_MODEL=gpt-5.6
-# Optional fallback when OPENAI_API_KEY is absent.
-EODHD_API_TOKEN=replace-with-your-eodhd-free-token
-GOOGLE_FINANCE_BRIDGE_URL=https://script.google.com/macros/s/replace-with-your-deployment-id/exec

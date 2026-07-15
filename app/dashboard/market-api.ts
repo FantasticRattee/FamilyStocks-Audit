@@ -32,28 +32,7 @@ type YahooQuoteResult =
 export type MarketApiEnvironment = {
   OPENAI_API_KEY?: string;
   OPENAI_MARKET_MODEL?: string;
-  EODHD_API_TOKEN?: string;
-  GOOGLE_FINANCE_BRIDGE_URL?: string;
 };
-
-type ProviderQuoteResult =
-  | { quote: MarketQuote }
-  | { failure: string };
-
-type GoogleFinanceBridgeQuote = {
-  currency: "THB" | "USD";
-  exchange: string;
-};
-
-const GOOGLE_FINANCE_BRIDGE_QUOTES: Record<string, GoogleFinanceBridgeQuote> = {
-  GOOGL: { currency: "USD", exchange: "NASDAQ" },
-  USDTHB: { currency: "THB", exchange: "FX" },
-};
-
-const EODHD_THAILAND_QUOTES = [
-  { key: "SCB", symbol: "SCB.BK" },
-  { key: "KBANK", symbol: "KBANK.BK" },
-] as const;
 
 const OPENAI_MARKET_QUOTES = {
   GOOGL: { symbol: "GOOGL", currency: "USD", exchange: "NASDAQ" },
@@ -202,17 +181,6 @@ const text = (value: unknown) =>
 
 const positiveFinite = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-
-const recentIsoDate = (daysAgo = 14) => {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
-};
-
-const quoteTimestampFromEodDate = (value: unknown) => {
-  const date = text(value);
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00.000Z` : undefined;
-};
 
 const httpsUrl = (value: unknown) => {
   const raw = text(value);
@@ -422,173 +390,10 @@ const refreshOpenAiMarketQuotes = async (
   return { quotes, failures, fetchedAt, provider: "OpenAI web search", sources };
 };
 
-const readProviderJson = async (
-  target: string,
-  provider: string,
-  fetchImplementation: FetchImplementation,
-): Promise<{ payload: unknown } | { failure: string }> => {
-  try {
-    const response = await fetchImplementation(target, {
-      headers: { accept: "application/json" },
-    });
-    if (!response.ok) {
-      return { failure: `${provider} returned HTTP ${response.status}.` };
-    }
-    return { payload: await response.json() };
-  } catch {
-    return { failure: `${provider} could not be reached.` };
-  }
-};
-
-const fetchGoogleFinanceBridge = async (
-  bridgeUrl: string | undefined,
-  fetchImplementation: FetchImplementation,
-): Promise<Record<string, ProviderQuoteResult>> => {
-  const result: Record<string, ProviderQuoteResult> = {};
-  const configuredBridgeUrl = bridgeUrl?.trim();
-  if (!configuredBridgeUrl) {
-    for (const key of Object.keys(GOOGLE_FINANCE_BRIDGE_QUOTES)) {
-      result[key] = {
-        failure: "Google Finance bridge is not configured. Add GOOGLE_FINANCE_BRIDGE_URL.",
-      };
-    }
-    return result;
-  }
-
-  let target: string;
-  try {
-    target = new URL(configuredBridgeUrl).toString();
-  } catch {
-    for (const key of Object.keys(GOOGLE_FINANCE_BRIDGE_QUOTES)) {
-      result[key] = {
-        failure: "GOOGLE_FINANCE_BRIDGE_URL is not a valid URL.",
-      };
-    }
-    return result;
-  }
-
-  const response = await readProviderJson(target, "Google Finance bridge", fetchImplementation);
-  if ("failure" in response) {
-    for (const key of Object.keys(GOOGLE_FINANCE_BRIDGE_QUOTES)) {
-      result[key] = response;
-    }
-    return result;
-  }
-
-  const root = asRecord(response.payload);
-  const quotes = asRecord(root?.quotes);
-  for (const [key, config] of Object.entries(GOOGLE_FINANCE_BRIDGE_QUOTES)) {
-    const rawQuote = asRecord(quotes?.[key]);
-    const price = positiveFinite(rawQuote?.price);
-    const currency = text(rawQuote?.currency).toUpperCase();
-    if (!price || currency !== config.currency) {
-      result[key] = {
-        failure: `Google Finance bridge did not return a valid ${config.currency} quote for ${key}.`,
-      };
-      continue;
-    }
-    const quoteTimestamp = text(rawQuote?.quoteTimestamp);
-    result[key] = {
-      quote: {
-        symbol: key,
-        price,
-        currency: config.currency,
-        exchange: config.exchange,
-        marketState: "DELAYED",
-        ...(quoteTimestamp ? { quoteTimestamp } : {}),
-        source: "Google Finance",
-        freshness: "delayed",
-      },
-    };
-  }
-  return result;
-};
-
-const fetchEodhdQuote = async (
-  key: string,
-  symbol: string,
-  apiToken: string | undefined,
-  fetchImplementation: FetchImplementation,
-): Promise<ProviderQuoteResult> => {
-  const token = apiToken?.trim();
-  if (!token) {
-    return { failure: "EODHD is not configured. Add EODHD_API_TOKEN." };
-  }
-
-  const target = new URL(`https://eodhd.com/api/eod/${encodeURIComponent(symbol)}`);
-  target.searchParams.set("api_token", token);
-  target.searchParams.set("fmt", "json");
-  target.searchParams.set("period", "d");
-  target.searchParams.set("order", "d");
-  target.searchParams.set("from", recentIsoDate());
-
-  const response = await readProviderJson(target.toString(), "EODHD", fetchImplementation);
-  if ("failure" in response) return response;
-  if (!Array.isArray(response.payload)) {
-    return { failure: `EODHD did not return EOD records for ${symbol}.` };
-  }
-
-  for (const item of response.payload) {
-    const record = asRecord(item);
-    const price = positiveFinite(record?.close);
-    const quoteTimestamp = quoteTimestampFromEodDate(record?.date);
-    if (!price || !quoteTimestamp) continue;
-    return {
-      quote: {
-        symbol,
-        price,
-        currency: "THB",
-        exchange: "SET",
-        marketState: "CLOSED",
-        quoteTimestamp,
-        source: "EODHD",
-        freshness: "latest close",
-      },
-    };
-  }
-
-  return { failure: `EODHD did not return a usable latest close for ${key}.` };
-};
-
-const refreshHybridMarketQuotes = async (
-  environment: MarketApiEnvironment,
-  fetchImplementation: FetchImplementation,
-): Promise<MarketRefreshPayload> => {
-  const [googleQuotes, ...eodhdQuotes] = await Promise.all([
-    fetchGoogleFinanceBridge(environment.GOOGLE_FINANCE_BRIDGE_URL, fetchImplementation),
-    ...EODHD_THAILAND_QUOTES.map(({ key, symbol }) =>
-      fetchEodhdQuote(key, symbol, environment.EODHD_API_TOKEN, fetchImplementation),
-    ),
-  ]);
-
-  const quotes: Record<string, MarketQuote> = {};
-  const failures: Record<string, string> = {};
-  for (const [key, result] of Object.entries(googleQuotes)) {
-    if ("quote" in result) quotes[key] = result.quote;
-    else failures[key] = result.failure;
-  }
-  for (const [index, result] of eodhdQuotes.entries()) {
-    const key = EODHD_THAILAND_QUOTES[index]?.key;
-    if (!key) continue;
-    if ("quote" in result) quotes[key] = result.quote;
-    else failures[key] = result.failure;
-  }
-
-  return {
-    quotes,
-    failures,
-    fetchedAt: new Date().toISOString(),
-    provider: "Google Finance + EODHD",
-  };
-};
-
 const refreshMarketQuotes = (
   environment: MarketApiEnvironment,
   fetchImplementation: FetchImplementation,
-) =>
-  environment.OPENAI_API_KEY?.trim()
-    ? refreshOpenAiMarketQuotes(environment, fetchImplementation)
-    : refreshHybridMarketQuotes(environment, fetchImplementation);
+) => refreshOpenAiMarketQuotes(environment, fetchImplementation);
 
 const fetchYahooQuote = async (
   symbol: string,
@@ -653,10 +458,10 @@ export async function handleMarketApiRequest(
   const isSearch = url.pathname === "/api/market/search";
   const isQuote = url.pathname === "/api/market/quote";
   const isBatchQuote = url.pathname === "/api/market/quotes";
-  const isHybridRefresh = url.pathname === "/api/market/refresh";
-  if (!isSearch && !isQuote && !isBatchQuote && !isHybridRefresh) return null;
+  const isMarketRefresh = url.pathname === "/api/market/refresh";
+  if (!isSearch && !isQuote && !isBatchQuote && !isMarketRefresh) return null;
 
-  if (isHybridRefresh) {
+  if (isMarketRefresh) {
     return json(await refreshMarketQuotes(environment, fetchImplementation), 200, "no-store");
   }
 

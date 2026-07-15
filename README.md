@@ -57,13 +57,13 @@ Select **Refresh market prices** in the top bar for one manual, display-only
 refresh. There is no automatic timer and the Excel workbook remains the audit
 record.
 
-- When `OPENAI_API_KEY` is configured, the Worker makes **one OpenAI Responses
-  API web-search request** for GOOGL, USD/THB, SCB, and KBANK. The UI labels
-  these values **OpenAI web search · searched live** and shows clickable
-  *Sources consulted* links returned by the search.
-- Without that key, the existing free hybrid fallback remains available: GOOGL
-  and USD/THB come from a Google Finance Sheets/Apps Script bridge (possibly
-  delayed), while SCB and KBANK come from EODHD's latest EOD close.
+- The Worker makes **one OpenAI Responses API web-search request** for GOOGL,
+  USD/THB, SCB, and KBANK. The UI labels these values **OpenAI web search ·
+  searched live** and shows clickable *Sources consulted* links returned by
+  the search.
+- OpenAI is the only provider for this button. If its key, search sources, or
+  quote data are unavailable, the dashboard keeps the imported Excel audit
+  prices and FX instead of trying another provider.
 
 The response updates dashboard market value and unrealized P&L only. It never
 changes transactions, cost basis, audit scenario values, or the workbook that
@@ -72,7 +72,7 @@ freshness. Any missing, invalid, currency-mismatched, or uncited result
 continues to use the imported Excel audit price (and imported FX if USD/THB
 cannot refresh).
 
-### Configure OpenAI web search (primary)
+### Configure OpenAI web search
 
 1. Create a new OpenAI API key in the Platform dashboard. Do **not** paste it
    into chat or commit it to source control.
@@ -90,32 +90,6 @@ For Cloudflare deployment, set `OPENAI_API_KEY` (and optionally
 `OPENAI_MARKET_MODEL`) as Worker secrets rather than browser-visible variables.
 The key is used only in `worker/index.ts` → `market-api.ts` and is never sent to
 the browser.
-
-### Optional free hybrid fallback
-
-1. Create a free EODHD account and copy its API token.
-2. Copy .dev.vars.example to the ignored .dev.vars file and add
-   EODHD_API_TOKEN=<your token>.
-3. Create a Google Sheet with a tab named Market. Add this table:
-
-| Key | Price | Currency | Quote timestamp |
-|---|---|---|---|
-| GOOGL | =GOOGLEFINANCE("NASDAQ:GOOGL","price") | USD | =GOOGLEFINANCE("NASDAQ:GOOGL","tradetime") |
-| USDTHB | =GOOGLEFINANCE("CURRENCY:USDTHB") | THB | =NOW() |
-
-4. Open **Extensions → Apps Script**, replace the default file with
-   dashboard/scripts/google-finance-bridge/Code.gs, then deploy it as a **Web
-   app**. Set **Execute as** to your account and allow access for anyone who has
-   the link. The sheet contains public market values only.
-5. Copy the deployed URL ending in /exec into
-   GOOGLE_FINANCE_BRIDGE_URL in .dev.vars.
-
-This fallback activates only when `OPENAI_API_KEY` is absent. For Cloudflare
-deployment, set `EODHD_API_TOKEN` and `GOOGLE_FINANCE_BRIDGE_URL` as Worker
-secrets rather than browser-visible variables. EODHD's free tier allows 20 API
-calls/day; SCB and KBANK use two calls per refresh, so roughly ten uncached
-refreshes are available daily. The dashboard sends these requests only from the
-Worker; the EODHD token is never sent to the browser.
 
 ## Edit and export Excel
 
@@ -145,8 +119,8 @@ ownership, and classifications. Each export adds a visible **Dashboard Audit**
 sheet showing ticker mappings, price source, quote currency, FX, and timestamps.
 
 Yahoo remains an Edit Mode-only search/manual-price source. The public
-**Refresh market prices** button uses OpenAI web search when its Worker key is
-configured, otherwise the Google Finance plus EODHD fallback.
+**Refresh market prices** button uses OpenAI web search only; without its
+Worker key, the dashboard retains the imported audit values.
 
 Prices for USD holdings are converted to THB using the Edit Mode FX input before
 being written to `Holdings`. DPS and withholding-tax edits are included in the

@@ -11,8 +11,6 @@ interface Env {
   EDIT_MODE_PASSWORD?: string;
   OPENAI_API_KEY?: string;
   OPENAI_MARKET_MODEL?: string;
-  EODHD_API_TOKEN?: string;
-  GOOGLE_FINANCE_BRIDGE_URL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

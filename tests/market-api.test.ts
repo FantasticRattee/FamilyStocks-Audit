@@ -92,90 +92,34 @@ test("uses a Worker-only OpenAI key for one sourced market refresh", async () =>
   ]);
 });
 
-test("returns Google Finance and EODHD quotes through the hybrid dashboard refresh", async () => {
+test("requires OpenAI for dashboard refresh and does not request any other provider", async () => {
   const calls: URL[] = [];
   const response = await handleMarketApiRequest(
     new Request("https://dashboard.local/api/market/refresh"),
     async (input) => {
       const url = new URL(String(input));
       calls.push(url);
-      if (url.hostname === "bridge.example") {
-        return Response.json({
-          fetchedAt: "2026-07-16T04:00:00.000Z",
-          quotes: {
-            GOOGL: {
-              price: 371.57,
-              currency: "USD",
-              quoteTimestamp: "2026-07-16T03:55:00.000Z",
-            },
-            USDTHB: {
-              price: 33.588,
-              currency: "THB",
-              quoteTimestamp: "2026-07-16T03:55:00.000Z",
-            },
-          },
-        });
-      }
-
-      const ticker = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
-      return Response.json([
-        {
-          date: "2026-07-15",
-          close: ticker === "SCB.BK" ? 122.5 : 176.5,
-        },
-      ]);
+      return Response.json({ unexpected: true });
     },
-    {
-      GOOGLE_FINANCE_BRIDGE_URL: "https://bridge.example/market",
-      EODHD_API_TOKEN: "test-eodhd-token",
-    },
+    {},
   );
 
   assert.ok(response);
   assert.equal(response.status, 200);
   const body = (await response.json()) as {
+    provider?: string;
     quotes: Record<string, Record<string, unknown>>;
     failures: Record<string, string>;
   };
-  assert.deepEqual(body.quotes.GOOGL, {
-    symbol: "GOOGL",
-    price: 371.57,
-    currency: "USD",
-    exchange: "NASDAQ",
-    marketState: "DELAYED",
-    quoteTimestamp: "2026-07-16T03:55:00.000Z",
-    source: "Google Finance",
-    freshness: "delayed",
+  assert.equal(body.provider, "OpenAI web search");
+  assert.deepEqual(body.quotes, {});
+  assert.deepEqual(body.failures, {
+    GOOGL: "OpenAI is not configured. Add OPENAI_API_KEY.",
+    USDTHB: "OpenAI is not configured. Add OPENAI_API_KEY.",
+    SCB: "OpenAI is not configured. Add OPENAI_API_KEY.",
+    KBANK: "OpenAI is not configured. Add OPENAI_API_KEY.",
   });
-  assert.deepEqual(body.quotes.USDTHB, {
-    symbol: "USDTHB",
-    price: 33.588,
-    currency: "THB",
-    exchange: "FX",
-    marketState: "DELAYED",
-    quoteTimestamp: "2026-07-16T03:55:00.000Z",
-    source: "Google Finance",
-    freshness: "delayed",
-  });
-  assert.deepEqual(body.quotes.SCB, {
-    symbol: "SCB.BK",
-    price: 122.5,
-    currency: "THB",
-    exchange: "SET",
-    marketState: "CLOSED",
-    quoteTimestamp: "2026-07-15T00:00:00.000Z",
-    source: "EODHD",
-    freshness: "latest close",
-  });
-  assert.equal(body.quotes.KBANK?.price, 176.5);
-  assert.deepEqual(body.failures, {});
-  assert.equal(calls.filter((url) => url.hostname === "bridge.example").length, 1);
-  const eodhdCalls = calls.filter((url) => url.hostname === "eodhd.com");
-  assert.deepEqual(eodhdCalls.map((url) => url.pathname).sort(), [
-    "/api/eod/KBANK.BK",
-    "/api/eod/SCB.BK",
-  ]);
-  assert.ok(eodhdCalls.every((url) => url.searchParams.get("api_token") === "test-eodhd-token"));
+  assert.deepEqual(calls, []);
 });
 
 test("returns Yahoo search candidates without silently choosing one", async () => {

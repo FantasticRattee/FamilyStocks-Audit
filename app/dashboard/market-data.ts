@@ -13,7 +13,7 @@ export type MarketQuote = {
   exchange: string;
   marketState: string;
   quoteTimestamp?: string;
-  source?: "Yahoo Finance" | "Google Finance" | "EODHD" | "OpenAI web search";
+  source?: "Yahoo Finance" | "OpenAI web search";
   freshness?: "delayed" | "latest close" | "searched live";
 };
 

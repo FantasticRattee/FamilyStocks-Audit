@@ -78,8 +78,7 @@ test("keeps one manual sourced market refresh separate from the Excel audit reco
   assert.match(dashboard, /applyLiveMarketState/);
   assert.match(dashboard, /OpenAI web search/);
   assert.match(dashboard, /liveMarketState\.sources/);
-  assert.match(dashboard, /Google Finance \(delayed\)/);
-  assert.match(dashboard, /EODHD \(latest close\)/);
+  assert.doesNotMatch(dashboard, /Google Finance|EODHD/);
   assert.doesNotMatch(dashboard, /setInterval\s*\(/);
   assert.match(styles, /\.live-market-status/);
   assert.match(styles, /\.live-market-source-links/);
@@ -89,8 +88,7 @@ test("keeps one manual sourced market refresh separate from the Excel audit reco
   const html = await response.text();
   assert.match(html, /Refresh market prices/);
   assert.match(html, /OpenAI web search/);
-  assert.match(html, /Google Finance \(delayed\)/);
-  assert.match(html, /EODHD \(latest close\)/);
+  assert.doesNotMatch(html, /Google Finance|EODHD/);
 });
 
 test("server-renders the approved Family Wealth graph-first overview", async () => {

@@ -187,8 +187,8 @@ test("keeps the audit price and FX for failed or currency-mismatched quotes", as
       USDTHB: quote("USDTHB", -1, "THB"),
     },
     failures: {
-      SCB: "EODHD is temporarily unavailable.",
-      KBANK: "EODHD is temporarily unavailable.",
+      SCB: "OpenAI web search is temporarily unavailable.",
+      KBANK: "OpenAI web search is temporarily unavailable.",
     },
     fetchedAt: "2026-07-15T16:01:00.000Z",
   });
