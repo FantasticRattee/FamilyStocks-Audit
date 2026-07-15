@@ -172,6 +172,7 @@ select:focus-visible {
 
 .dashboard-shell {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .topbar {
@@ -432,6 +433,13 @@ select:focus-visible {
   overflow-x: auto;
   margin-bottom: 24px;
   padding-bottom: 2px;
+  scrollbar-width: none;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: x proximity;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tabs button {
@@ -443,6 +451,7 @@ select:focus-visible {
   padding: 9px 13px;
   font-size: 0.82rem;
   font-weight: 800;
+  scroll-snap-align: start;
 }
 
 .tabs button:hover {
@@ -2563,7 +2572,27 @@ td strong {
   }
 
   .topbar-inner {
-    min-height: 72px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .brand-cluster {
+    min-width: 0;
+  }
+
+  .topbar-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .topbar-actions .button {
+    width: 100%;
+    padding: 0 10px;
   }
 
   .topbar-actions .button-ghost {
@@ -2580,6 +2609,17 @@ td strong {
 
   .scenario-actions {
     justify-content: flex-start;
+  }
+
+  .source-banner,
+  .live-market-status {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .import-zone {
+    gap: 10px;
+    padding: 14px;
   }
 
   .metric-grid {
@@ -2847,6 +2887,134 @@ td strong {
   .edit-password-actions {
     display: grid;
     grid-template-columns: 0.8fr 1.2fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .panel,
+  .scenario-panel {
+    padding: 16px;
+  }
+
+  .dashboard-container {
+    padding-top: 18px;
+  }
+
+  .topbar h1 {
+    font-size: 1.16rem;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .wealth-hero-primary {
+    min-height: 214px;
+    padding: 22px 18px;
+  }
+
+  .wealth-hero-copy {
+    width: 70%;
+  }
+
+  .wealth-hero-primary h2 {
+    font-size: clamp(1.9rem, 13vw, 2.7rem);
+  }
+
+  .wealth-hero-artwork {
+    width: 70%;
+    opacity: 0.76;
+  }
+
+  .wealth-hero-stats > div {
+    gap: 5px;
+    padding: 14px 18px;
+  }
+
+  .ownership-row {
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .owner-bars {
+    grid-template-columns: 44px minmax(0, 1fr) 78px;
+  }
+
+  .owner-bar-labels span,
+  .owner-bar-values strong {
+    font-size: 0.68rem;
+  }
+
+  .composition-experience {
+    gap: 14px;
+  }
+
+  .composition-3d-stage {
+    min-height: 270px;
+    border-radius: 17px;
+  }
+
+  .composition-center-card {
+    width: 132px;
+    min-height: 76px;
+    border-radius: 15px;
+  }
+
+  .allocation-detail-card {
+    border-radius: 15px;
+    padding: 14px;
+  }
+
+  .pnl-compact-grid {
+    grid-template-columns: 36px minmax(0, 1fr) 74px;
+  }
+
+  .pnl-axis {
+    margin-left: 43px;
+    padding-right: 81px;
+  }
+
+  .pnl-row-labels strong,
+  .pnl-row-values b {
+    font-size: 0.69rem;
+  }
+
+  .dividend-compact-grid {
+    grid-template-columns: 68px minmax(0, 1fr) 72px;
+  }
+
+  .dividend-row-labels strong,
+  .dividend-row-values b {
+    font-size: 0.68rem;
+  }
+
+  .dividend-row-labels span {
+    font-size: 0.61rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-actions .button {
+    min-height: 44px;
+  }
+
+  .wealth-hero-copy {
+    width: 74%;
+  }
+
+  .wealth-hero-artwork {
+    width: 66%;
+    opacity: 0.68;
+  }
+
+  .shared-pool-badge {
+    min-width: 0;
   }
 }
 

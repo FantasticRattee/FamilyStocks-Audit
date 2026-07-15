@@ -144,6 +144,25 @@ test("uses the family portrait across the full hero while reserving a legible co
   assert.match(styles, /\.dividend-total\s*\{[^}]*color:\s*var\(--navy\)/i);
 });
 
+test("defines a compact, no-overflow layout for phone-sized Family Wealth views", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.dashboard-shell\s*\{[^}]*overflow-x:\s*clip/i);
+  assert.match(
+    styles,
+    /@media \(max-width: 620px\)\s*\{[\s\S]*?\.topbar-inner\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/i,
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 390px\)\s*\{[\s\S]*?\.composition-3d-stage\s*\{[\s\S]*?min-height:\s*270px/i,
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 360px\)\s*\{[\s\S]*?\.topbar-actions\s*\{[\s\S]*?grid-template-columns:\s*1fr/i,
+  );
+  assert.match(styles, /\.tabs::-webkit-scrollbar\s*\{[^}]*display:\s*none/i);
+});
+
 test("server-renders Plan A as an accessible interactive 3D allocation ring", async () => {
   const response = await render();
   assert.equal(response.status, 200);

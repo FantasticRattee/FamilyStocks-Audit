@@ -13,6 +13,22 @@ npm run dev
 
 Open the Local URL printed by the command (normally `http://localhost:3000`).
 
+## Mobile layout
+
+The Family Wealth overview preserves the same dashboard on phones rather than
+switching to a reduced mobile version. It is optimized for **390×844** and
+remains usable down to **320×568**:
+
+- Header actions remain full-size touch targets; they stack at the narrowest
+  width.
+- The hero, ownership comparison, allocation ring, P&L, and dividend charts
+  stay visible without overlapping their labels or values.
+- Dashboard tabs scroll horizontally when needed. Data tables retain their
+  intentional horizontal scroll wrappers.
+
+The mobile rules are presentation-only: they do not change workbook imports,
+Excel exports, market refreshes, password checks, or portfolio calculations.
+
 ## Refresh the dashboard data
 
 1. Update and save `Portfolio_Accounting.xlsx` in Excel so formula results are current.
