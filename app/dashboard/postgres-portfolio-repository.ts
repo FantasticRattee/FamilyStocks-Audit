@@ -344,7 +344,11 @@ export class PostgresPortfolioRepository
       failures: {},
     });
     const sources = uniqueSources(rows.rows.map((row) => row.sources));
-    const provider = rows.rows.find((row) => row.source)?.source;
+    const provider = rows.rows.find(
+      (row) =>
+        Date.parse(isoString(row.quote_timestamp)) === latestTimestamp &&
+        row.source,
+    )?.source;
     return {
       ...merged,
       fetchedAt: new Date(latestTimestamp).toISOString(),

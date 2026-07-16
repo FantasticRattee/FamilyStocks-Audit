@@ -240,13 +240,28 @@ test("retries PostgreSQL schema setup after a transient first failure", async ()
 });
 
 test("PostgreSQL cooldown returns fresh persisted quotes and expires stale ones", async () => {
-  const createRepository = (quoteTimestamp: string) => {
+  const createRepository = (quoteTimestamp: string, includeOlderSeed = false) => {
     const fakePool = {
       async query(sql: string) {
         if (sql.includes("CREATE TABLE IF NOT EXISTS")) return { rows: [] };
         if (sql.includes("FROM market_quotes")) {
+          const olderSeed = {
+            market_key: "KBANK",
+            symbol: "KBANK",
+            price: 231,
+            currency: "THB",
+            exchange: "SET",
+            market_state: "CLOSED",
+            quote_timestamp: new Date(
+              Date.parse(quoteTimestamp) - 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            source: "Embedded audit seed",
+            freshness: "imported audit value",
+            sources: [],
+          };
           return {
             rows: [
+              ...(includeOlderSeed ? [olderSeed] : []),
               {
                 market_key: "GOOGL",
                 symbol: "GOOGL",
@@ -275,12 +290,13 @@ test("PostgreSQL cooldown returns fresh persisted quotes and expires stale ones"
 
   const freshRepository = createRepository(
     new Date(Date.now() - 60_000).toISOString(),
+    true,
   );
   const fresh = await freshRepository.loadRecentMarketRefresh(5 * 60 * 1000);
   assert.ok(fresh);
   assert.equal(fresh.quotes.GOOGL?.price, 372.49);
   assert.deepEqual(fresh.refreshedKeys, []);
-  assert.deepEqual(fresh.retainedKeys, ["GOOGL"]);
+  assert.deepEqual(fresh.retainedKeys, ["GOOGL", "KBANK"]);
   assert.equal(fresh.provider, "OpenAI web search");
   assert.equal(fresh.sources?.length, 1);
 
