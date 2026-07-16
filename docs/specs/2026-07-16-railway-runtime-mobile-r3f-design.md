@@ -49,7 +49,10 @@ can verify a password.
   - incorrect password: `401`
   - correct password: `200 { authenticated: true }`
 - `GET /api/market/refresh`
-  - configured OpenAI key: one sourced Responses API web-search request
+  - configured OpenAI key: one sourced Responses API web-search request, plus
+    at most one focused retry for only missing keys
+  - use an active intraday quote while the market is open, or the latest
+    official close when it is closed
   - missing/failed key or quote: retain the imported Excel price/FX and report
     a per-key failure
 
@@ -133,7 +136,8 @@ No workbook regeneration or accounting-document change is required.
   the Worker env is absent.
 - A configured production password unlocks Edit Mode; no database is involved.
 - A configured production OpenAI key powers Refresh market prices; no alternate
-  provider is called.
+  provider is called. Missing values receive at most one OpenAI-only focused
+  retry before the audit-price fallback is used.
 - The mobile hero image fills the complete hero stage.
 - R3F remains interactive on WebGL-capable mobile browsers, and a clickable
   allocation fallback replaces the unavailable message elsewhere.
@@ -147,6 +151,9 @@ No workbook regeneration or accounting-document change is required.
   configured diagnostic password; the previous undefined-env HTTP 500 is gone.
 - Automated market-route coverage proved that an undefined Worker env resolves
   the Railway `OPENAI_API_KEY` and passes it only in server-side authorization.
+- Market-route coverage also proves that a complete first result uses one
+  request, while an incomplete result retries only the missing keys and accepts
+  the latest official close when a market is closed.
 - Rendered/source checks pin the full-width phone hero, `pan-y` canvas touch
   behavior, and clickable no-WebGL allocation ring.
 - Headless Chrome at 393 x 852 measured `scrollWidth === innerWidth === 393`.

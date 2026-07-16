@@ -63,10 +63,12 @@ Select **Refresh market prices** in the top bar for one manual, display-only
 refresh. There is no automatic timer and the Excel workbook remains the audit
 record.
 
-- The Worker makes **one OpenAI Responses API web-search request** for GOOGL,
-  USD/THB, SCB, and KBANK. The UI labels these values **OpenAI web search ·
-  searched live** and shows clickable *Sources consulted* links returned by
-  the search.
+- The Worker first makes **one OpenAI Responses API web-search request** for
+  GOOGL, USD/THB, SCB, and KBANK. If any quote is missing, it makes at most one
+  focused retry for only the missing keys. The prompt accepts an active
+  intraday quote while a market is open and the latest official close after it
+  closes. The UI labels returned values **OpenAI web search · searched live**
+  and shows clickable *Sources consulted* links returned by the search.
 - OpenAI is the only provider for this button. If its key, search sources, or
   quote data are unavailable, the dashboard keeps the imported Excel audit
   prices and FX instead of trying another provider.
@@ -87,10 +89,11 @@ cannot refresh).
    `OPENAI_MARKET_MODEL=gpt-5.6`; this is the default when omitted.
 3. Restart `npm run dev`, then select **Refresh market prices**.
 
-Each click is one API request with required live web search, so it incurs your
-OpenAI API usage. It is a sourced lookup, not a licensed exchange feed: inspect
-the displayed sources before acting on a value, and keep the workbook's entered
-price/cost basis as the historical audit record.
+Each click uses one API request when all four values are found, or two requests
+when a focused missing-key retry is needed. Both require live web search and
+therefore incur OpenAI API usage. This is a sourced lookup, not a licensed
+exchange feed: inspect the displayed sources before acting on a value, and keep
+the workbook's entered price/cost basis as the historical audit record.
 
 For Cloudflare deployment, set `OPENAI_API_KEY` (and optionally
 `OPENAI_MARKET_MODEL`) as Worker secrets rather than browser-visible variables.

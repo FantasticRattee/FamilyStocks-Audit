@@ -78,15 +78,26 @@ const OPENAI_MARKET_SCHEMA = {
   additionalProperties: false,
 };
 
-const OPENAI_MARKET_INPUT = [
-  "Use live web search to find exact, current market prices. Return only JSON matching the schema.",
-  "Do not estimate, calculate, convert currencies, or use an old price when a current quote is unavailable.",
-  "Include only a ticker whose numeric price can be verified from the search results.",
-  "GOOGL: Alphabet Class A share price in USD on NASDAQ.",
-  "USDTHB: USD to THB exchange-rate quote in THB per USD.",
-  "SCB: Siam Commercial Bank share price in THB on SET.",
-  "KBANK: Kasikornbank share price in THB on SET.",
-].join("\n");
+const OPENAI_MARKET_DESCRIPTIONS: Record<OpenAiMarketKey, string> = {
+  GOOGL: "GOOGL: Alphabet Class A share price in USD on NASDAQ.",
+  USDTHB: "USDTHB: USD to THB exchange-rate quote in THB per USD.",
+  SCB: "SCB: SCB X Public Company Limited share price in THB on SET.",
+  KBANK: "KBANK: Kasikornbank Public Company Limited share price in THB on SET.",
+};
+
+const openAiMarketInput = (keys: OpenAiMarketKey[], retry = false) =>
+  [
+    "Use live web search to find exact, current market prices. Return only JSON matching the schema.",
+    "Do not estimate, calculate, or convert currencies.",
+    "Use an active intraday quote when the market is open, or the latest official close when the market is closed.",
+    "Include only a key whose numeric price can be verified from the search results.",
+    retry
+      ? `A previous lookup omitted these keys: ${keys.join(", ")}. Search again only for these keys.`
+      : "",
+    ...keys.map((key) => OPENAI_MARKET_DESCRIPTIONS[key]),
+  ]
+    .filter(Boolean)
+    .join("\n");
 
 const cacheTtlMs = 5 * 60 * 1000;
 const responseCache = new Map<string, CachedPayload>();
@@ -282,6 +293,54 @@ const parseOpenAiMarketQuotes = (
   }
 };
 
+const requestOpenAiMarketResponse = (
+  environment: MarketApiEnvironment,
+  apiKey: string,
+  keys: OpenAiMarketKey[],
+  fetchImplementation: FetchImplementation,
+  retry = false,
+) =>
+  fetchImplementation(OPENAI_MARKET_RESPONSE_URL, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6",
+      tools: [
+        {
+          type: "web_search",
+          search_context_size: "low",
+          external_web_access: true,
+        },
+      ],
+      tool_choice: "required",
+      include: ["web_search_call.action.sources"],
+      store: false,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "market_quotes",
+          strict: true,
+          schema: OPENAI_MARKET_SCHEMA,
+        },
+      },
+      input: openAiMarketInput(keys, retry),
+    }),
+  });
+
+const mergeSources = (
+  ...sourceGroups: MarketRefreshSource[][]
+): MarketRefreshSource[] => {
+  const sources = new Map<string, MarketRefreshSource>();
+  for (const source of sourceGroups.flat()) {
+    if (!sources.has(source.url)) sources.set(source.url, source);
+  }
+  return [...sources.values()].slice(0, 6);
+};
+
 const refreshOpenAiMarketQuotes = async (
   environment: MarketApiEnvironment,
   fetchImplementation: FetchImplementation,
@@ -299,36 +358,12 @@ const refreshOpenAiMarketQuotes = async (
 
   let response: Response;
   try {
-    response = await fetchImplementation(OPENAI_MARKET_RESPONSE_URL, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6",
-        tools: [
-          {
-            type: "web_search",
-            search_context_size: "low",
-            external_web_access: true,
-          },
-        ],
-        tool_choice: "required",
-        include: ["web_search_call.action.sources"],
-        store: false,
-        text: {
-          format: {
-            type: "json_schema",
-            name: "market_quotes",
-            strict: true,
-            schema: OPENAI_MARKET_SCHEMA,
-          },
-        },
-        input: OPENAI_MARKET_INPUT,
-      }),
-    });
+    response = await requestOpenAiMarketResponse(
+      environment,
+      apiKey,
+      Object.keys(OPENAI_MARKET_QUOTES) as OpenAiMarketKey[],
+      fetchImplementation,
+    );
   } catch {
     return {
       quotes: {},
@@ -370,8 +405,8 @@ const refreshOpenAiMarketQuotes = async (
     };
   }
 
-  const quotes = parseOpenAiMarketQuotes(payload, fetchedAt);
-  if (!quotes) {
+  const initialQuotes = parseOpenAiMarketQuotes(payload, fetchedAt);
+  if (!initialQuotes) {
     return {
       quotes: {},
       failures: marketRefreshFailures("OpenAI web search did not return a valid quote response."),
@@ -381,13 +416,51 @@ const refreshOpenAiMarketQuotes = async (
     };
   }
 
+  const quotes = { ...initialQuotes };
+  let combinedSources = sources;
+  const missingKeys = (Object.keys(OPENAI_MARKET_QUOTES) as OpenAiMarketKey[])
+    .filter((key) => !quotes[key]);
+
+  if (missingKeys.length > 0) {
+    try {
+      const retryResponse = await requestOpenAiMarketResponse(
+        environment,
+        apiKey,
+        missingKeys,
+        fetchImplementation,
+        true,
+      );
+      if (retryResponse.ok) {
+        const retryPayload: unknown = await retryResponse.json();
+        const retrySources = openAiSources(retryPayload);
+        const retryQuotes = retrySources.length
+          ? parseOpenAiMarketQuotes(retryPayload, responseTimestamp(retryPayload))
+          : null;
+        if (retryQuotes) {
+          for (const key of missingKeys) {
+            if (retryQuotes[key]) quotes[key] = retryQuotes[key];
+          }
+          combinedSources = mergeSources(sources, retrySources);
+        }
+      }
+    } catch {
+      // Keep the first sourced result and report any still-missing keys below.
+    }
+  }
+
   const failures: Record<string, string> = {};
   for (const [key, config] of Object.entries(OPENAI_MARKET_QUOTES)) {
     if (!quotes[key]) {
       failures[key] = `OpenAI web search did not return a valid ${config.currency} quote for ${key}.`;
     }
   }
-  return { quotes, failures, fetchedAt, provider: "OpenAI web search", sources };
+  return {
+    quotes,
+    failures,
+    fetchedAt,
+    provider: "OpenAI web search",
+    sources: combinedSources,
+  };
 };
 
 const refreshMarketQuotes = (

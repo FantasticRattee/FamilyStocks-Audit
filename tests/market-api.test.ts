@@ -92,6 +92,72 @@ test("uses a Worker-only OpenAI key for one sourced market refresh", async () =>
   ]);
 });
 
+test("retries only missing OpenAI quotes with market-closed guidance", async () => {
+  const requests: Array<Record<string, unknown>> = [];
+  const response = await handleMarketApiRequest(
+    new Request("https://dashboard.local/api/market/refresh"),
+    async (_input, init) => {
+      requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      const isRetry = requests.length === 2;
+
+      return Response.json({
+        created_at: 1784131200 + (isRetry ? 1 : 0),
+        output: [
+          {
+            type: "web_search_call",
+            action: {
+              type: "search",
+              sources: [
+                {
+                  url: isRetry
+                    ? "https://www.set.or.th/en/market/product/stock/quote/SCB/price"
+                    : "https://www.google.com/finance/quote/GOOGL:NASDAQ",
+                  title: isRetry ? "SET quotes" : "Alphabet Inc Class A",
+                },
+              ],
+            },
+          },
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  quotes: isRetry
+                    ? [
+                        { key: "USDTHB", price: 33.8 },
+                        { key: "SCB", price: 158 },
+                        { key: "KBANK", price: 235 },
+                      ]
+                    : [{ key: "GOOGL", price: 371.73 }],
+                }),
+              },
+            ],
+          },
+        ],
+      });
+    },
+    { OPENAI_API_KEY: "test-openai-key" },
+  );
+
+  assert.ok(response);
+  const body = (await response.json()) as {
+    quotes: Record<string, { price: number }>;
+    failures: Record<string, string>;
+    sources?: Array<{ url: string; title: string }>;
+  };
+  assert.equal(requests.length, 2);
+  assert.deepEqual(Object.keys(body.quotes).sort(), ["GOOGL", "KBANK", "SCB", "USDTHB"]);
+  assert.equal(body.quotes.GOOGL?.price, 371.73);
+  assert.equal(body.quotes.SCB?.price, 158);
+  assert.deepEqual(body.failures, {});
+  assert.equal(body.sources?.length, 2);
+
+  const retryInput = String(requests[1]?.input ?? "");
+  assert.match(retryInput, /USDTHB, SCB, KBANK/);
+  assert.match(retryInput, /latest official close when the market is closed/i);
+});
+
 test("requires OpenAI for dashboard refresh and does not request any other provider", async () => {
   const calls: URL[] = [];
   const response = await handleMarketApiRequest(
