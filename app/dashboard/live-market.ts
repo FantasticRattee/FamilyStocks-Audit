@@ -34,6 +34,9 @@ export type LiveMarketBatchResponse = {
   fetchedAt: string;
   provider?: string;
   sources?: LiveMarketSource[];
+  refreshedKeys?: string[];
+  retainedKeys?: string[];
+  cooldownActive?: boolean;
 };
 
 export type LiveMarketSource = {
@@ -49,7 +52,11 @@ export type LiveMarketState = {
   sources?: LiveMarketSource[];
   failures: Record<string, string>;
   refreshedStockCount: number;
+  retainedStockCount: number;
   requestedStockCount: number;
+  refreshedFx: boolean;
+  retainedFx: boolean;
+  cooldownActive: boolean;
 };
 
 const uniqueHoldings = (snapshot: DashboardSnapshot) =>
@@ -104,6 +111,8 @@ export function createLiveMarketState(
 ): LiveMarketState {
   const quotesByTicker: Record<string, MarketQuote> = {};
   const failures = { ...plan.unmappedTickers };
+  const refreshedKeys = new Set(response.refreshedKeys ?? []);
+  const retainedKeys = new Set(response.retainedKeys ?? []);
 
   for (const stock of plan.stocks) {
     const quote = response.quotes[stock.marketKey];
@@ -139,8 +148,20 @@ export function createLiveMarketState(
     ...(response.provider ? { provider: response.provider } : {}),
     ...(response.sources?.length ? { sources: response.sources } : {}),
     failures,
-    refreshedStockCount: Object.keys(quotesByTicker).length,
+    refreshedStockCount: response.refreshedKeys
+      ? plan.stocks.filter(
+          (stock) =>
+            refreshedKeys.has(stock.marketKey) && Boolean(quotesByTicker[stock.ticker]),
+        ).length
+      : Object.keys(quotesByTicker).length,
+    retainedStockCount: plan.stocks.filter(
+      (stock) =>
+        retainedKeys.has(stock.marketKey) && Boolean(quotesByTicker[stock.ticker]),
+    ).length,
     requestedStockCount: plan.stocks.length,
+    refreshedFx: refreshedKeys.has(USD_THB_MARKET_KEY),
+    retainedFx: retainedKeys.has(USD_THB_MARKET_KEY),
+    cooldownActive: response.cooldownActive === true,
   };
 }
 

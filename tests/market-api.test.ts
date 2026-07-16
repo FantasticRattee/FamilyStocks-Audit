@@ -3,65 +3,86 @@ import test from "node:test";
 
 import { handleMarketApiRequest } from "../app/dashboard/market-api";
 
-test("uses a Worker-only OpenAI key for one sourced market refresh", async () => {
+test("uses a bounded low-consumption OpenAI request and logs usage", async () => {
   const calls: Array<{ url: URL; init?: RequestInit }> = [];
-  const response = await handleMarketApiRequest(
-    new Request("https://dashboard.local/api/market/refresh"),
-    async (input, init) => {
-      const url = new URL(String(input));
-      calls.push({ url, init });
-      assert.equal(url.toString(), "https://api.openai.com/v1/responses");
-      assert.equal(new Headers(init?.headers).get("authorization"), "Bearer test-openai-key");
+  const usageLogs: unknown[][] = [];
+  const originalConsoleInfo = console.info;
+  console.info = (...args: unknown[]) => usageLogs.push(args);
 
-      const request = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      assert.equal(request.model, "gpt-5.6");
-      assert.equal(request.tool_choice, "required");
-      assert.deepEqual(request.tools, [
-        {
-          type: "web_search",
-          search_context_size: "low",
-          external_web_access: true,
-        },
-      ]);
+  let response: Response | null;
+  try {
+    response = await handleMarketApiRequest(
+      new Request("https://dashboard.local/api/market/refresh"),
+      async (input, init) => {
+        const url = new URL(String(input));
+        calls.push({ url, init });
+        assert.equal(url.toString(), "https://api.openai.com/v1/responses");
+        assert.equal(
+          new Headers(init?.headers).get("authorization"),
+          "Bearer test-openai-key",
+        );
 
-      return Response.json({
-        created_at: 1784131200,
-        output: [
-          {
-            type: "web_search_call",
-            action: {
-              type: "search",
-              sources: [
+        return Response.json({
+          created_at: 1784131200,
+          usage: {
+            input_tokens: 120,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 45,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 165,
+          },
+          output: [
+            {
+              type: "web_search_call",
+              action: {
+                type: "search",
+                sources: [
+                  {
+                    url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
+                    title: "Alphabet Inc Class A",
+                  },
+                ],
+              },
+            },
+            {
+              type: "message",
+              content: [
                 {
-                  url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
-                  title: "Alphabet Inc Class A",
+                  type: "output_text",
+                  text: JSON.stringify({
+                    quotes: [
+                      { key: "GOOGL", price: 372.49 },
+                      { key: "USDTHB", price: 33.8 },
+                      { key: "SCB", price: 122.5 },
+                      { key: "KBANK", price: 175.5 },
+                    ],
+                  }),
                 },
               ],
             },
-          },
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: JSON.stringify({
-                  quotes: [
-                    { key: "GOOGL", price: 372.49 },
-                    { key: "USDTHB", price: 33.8 },
-                    { key: "SCB", price: 122.5 },
-                    { key: "KBANK", price: 175.5 },
-                  ],
-                }),
-              },
-            ],
-          },
-        ],
-      });
-    },
-    { OPENAI_API_KEY: "test-openai-key" },
-  );
+          ],
+        });
+      },
+      { OPENAI_API_KEY: "test-openai-key" },
+    );
+  } finally {
+    console.info = originalConsoleInfo;
+  }
 
   assert.ok(response);
+  const request = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+  assert.equal(request.model, "gpt-5.6");
+  assert.equal(request.tool_choice, "required");
+  assert.deepEqual(request.reasoning, { effort: "none" });
+  assert.equal(request.max_output_tokens, 300);
+  assert.equal(request.max_tool_calls, 2);
+  assert.deepEqual(request.tools, [
+    {
+      type: "web_search",
+      search_context_size: "low",
+      external_web_access: true,
+    },
+  ]);
   const body = (await response.json()) as {
     provider?: string;
     quotes: Record<string, Record<string, unknown>>;
@@ -90,18 +111,31 @@ test("uses a Worker-only OpenAI key for one sourced market refresh", async () =>
       title: "Alphabet Inc Class A",
     },
   ]);
+  assert.deepEqual(usageLogs, [
+    [
+      "[market-refresh] OpenAI usage",
+      {
+        model: "gpt-5.6",
+        inputTokens: 120,
+        cachedInputTokens: 0,
+        outputTokens: 45,
+        reasoningTokens: 0,
+        totalTokens: 165,
+        webSearchCalls: 1,
+      },
+    ],
+  ]);
 });
 
-test("retries only missing OpenAI quotes with market-closed guidance", async () => {
+test("does not automatically retry missing OpenAI quotes", async () => {
   const requests: Array<Record<string, unknown>> = [];
   const response = await handleMarketApiRequest(
     new Request("https://dashboard.local/api/market/refresh"),
     async (_input, init) => {
       requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
-      const isRetry = requests.length === 2;
 
       return Response.json({
-        created_at: 1784131200 + (isRetry ? 1 : 0),
+        created_at: 1784131200,
         output: [
           {
             type: "web_search_call",
@@ -109,10 +143,8 @@ test("retries only missing OpenAI quotes with market-closed guidance", async () 
               type: "search",
               sources: [
                 {
-                  url: isRetry
-                    ? "https://www.set.or.th/en/market/product/stock/quote/SCB/price"
-                    : "https://www.google.com/finance/quote/GOOGL:NASDAQ",
-                  title: isRetry ? "SET quotes" : "Alphabet Inc Class A",
+                  url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
+                  title: "Alphabet Inc Class A",
                 },
               ],
             },
@@ -123,13 +155,7 @@ test("retries only missing OpenAI quotes with market-closed guidance", async () 
               {
                 type: "output_text",
                 text: JSON.stringify({
-                  quotes: isRetry
-                    ? [
-                        { key: "USDTHB", price: 33.8 },
-                        { key: "SCB", price: 158 },
-                        { key: "KBANK", price: 235 },
-                      ]
-                    : [{ key: "GOOGL", price: 371.73 }],
+                  quotes: [{ key: "GOOGL", price: 371.73 }],
                 }),
               },
             ],
@@ -146,16 +172,78 @@ test("retries only missing OpenAI quotes with market-closed guidance", async () 
     failures: Record<string, string>;
     sources?: Array<{ url: string; title: string }>;
   };
-  assert.equal(requests.length, 2);
-  assert.deepEqual(Object.keys(body.quotes).sort(), ["GOOGL", "KBANK", "SCB", "USDTHB"]);
+  assert.equal(requests.length, 1);
+  assert.deepEqual(Object.keys(body.quotes), ["GOOGL"]);
   assert.equal(body.quotes.GOOGL?.price, 371.73);
-  assert.equal(body.quotes.SCB?.price, 158);
-  assert.deepEqual(body.failures, {});
-  assert.equal(body.sources?.length, 2);
+  assert.deepEqual(Object.keys(body.failures).sort(), ["KBANK", "SCB", "USDTHB"]);
+  assert.equal(body.sources?.length, 1);
 
-  const retryInput = String(requests[1]?.input ?? "");
-  assert.match(retryInput, /USDTHB, SCB, KBANK/);
-  assert.match(retryInput, /latest official close when the market is closed/i);
+  const input = String(requests[0]?.input ?? "");
+  assert.match(input, /latest official close when the market is closed/i);
+  assert.doesNotMatch(input, /previous lookup omitted/i);
+});
+
+test("reuses persisted quotes during the five-minute cooldown", async () => {
+  let loadCalls = 0;
+  let fetchCalls = 0;
+  let persistCalls = 0;
+  const quote = (symbol: string, price: number, currency: string) => ({
+    symbol,
+    price,
+    currency,
+    exchange: symbol === "GOOGL" ? "NASDAQ" : symbol === "USDTHB" ? "FX" : "SET",
+    marketState: "SEARCHED",
+    quoteTimestamp: new Date().toISOString(),
+    source: "OpenAI web search" as const,
+    freshness: "searched live" as const,
+  });
+  const recent = {
+    quotes: {
+      GOOGL: quote("GOOGL", 372.49, "USD"),
+      USDTHB: quote("USDTHB", 33.8, "THB"),
+      SCB: quote("SCB", 122.5, "THB"),
+      KBANK: quote("KBANK", 175.5, "THB"),
+    },
+    failures: {},
+    refreshedKeys: [],
+    retainedKeys: ["GOOGL", "USDTHB", "SCB", "KBANK"],
+    fetchedAt: new Date().toISOString(),
+    provider: "OpenAI web search",
+  };
+  const persistence = {
+    async loadRecentMarketRefresh(maxAgeMs: number) {
+      loadCalls += 1;
+      assert.equal(maxAgeMs, 5 * 60 * 1000);
+      return recent;
+    },
+    async persistMarketRefresh() {
+      persistCalls += 1;
+      return recent;
+    },
+  };
+
+  const response = await handleMarketApiRequest(
+    new Request("https://dashboard.local/api/market/refresh"),
+    async () => {
+      fetchCalls += 1;
+      return Response.json({ unexpected: true });
+    },
+    { OPENAI_API_KEY: "test-openai-key" },
+    persistence,
+  );
+
+  assert.ok(response);
+  const body = (await response.json()) as {
+    cooldownActive?: boolean;
+    refreshedKeys: string[];
+    retainedKeys: string[];
+  };
+  assert.equal(loadCalls, 1);
+  assert.equal(fetchCalls, 0);
+  assert.equal(persistCalls, 0);
+  assert.equal(body.cooldownActive, true);
+  assert.deepEqual(body.refreshedKeys, []);
+  assert.deepEqual(body.retainedKeys, ["GOOGL", "USDTHB", "SCB", "KBANK"]);
 });
 
 test("requires OpenAI for dashboard refresh and does not request any other provider", async () => {

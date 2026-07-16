@@ -23,6 +23,9 @@ type BatchQuotes = {
   fetchedAt: string;
   provider?: string;
   sources?: Array<{ url: string; title: string }>;
+  refreshedKeys?: string[];
+  retainedKeys?: string[];
+  cooldownActive?: boolean;
 };
 
 type LiveMarketModule = {
@@ -169,6 +172,32 @@ test("retains OpenAI web-search source links with the display-only market state"
       title: "Alphabet Inc Class A",
     },
   ]);
+});
+
+test("marks a persisted five-minute cooldown response for transparent UI status", async () => {
+  const liveMarket = await loadLiveMarketModule();
+  const snapshot = await loadSnapshot();
+  const plan = liveMarket.createLiveMarketRefreshPlan(
+    snapshot,
+    createHoldingEdits(snapshot),
+  );
+
+  const state = liveMarket.createLiveMarketState(plan, {
+    quotes: {
+      GOOGL: quote("GOOGL", 372.49, "USD"),
+      SCB: quote("SCB", 122.5, "THB"),
+      KBANK: quote("KBANK", 175.5, "THB"),
+      USDTHB: quote("USDTHB", 33.8, "THB"),
+    },
+    failures: {},
+    fetchedAt: "2026-07-15T16:00:00.000Z",
+    provider: "OpenAI web search",
+    refreshedKeys: [],
+    retainedKeys: ["GOOGL", "SCB", "KBANK", "USDTHB"],
+    cooldownActive: true,
+  }) as { cooldownActive?: boolean };
+
+  assert.equal(state.cooldownActive, true);
 });
 
 test("keeps the audit price and FX for failed or currency-mismatched quotes", async () => {

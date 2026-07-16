@@ -4,6 +4,7 @@ import {
   parseYahooSearch,
   type MarketQuote,
 } from "./market-data";
+import type { MarketQuotePersistenceRepository } from "./portfolio-repository";
 
 type FetchImplementation = (
   input: RequestInfo | URL,
@@ -48,7 +49,7 @@ type MarketRefreshSource = {
   title: string;
 };
 
-type MarketRefreshPayload = {
+export type MarketRefreshPayload = {
   quotes: Record<string, MarketQuote>;
   failures: Record<string, string>;
   fetchedAt: string;
@@ -85,21 +86,19 @@ const OPENAI_MARKET_DESCRIPTIONS: Record<OpenAiMarketKey, string> = {
   KBANK: "KBANK: Kasikornbank Public Company Limited share price in THB on SET.",
 };
 
-const openAiMarketInput = (keys: OpenAiMarketKey[], retry = false) =>
+const openAiMarketInput = (keys: OpenAiMarketKey[]) =>
   [
     "Use live web search to find exact, current market prices. Return only JSON matching the schema.",
     "Do not estimate, calculate, or convert currencies.",
     "Use an active intraday quote when the market is open, or the latest official close when the market is closed.",
     "Include only a key whose numeric price can be verified from the search results.",
-    retry
-      ? `A previous lookup omitted these keys: ${keys.join(", ")}. Search again only for these keys.`
-      : "",
     ...keys.map((key) => OPENAI_MARKET_DESCRIPTIONS[key]),
   ]
     .filter(Boolean)
     .join("\n");
 
 const cacheTtlMs = 5 * 60 * 1000;
+const marketRefreshCooldownMs = 5 * 60 * 1000;
 const responseCache = new Map<string, CachedPayload>();
 
 const json = (
@@ -192,6 +191,9 @@ const text = (value: unknown) =>
 
 const positiveFinite = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+
+const nonNegativeFinite = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 
 const httpsUrl = (value: unknown) => {
   const raw = text(value);
@@ -298,7 +300,6 @@ const requestOpenAiMarketResponse = (
   apiKey: string,
   keys: OpenAiMarketKey[],
   fetchImplementation: FetchImplementation,
-  retry = false,
 ) =>
   fetchImplementation(OPENAI_MARKET_RESPONSE_URL, {
     method: "POST",
@@ -309,6 +310,9 @@ const requestOpenAiMarketResponse = (
     },
     body: JSON.stringify({
       model: environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6",
+      reasoning: { effort: "none" },
+      max_output_tokens: 300,
+      max_tool_calls: 2,
       tools: [
         {
           type: "web_search",
@@ -327,18 +331,29 @@ const requestOpenAiMarketResponse = (
           schema: OPENAI_MARKET_SCHEMA,
         },
       },
-      input: openAiMarketInput(keys, retry),
+      input: openAiMarketInput(keys),
     }),
   });
 
-const mergeSources = (
-  ...sourceGroups: MarketRefreshSource[][]
-): MarketRefreshSource[] => {
-  const sources = new Map<string, MarketRefreshSource>();
-  for (const source of sourceGroups.flat()) {
-    if (!sources.has(source.url)) sources.set(source.url, source);
-  }
-  return [...sources.values()].slice(0, 6);
+const logOpenAiUsage = (payload: unknown, model: string) => {
+  const root = asRecord(payload);
+  const usage = asRecord(root?.usage);
+  if (!usage) return;
+  const inputDetails = asRecord(usage.input_tokens_details);
+  const outputDetails = asRecord(usage.output_tokens_details);
+  const webSearchCalls = Array.isArray(root?.output)
+    ? root.output.filter((item) => asRecord(item)?.type === "web_search_call").length
+    : 0;
+
+  console.info("[market-refresh] OpenAI usage", {
+    model,
+    inputTokens: nonNegativeFinite(usage.input_tokens),
+    cachedInputTokens: nonNegativeFinite(inputDetails?.cached_tokens),
+    outputTokens: nonNegativeFinite(usage.output_tokens),
+    reasoningTokens: nonNegativeFinite(outputDetails?.reasoning_tokens),
+    totalTokens: nonNegativeFinite(usage.total_tokens),
+    webSearchCalls,
+  });
 };
 
 const refreshOpenAiMarketQuotes = async (
@@ -346,6 +361,7 @@ const refreshOpenAiMarketQuotes = async (
   fetchImplementation: FetchImplementation,
 ): Promise<MarketRefreshPayload> => {
   const apiKey = environment.OPENAI_API_KEY?.trim();
+  const model = environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6";
   const fallbackTimestamp = new Date().toISOString();
   if (!apiKey) {
     return {
@@ -393,6 +409,7 @@ const refreshOpenAiMarketQuotes = async (
       provider: "OpenAI web search",
     };
   }
+  logOpenAiUsage(payload, model);
 
   const fetchedAt = responseTimestamp(payload);
   const sources = openAiSources(payload);
@@ -417,36 +434,6 @@ const refreshOpenAiMarketQuotes = async (
   }
 
   const quotes = { ...initialQuotes };
-  let combinedSources = sources;
-  const missingKeys = (Object.keys(OPENAI_MARKET_QUOTES) as OpenAiMarketKey[])
-    .filter((key) => !quotes[key]);
-
-  if (missingKeys.length > 0) {
-    try {
-      const retryResponse = await requestOpenAiMarketResponse(
-        environment,
-        apiKey,
-        missingKeys,
-        fetchImplementation,
-        true,
-      );
-      if (retryResponse.ok) {
-        const retryPayload: unknown = await retryResponse.json();
-        const retrySources = openAiSources(retryPayload);
-        const retryQuotes = retrySources.length
-          ? parseOpenAiMarketQuotes(retryPayload, responseTimestamp(retryPayload))
-          : null;
-        if (retryQuotes) {
-          for (const key of missingKeys) {
-            if (retryQuotes[key]) quotes[key] = retryQuotes[key];
-          }
-          combinedSources = mergeSources(sources, retrySources);
-        }
-      }
-    } catch {
-      // Keep the first sourced result and report any still-missing keys below.
-    }
-  }
 
   const failures: Record<string, string> = {};
   for (const [key, config] of Object.entries(OPENAI_MARKET_QUOTES)) {
@@ -459,7 +446,7 @@ const refreshOpenAiMarketQuotes = async (
     failures,
     fetchedAt,
     provider: "OpenAI web search",
-    sources: combinedSources,
+    sources,
   };
 };
 
@@ -526,6 +513,7 @@ export async function handleMarketApiRequest(
   request: Request,
   fetchImplementation: FetchImplementation = fetch,
   environment: MarketApiEnvironment = {},
+  persistence?: MarketQuotePersistenceRepository,
 ): Promise<Response | null> {
   const url = new URL(request.url);
   const isSearch = url.pathname === "/api/market/search";
@@ -535,7 +523,43 @@ export async function handleMarketApiRequest(
   if (!isSearch && !isQuote && !isBatchQuote && !isMarketRefresh) return null;
 
   if (isMarketRefresh) {
-    return json(await refreshMarketQuotes(environment, fetchImplementation), 200, "no-store");
+    if (persistence) {
+      try {
+        const recent = await persistence.loadRecentMarketRefresh(
+          marketRefreshCooldownMs,
+        );
+        if (recent) {
+          return json(
+            { ...recent, cooldownActive: true },
+            200,
+            "no-store",
+          );
+        }
+      } catch {
+        return json(
+          { error: "Shared market-price storage is unavailable." },
+          503,
+          "no-store",
+        );
+      }
+    }
+    const refreshed = await refreshMarketQuotes(environment, fetchImplementation);
+    if (!persistence) {
+      return json(refreshed, 200, "no-store");
+    }
+    try {
+      return json(
+        await persistence.persistMarketRefresh(refreshed),
+        200,
+        "no-store",
+      );
+    } catch {
+      return json(
+        { error: "Market prices were found but could not be saved to the shared database." },
+        503,
+        "no-store",
+      );
+    }
   }
 
   if (isSearch) {

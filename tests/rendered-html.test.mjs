@@ -76,7 +76,7 @@ test("uses one fixed local preview port while leaving Railway production dynamic
   assert.doesNotMatch(packageJson.scripts.start, /--port\s+3001/);
 });
 
-test("keeps Yahoo selection and Excel export in the finished dashboard source", async () => {
+test("keeps Yahoo selection and minimal Excel export in the finished dashboard source", async () => {
   const [dashboard, worker] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
@@ -84,14 +84,17 @@ test("keeps Yahoo selection and Excel export in the finished dashboard source", 
 
   assert.match(dashboard, /Save & Download Excel/);
   assert.match(dashboard, /\/api\/market\/search/);
-  assert.match(dashboard, /Dashboard Audit/);
+  assert.match(dashboard, /exportMinimalHoldingsWorkbook/);
+  assert.match(dashboard, /Ticker, Owner\/Account, Entry Price และ Units/);
+  assert.doesNotMatch(dashboard, /Dashboard Audit/);
   assert.doesNotMatch(dashboard, /Export JSON/);
-  assert.match(worker, /handleMarketApiRequest\(request,\s*fetch,\s*env\)/);
+  assert.match(worker, /handleMarketApiRequest\([\s\S]*?portfolioRepository/);
 });
 
-test("keeps one manual sourced market refresh separate from the Excel audit record", async () => {
-  const [dashboard, styles] = await Promise.all([
+test("persists one manual sourced market refresh in shared PostgreSQL", async () => {
+  const [dashboard, marketApi, styles] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/dashboard/market-api.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -100,7 +103,15 @@ test("keeps one manual sourced market refresh separate from the Excel audit reco
   assert.match(dashboard, /createLiveMarketRefreshPlan/);
   assert.match(dashboard, /applyLiveMarketState/);
   assert.match(dashboard, /OpenAI web search/);
-  assert.match(dashboard, /focused retry for missing quotes/);
+  assert.match(dashboard, /saved to shared PostgreSQL/);
+  assert.match(marketApi, /reasoning:\s*\{ effort: "none" \}/);
+  assert.match(marketApi, /max_output_tokens:\s*300/);
+  assert.match(marketApi, /max_tool_calls:\s*2/);
+  assert.match(marketApi, /loadRecentMarketRefresh/);
+  assert.match(marketApi, /cooldownActive:\s*true/);
+  assert.doesNotMatch(marketApi, /previous lookup omitted|retryResponse/);
+  assert.match(marketApi, /persistMarketRefresh/);
+  assert.match(dashboard, /5-minute API cooldown/);
   assert.doesNotMatch(dashboard, /one manual request for/);
   assert.match(dashboard, /liveMarketState\.sources/);
   assert.doesNotMatch(dashboard, /Google Finance|EODHD/);
@@ -147,6 +158,31 @@ test("renders the approved family portrait hero with one image-derived theme", a
   assert.match(dashboard, /PORTFOLIO_THEME/);
   assert.match(styles, /--sky:/);
   assert.match(styles, /--meadow:/);
+});
+
+test("applies the approved Ghibli Countryside Ledger theme across the full dashboard", async () => {
+  const response = await render();
+  assert.equal(response.status, 200);
+
+  const [html, dashboard, styles, readme] = await Promise.all([
+    response.text(),
+    readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../README.md", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(html, /class="dashboard-shell ghibli-countryside-ledger"/i);
+  assert.match(styles, /--paper-wash:\s*#f7efdc/i);
+  assert.match(styles, /--forest-canopy:\s*#294c38/i);
+  assert.match(styles, /\.ghibli-countryside-ledger\s+\.panel::before/i);
+  assert.match(styles, /\.ghibli-countryside-ledger\s+\.edit-password-dialog/i);
+  assert.match(styles, /\.ghibli-countryside-ledger\s+\.table-wrap/i);
+  assert.match(styles, /\.ghibli-countryside-ledger\s+\.allocation-fallback-ring/i);
+  assert.match(dashboard, /PAINTED_CLAY_MATERIAL/);
+  assert.match(dashboard, /GHIBLI_SCENE_LIGHTS/);
+  assert.match(dashboard, /roughness=\{PAINTED_CLAY_MATERIAL\.roughness\}/);
+  assert.match(dashboard, /hemisphereLight[^\n]*GHIBLI_SCENE_LIGHTS\.sky/i);
+  assert.match(readme, /Ghibli Countryside Ledger/i);
 });
 
 test("uses the family portrait across the full hero while reserving a legible copy area", async () => {
@@ -356,63 +392,47 @@ test("reads the Railway password from Node env when Worker env is absent", async
   }
 });
 
-test("reads the Railway OpenAI key from Node env when Worker env is absent", async () => {
+test("requires Railway PostgreSQL before a Railway OpenAI refresh can mutate shared state", async () => {
   const previousKey = process.env.OPENAI_API_KEY;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
   const originalFetch = globalThis.fetch;
   process.env.OPENAI_API_KEY = "railway-test-openai-key";
-  globalThis.fetch = async (input, init) => {
-    assert.equal(String(input), "https://api.openai.com/v1/responses");
-    assert.equal(
-      new Headers(init?.headers).get("authorization"),
-      "Bearer railway-test-openai-key",
-    );
-    return Response.json({
-      created_at: 1784131200,
-      output: [
-        {
-          type: "web_search_call",
-          action: {
-            type: "search",
-            sources: [
-              {
-                url: "https://example.com/market-source",
-                title: "Market source",
-              },
-            ],
-          },
-        },
-        {
-          type: "message",
-          content: [
-            {
-              type: "output_text",
-              text: JSON.stringify({
-                quotes: [
-                  { key: "GOOGL", price: 372.49 },
-                  { key: "USDTHB", price: 33.8 },
-                  { key: "SCB", price: 122.5 },
-                  { key: "KBANK", price: 175.5 },
-                ],
-              }),
-            },
-          ],
-        },
-      ],
-    });
+  delete process.env.DATABASE_URL;
+  globalThis.fetch = async () => {
+    throw new Error("OpenAI must not run before shared persistence is configured");
   };
 
   try {
     const response = await requestWorkerWithoutEnv("/api/market/refresh");
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 503);
     const body = await response.json();
-    assert.equal(body.provider, "OpenAI web search");
-    assert.deepEqual(Object.keys(body.quotes).sort(), ["GOOGL", "KBANK", "SCB", "USDTHB"]);
-    assert.deepEqual(body.failures, {});
+    assert.match(body.error, /DATABASE_URL|database/i);
   } finally {
     globalThis.fetch = originalFetch;
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = previousKey;
+    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previousDatabaseUrl;
   }
+});
+
+test("seeds the shared portfolio before the first market refresh persists quotes", async () => {
+  const worker = await readFile(
+    new URL("../worker/index.ts", import.meta.url),
+    "utf8",
+  );
+  const refreshGuard = worker.match(
+    /if \(url\.pathname === "\/api\/market\/refresh" && portfolioRepository\) \{[\s\S]*?\n    \}/,
+  )?.[0] ?? "";
+
+  assert.match(
+    refreshGuard,
+    /await portfolioRepository\.loadOrSeed\(INITIAL_SHARED_PORTFOLIO_STATE\)/,
+  );
+  assert.ok(
+    worker.indexOf("await portfolioRepository.loadOrSeed") <
+      worker.indexOf("handleMarketApiRequest("),
+  );
 });
 
 test("keeps the dashboard public but gates every Edit Mode opening with a dialog", async () => {
@@ -440,14 +460,19 @@ test("keeps the dashboard public but gates every Edit Mode opening with a dialog
   assert.doesNotMatch(html, /edit-password-dialog|type="password"/);
 });
 
-test("restores the latest validated imported workbook without using web storage", async () => {
+test("loads and replaces the latest validated portfolio through shared PostgreSQL", async () => {
   const dashboard = await readFile(
     new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(dashboard, /loadPersistedWorkbook/);
-  assert.match(dashboard, /savePersistedWorkbook/);
-  assert.match(dashboard, /removePersistedWorkbook/);
-  assert.doesNotMatch(dashboard, /localStorage|sessionStorage/);
+  assert.match(dashboard, /fetch\("\/api\/portfolio"/);
+  assert.match(dashboard, /fetch\("\/api\/portfolio\/import"/);
+  assert.match(dashboard, /parseMinimalHoldingsWorkbook/);
+  assert.match(dashboard, /Authorize Shared Import/);
+  assert.doesNotMatch(
+    dashboard,
+    /loadPersistedWorkbook|savePersistedWorkbook|removePersistedWorkbook/,
+  );
+  assert.doesNotMatch(dashboard, /localStorage|sessionStorage|indexedDB/);
 });

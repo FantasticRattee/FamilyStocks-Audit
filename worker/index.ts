@@ -3,11 +3,15 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 
 import { handleEditAuthRequest } from "../app/dashboard/edit-auth";
+import { INITIAL_SHARED_PORTFOLIO_STATE } from "../app/dashboard/initial-shared-portfolio";
 import { handleMarketApiRequest } from "../app/dashboard/market-api";
+import { handlePortfolioApiRequest } from "../app/dashboard/portfolio-api";
+import { createPostgresPortfolioRepository } from "../app/dashboard/postgres-portfolio-repository";
 
 interface Env {
-  ASSETS?: Fetcher;
-  DB?: D1Database;
+  ASSETS?: { fetch(request: Request): Promise<Response> };
+  DB?: unknown;
+  DATABASE_URL?: string;
   EDIT_MODE_PASSWORD?: string;
   OPENAI_API_KEY?: string;
   OPENAI_MARKET_MODEL?: string;
@@ -26,11 +30,13 @@ interface ExecutionContext {
 }
 
 type RuntimeSecret =
+  | "DATABASE_URL"
   | "EDIT_MODE_PASSWORD"
   | "OPENAI_API_KEY"
   | "OPENAI_MARKET_MODEL";
 
 const RUNTIME_SECRETS: RuntimeSecret[] = [
+  "DATABASE_URL",
   "EDIT_MODE_PASSWORD",
   "OPENAI_API_KEY",
   "OPENAI_MARKET_MODEL",
@@ -71,20 +77,63 @@ const worker = {
     const editAuthResponse = await handleEditAuthRequest(request, env);
     if (editAuthResponse) return editAuthResponse;
 
-    const marketResponse = await handleMarketApiRequest(request, fetch, env);
+    const portfolioRepository = createPostgresPortfolioRepository(env.DATABASE_URL);
+    const isPortfolioRoute =
+      url.pathname === "/api/portfolio" ||
+      url.pathname === "/api/portfolio/import";
+    if (isPortfolioRoute && !portfolioRepository) {
+      return Response.json(
+        { error: "Shared portfolio database is not configured. Add DATABASE_URL." },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (portfolioRepository) {
+      const portfolioResponse = await handlePortfolioApiRequest(
+        request,
+        env,
+        portfolioRepository,
+        INITIAL_SHARED_PORTFOLIO_STATE,
+      );
+      if (portfolioResponse) return portfolioResponse;
+    }
+
+    if (url.pathname === "/api/market/refresh" && !portfolioRepository) {
+      return Response.json(
+        { error: "Shared portfolio database is not configured. Add DATABASE_URL." },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (url.pathname === "/api/market/refresh" && portfolioRepository) {
+      try {
+        await portfolioRepository.loadOrSeed(INITIAL_SHARED_PORTFOLIO_STATE);
+      } catch {
+        return Response.json(
+          { error: "Shared portfolio database is unavailable." },
+          { status: 503, headers: { "cache-control": "no-store" } },
+        );
+      }
+    }
+    const marketResponse = await handleMarketApiRequest(
+      request,
+      fetch,
+      env,
+      portfolioRepository ?? undefined,
+    );
     if (marketResponse) return marketResponse;
 
     if (url.pathname === "/_vinext/image") {
-      if (!env.ASSETS || !env.IMAGES) {
+      const assets = env.ASSETS;
+      const images = env.IMAGES;
+      if (!assets || !images) {
         return new Response("Image optimization is unavailable in this runtime.", {
           status: 503,
         });
       }
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
-        fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
+        fetchAsset: (path) => assets.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+          const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
       }, allowedWidths);

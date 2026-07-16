@@ -1,23 +1,30 @@
 :root {
-  --ink: #18364a;
-  --muted: #6b7c7d;
-  --line: #d8ddcf;
+  --ink: #294338;
+  --muted: #6e776a;
+  --line: #d9d1b8;
   --surface: #fffaf0;
-  --canvas: #eef0e4;
-  --navy: #18384f;
-  --navy-deep: #102a3d;
-  --teal: #62835f;
-  --teal-deep: #496a4d;
-  --gold: #cda650;
-  --blue: #6597aa;
-  --gain: #527a55;
-  --loss: #b7675f;
-  --warning: #92702c;
-  --sky: #8ebdca;
-  --sky-soft: #e8f2ef;
-  --meadow: #62835f;
-  --cream: #fff4d8;
-  --shadow: 0 18px 48px rgba(24, 56, 79, 0.1);
+  --canvas: #e8eddd;
+  --navy: #2c4c3b;
+  --navy-deep: #1e3d2e;
+  --teal: #557954;
+  --teal-deep: #395f45;
+  --gold: #d1a64f;
+  --blue: #78a8ad;
+  --gain: #4f7651;
+  --loss: #b76056;
+  --warning: #8e682b;
+  --sky: #9ac4c5;
+  --sky-soft: #edf4e8;
+  --meadow: #60805b;
+  --cream: #fff1c9;
+  --paper-wash: #f7efdc;
+  --paper-highlight: #fffaf0;
+  --forest-canopy: #294c38;
+  --forest-deep: #1e3d2e;
+  --sun-wash: #e6bf63;
+  --watercolor-sky: #a9ced0;
+  --moss-shadow: rgba(45, 70, 47, 0.16);
+  --shadow: 0 18px 48px var(--moss-shadow);
 }
 
 * {
@@ -33,7 +40,11 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    linear-gradient(180deg, #edf4f0 0%, var(--canvas) 42%, #ecefe1 100%);
+    radial-gradient(circle at 12% 4%, rgba(255, 246, 205, 0.86), transparent 23rem),
+    radial-gradient(circle at 88% 14%, rgba(154, 196, 197, 0.42), transparent 27rem),
+    repeating-linear-gradient(8deg, rgba(88, 91, 61, 0.018) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, #edf3e6 0%, var(--canvas) 46%, #e6ead8 100%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family:
     "Noto Sans Thai", "Sarabun", "Avenir Next", Avenir, "Segoe UI", Arial,
@@ -339,7 +350,8 @@ select:focus-visible {
   box-shadow: 0 0 0 4px rgba(98, 131, 95, 0.12);
 }
 
-.source-dot.imported {
+.source-dot.imported,
+.source-dot.shared {
   background: var(--blue);
   box-shadow: 0 0 0 4px rgba(125, 144, 219, 0.12);
 }
@@ -2553,6 +2565,381 @@ td strong {
   color: #80909d;
   font-size: 0.7rem;
   line-height: 1.5;
+}
+
+/* Approved theme A: Ghibli Countryside Ledger */
+.ghibli-countryside-ledger {
+  position: relative;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 239, 177, 0.2), transparent 20rem),
+    radial-gradient(circle at 96% 34%, rgba(119, 167, 153, 0.14), transparent 24rem);
+}
+
+.ghibli-countryside-ledger .topbar {
+  border-bottom-color: rgba(232, 199, 113, 0.34);
+  background:
+    radial-gradient(circle at 15% -80%, rgba(176, 209, 163, 0.3), transparent 40%),
+    linear-gradient(112deg, rgba(31, 62, 46, 0.985), rgba(41, 76, 56, 0.97) 58%, rgba(51, 86, 63, 0.97));
+  box-shadow: 0 10px 30px rgba(33, 58, 40, 0.22);
+}
+
+.ghibli-countryside-ledger .topbar::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(231, 195, 104, 0.55) 28%, rgba(169, 206, 208, 0.44) 72%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.ghibli-countryside-ledger .brand-mark {
+  border: 1px solid rgba(255, 245, 203, 0.42);
+  border-radius: 48% 42% 46% 40%;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 250, 219, 0.42), transparent 28%),
+    linear-gradient(145deg, #76966b, #8bb8b2);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+    0 8px 22px rgba(11, 38, 26, 0.28);
+  transform: rotate(-1.5deg);
+}
+
+.ghibli-countryside-ledger .topbar .eyebrow {
+  color: #b8d9c4;
+}
+
+.ghibli-countryside-ledger .topbar h1 {
+  color: #fff9e8;
+  text-shadow: 0 1px rgba(23, 54, 38, 0.44);
+}
+
+.ghibli-countryside-ledger .button {
+  border-radius: 12px 10px 13px 9px;
+  box-shadow: 0 7px 16px rgba(39, 68, 44, 0.13);
+}
+
+.ghibli-countryside-ledger .button-market-refresh {
+  border-color: rgba(253, 224, 142, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 204, 0.42), transparent 52%),
+    linear-gradient(135deg, #dfb65a, #f0d287);
+  color: #294738;
+  box-shadow: 0 8px 19px rgba(210, 166, 79, 0.25);
+}
+
+.ghibli-countryside-ledger .button-market-refresh:hover {
+  border-color: #fff1b6;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 220, 0.55), transparent 52%),
+    linear-gradient(135deg, #e5bf68, #f4dda1);
+}
+
+.ghibli-countryside-ledger .button-secondary,
+.ghibli-countryside-ledger .button-ghost {
+  border-color: rgba(116, 139, 101, 0.4);
+  background: rgba(255, 250, 233, 0.94);
+  color: var(--forest-canopy);
+}
+
+.ghibli-countryside-ledger .topbar .button-ghost {
+  border-color: rgba(255, 247, 215, 0.34);
+  background: rgba(255, 250, 233, 0.09);
+  color: #fff9e8;
+}
+
+.ghibli-countryside-ledger .source-banner,
+.ghibli-countryside-ledger .live-market-status,
+.ghibli-countryside-ledger .import-zone {
+  border-color: rgba(124, 143, 104, 0.36);
+  border-radius: 14px 11px 15px 10px;
+  background:
+    repeating-linear-gradient(7deg, rgba(102, 92, 54, 0.015) 0 1px, transparent 1px 5px),
+    rgba(255, 249, 232, 0.9);
+  box-shadow: 0 7px 18px rgba(49, 74, 49, 0.055);
+  color: #4b6254;
+}
+
+.ghibli-countryside-ledger .live-market-status.updated {
+  border-color: rgba(94, 130, 86, 0.43);
+  background:
+    linear-gradient(115deg, rgba(181, 212, 176, 0.22), transparent 52%),
+    rgba(247, 246, 223, 0.94);
+}
+
+.ghibli-countryside-ledger .live-market-status.partial {
+  border-color: rgba(202, 157, 66, 0.48);
+  background: rgba(255, 245, 214, 0.94);
+}
+
+.ghibli-countryside-ledger .import-zone {
+  border-style: dashed;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(169, 206, 208, 0.24), transparent 34%),
+    rgba(248, 246, 226, 0.84);
+}
+
+.ghibli-countryside-ledger .tabs {
+  padding: 4px;
+  border-radius: 16px 13px 17px 12px;
+  background: rgba(246, 241, 218, 0.58);
+}
+
+.ghibli-countryside-ledger .tabs button {
+  border-color: transparent;
+  border-radius: 999px 82% 999px 78%;
+  color: #617267;
+}
+
+.ghibli-countryside-ledger .tabs button.active {
+  border-color: rgba(82, 121, 79, 0.34);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 248, 209, 0.58), transparent 46%),
+    #e8f0dc;
+  color: var(--forest-canopy);
+  box-shadow: 0 5px 12px rgba(57, 95, 69, 0.1);
+}
+
+.ghibli-countryside-ledger .wealth-hero,
+.ghibli-countryside-ledger .panel,
+.ghibli-countryside-ledger .scenario-panel,
+.ghibli-countryside-ledger .metric-card {
+  border-color: rgba(134, 131, 93, 0.34);
+  background:
+    repeating-linear-gradient(5deg, rgba(93, 84, 48, 0.013) 0 1px, transparent 1px 6px),
+    var(--paper-highlight);
+  box-shadow:
+    0 18px 44px rgba(54, 72, 46, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.ghibli-countryside-ledger .wealth-hero {
+  border-radius: 25px 20px 27px 18px;
+}
+
+.ghibli-countryside-ledger .panel,
+.ghibli-countryside-ledger .scenario-panel {
+  position: relative;
+  border-radius: 21px 17px 23px 18px;
+}
+
+.ghibli-countryside-ledger .panel::before {
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(113, 126, 83, 0.1);
+  border-radius: 18px 15px 20px 16px;
+  box-shadow: inset 0 0 22px rgba(145, 130, 76, 0.025);
+  content: "";
+  pointer-events: none;
+}
+
+.ghibli-countryside-ledger .section-title h2,
+.ghibli-countryside-ledger .scenario-heading h2,
+.ghibli-countryside-ledger .wealth-hero-primary h2 {
+  color: var(--forest-deep);
+}
+
+.ghibli-countryside-ledger .eyebrow {
+  color: #47734f;
+  letter-spacing: 0.16em;
+}
+
+.ghibli-countryside-ledger .wealth-hero-primary {
+  background:
+    radial-gradient(circle at 78% 14%, rgba(255, 230, 150, 0.28), transparent 28%),
+    linear-gradient(102deg, rgba(255, 250, 235, 0.97) 0 32%, rgba(255, 247, 222, 0.86) 48%, rgba(247, 239, 211, 0.28) 68%, transparent 100%);
+}
+
+.ghibli-countryside-ledger .wealth-hero-artwork::before {
+  background: linear-gradient(90deg, rgba(255, 249, 231, 0.95) 0%, rgba(255, 247, 222, 0.78) 24%, rgba(250, 240, 207, 0.53) 42%, rgba(237, 231, 193, 0.19) 61%, transparent 82%);
+}
+
+.ghibli-countryside-ledger .wealth-hero-artwork::after {
+  background:
+    linear-gradient(180deg, rgba(255, 229, 148, 0.12), transparent 36%),
+    linear-gradient(0deg, rgba(77, 109, 68, 0.13), transparent 34%);
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.34);
+}
+
+.ghibli-countryside-ledger .wealth-hero-artwork img {
+  filter: saturate(0.84) sepia(0.055) contrast(0.94) brightness(1.06);
+}
+
+.ghibli-countryside-ledger .wealth-hero-summary strong {
+  border: 1px solid rgba(92, 131, 83, 0.16);
+  background: rgba(232, 241, 216, 0.93);
+}
+
+.ghibli-countryside-ledger .wealth-hero-stats {
+  border-left-color: rgba(132, 133, 93, 0.28);
+  background:
+    linear-gradient(145deg, rgba(248, 242, 218, 0.82), rgba(255, 250, 238, 0.9));
+}
+
+.ghibli-countryside-ledger .wealth-hero-stats > div,
+.ghibli-countryside-ledger .ownership-row {
+  border-color: rgba(135, 132, 94, 0.2);
+}
+
+.ghibli-countryside-ledger .shared-pool-badge.minimal,
+.ghibli-countryside-ledger .composition-total-chip,
+.ghibli-countryside-ledger .count-chip {
+  border-color: rgba(93, 124, 82, 0.28);
+  background: #edf2df;
+  color: var(--forest-canopy);
+}
+
+.ghibli-countryside-ledger .owner-avatar {
+  border: 1px solid rgba(99, 128, 89, 0.17);
+  border-radius: 48% 42% 46% 40%;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 250, 220, 0.65), transparent 35%),
+    #dfeadb;
+  color: var(--forest-canopy);
+}
+
+.ghibli-countryside-ledger .compact-r3f-fallback > span {
+  border: 1px solid rgba(105, 113, 80, 0.09);
+  background: #e9e5d5;
+  box-shadow: inset 0 2px 5px rgba(94, 84, 49, 0.055);
+}
+
+.ghibli-countryside-ledger .compact-r3f-fallback > span > i {
+  filter: saturate(0.84) contrast(0.95);
+  box-shadow:
+    inset 0 2px rgba(255, 248, 218, 0.34),
+    inset 0 -2px rgba(54, 74, 49, 0.12),
+    0 3px 8px rgba(50, 71, 48, 0.12);
+}
+
+.ghibli-countryside-ledger .composition-panel {
+  background:
+    radial-gradient(circle at 15% 28%, rgba(169, 206, 208, 0.2), transparent 22rem),
+    repeating-linear-gradient(6deg, rgba(93, 84, 48, 0.012) 0 1px, transparent 1px 6px),
+    var(--paper-highlight);
+}
+
+.ghibli-countryside-ledger .composition-3d-stage,
+.ghibli-countryside-ledger .allocation-detail-card {
+  border-color: rgba(126, 132, 91, 0.3);
+  background:
+    radial-gradient(ellipse at 48% 38%, rgba(255, 249, 224, 0.98), rgba(222, 237, 218, 0.75) 45%, transparent 75%),
+    linear-gradient(155deg, #edf3df, #f7edcf);
+  box-shadow: inset 0 0 30px rgba(84, 111, 76, 0.055);
+}
+
+.ghibli-countryside-ledger .composition-3d-stage::after {
+  border-color: rgba(92, 137, 114, 0.15);
+  background: radial-gradient(circle, rgba(169, 206, 208, 0.09), transparent 68%);
+}
+
+.ghibli-countryside-ledger .allocation-fallback-ring {
+  opacity: 0.86;
+  filter: saturate(0.82) contrast(0.94) drop-shadow(0 18px 17px rgba(44, 67, 40, 0.2));
+}
+
+.ghibli-countryside-ledger .composition-center-card {
+  border-color: rgba(118, 129, 91, 0.36);
+  border-radius: 20px 16px 21px 15px;
+  background:
+    repeating-linear-gradient(8deg, rgba(97, 86, 47, 0.018) 0 1px, transparent 1px 5px),
+    rgba(255, 250, 234, 0.94);
+  box-shadow: 0 14px 30px rgba(53, 74, 47, 0.16);
+}
+
+.ghibli-countryside-ledger .allocation-detail-card {
+  background:
+    linear-gradient(145deg, rgba(227, 238, 216, 0.78), rgba(255, 248, 228, 0.96) 56%);
+}
+
+.ghibli-countryside-ledger .allocation-detail-list button:hover,
+.ghibli-countryside-ledger .allocation-detail-list button.active {
+  border-color: rgba(91, 127, 80, 0.32);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 240, 181, 0.4), transparent 45%),
+    rgba(229, 239, 215, 0.9);
+  box-shadow: 0 7px 17px rgba(56, 86, 55, 0.08);
+}
+
+.ghibli-countryside-ledger .dividend-total {
+  border-color: rgba(104, 139, 95, 0.3);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(169, 206, 208, 0.34), transparent 38%),
+    linear-gradient(135deg, #eef3df, #dfead9);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.7),
+    0 10px 22px rgba(54, 85, 56, 0.08);
+}
+
+.ghibli-countryside-ledger .table-wrap {
+  border-color: rgba(126, 128, 89, 0.31);
+  border-radius: 15px 12px 16px 11px;
+  background: rgba(255, 250, 235, 0.9);
+  box-shadow: inset 0 0 24px rgba(120, 107, 62, 0.025);
+}
+
+.ghibli-countryside-ledger th {
+  border-bottom-color: rgba(125, 128, 88, 0.25);
+  background: #edf1de;
+  color: #5f735f;
+}
+
+.ghibli-countryside-ledger td {
+  border-bottom-color: rgba(133, 130, 91, 0.18);
+  color: #4b6152;
+}
+
+.ghibli-countryside-ledger .dividend-flow {
+  border: 1px solid rgba(255, 237, 175, 0.16);
+  border-radius: 20px 16px 22px 15px;
+  background:
+    radial-gradient(circle at 10% -30%, rgba(239, 210, 126, 0.33), transparent 42%),
+    linear-gradient(135deg, var(--forest-deep), #56775a);
+}
+
+.ghibli-countryside-ledger .scenario-panel.open,
+.ghibli-countryside-ledger .scenario-group,
+.ghibli-countryside-ledger .holding-edit-card {
+  border-color: rgba(197, 157, 71, 0.38);
+  background:
+    repeating-linear-gradient(6deg, rgba(101, 87, 44, 0.014) 0 1px, transparent 1px 5px),
+    #fff9e7;
+}
+
+.ghibli-countryside-ledger input,
+.ghibli-countryside-ledger select,
+.ghibli-countryside-ledger .inline-button,
+.ghibli-countryside-ledger .yahoo-candidates button {
+  border-color: rgba(129, 137, 96, 0.4);
+  background: #fffaf0;
+  color: var(--forest-canopy);
+}
+
+.ghibli-countryside-ledger .edit-password-backdrop {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(226, 195, 102, 0.19), transparent 28%),
+    rgba(24, 48, 36, 0.78);
+}
+
+.ghibli-countryside-ledger .edit-password-dialog {
+  border-color: rgba(255, 243, 195, 0.76);
+  border-radius: 24px 19px 25px 18px;
+  background:
+    repeating-linear-gradient(7deg, rgba(102, 91, 50, 0.017) 0 1px, transparent 1px 5px),
+    rgba(255, 249, 232, 0.985);
+  box-shadow: 0 34px 90px rgba(16, 39, 27, 0.42);
+}
+
+.ghibli-countryside-ledger .edit-password-lock {
+  border: 1px solid rgba(92, 129, 81, 0.17);
+  border-radius: 48% 42% 46% 40%;
+  background: linear-gradient(145deg, #dfead4, #f2f0d4);
+  color: var(--forest-canopy);
+}
+
+.ghibli-countryside-ledger .dashboard-footer {
+  color: #6f7c6d;
 }
 
 @media (max-width: 900px) {

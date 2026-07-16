@@ -20,17 +20,14 @@ import {
 import * as THREE from "three";
 
 import {
-  buildWorkbookEditRequest,
   createHoldingEdits,
   getHoldingDisplayTicker,
   type HoldingEdits,
 } from "./edit-model";
-import { INITIAL_WORKBOOK_BASE64 } from "./initial-workbook";
 import {
-  loadPersistedWorkbook,
-  removePersistedWorkbook,
-  savePersistedWorkbook,
-} from "./persisted-workbook";
+  INITIAL_DASHBOARD_SNAPSHOT,
+  INITIAL_SHARED_PORTFOLIO_STATE,
+} from "./initial-shared-portfolio";
 import {
   isYahooCandidateCurrencyCompatible,
   type MarketQuote,
@@ -46,11 +43,17 @@ import {
 import {
   calculateDashboard,
   createScenario,
-  parseWorkbook,
   type DashboardSnapshot,
   type Scenario,
 } from "./model";
-import { exportEditedWorkbook } from "./workbook-export";
+import type { SharedPortfolioState } from "./portfolio-api";
+import {
+  buildDashboardSnapshotFromSharedPortfolio,
+  exportMinimalHoldingsWorkbook,
+  parseMinimalHoldingsWorkbook,
+  validateSharedHoldings,
+  type SharedHoldingInput,
+} from "./shared-portfolio";
 
 const TABS = [
   ["overview", "ภาพรวม"],
@@ -68,11 +71,26 @@ const PORTFOLIO_THEME = {
   denim: "#466b88",
 } as const;
 
+const PAINTED_CLAY_MATERIAL = {
+  metalness: 0.015,
+  roughness: 0.82,
+  selectedEmissiveIntensity: 0.035,
+} as const;
+
+const GHIBLI_SCENE_LIGHTS = {
+  sky: "#dcebdc",
+  ground: "#6f7658",
+  sun: "#ffe5ad",
+  rim: "#b7d8cc",
+  track: "#e5dfcf",
+} as const;
+
 const MARKET_REFRESH_SOURCES =
-  "OpenAI web search · one request for GOOGL, USD/THB, SCB, and KBANK, plus one focused retry for missing quotes";
+  "OpenAI web search · saved to shared PostgreSQL";
 
 type Tab = (typeof TABS)[number][0];
-type SourceMode = "embedded" | "imported";
+type SourceMode = "embedded" | "shared";
+type EditPasswordPurpose = "edit" | "import";
 type HoldingMarketUi = {
   candidates?: YahooSearchCandidate[];
   isSearching?: boolean;
@@ -111,7 +129,11 @@ const createEmptyLiveMarketState = (): LiveMarketState => ({
   quotesByTicker: {},
   failures: {},
   refreshedStockCount: 0,
+  retainedStockCount: 0,
   requestedStockCount: 0,
+  refreshedFx: false,
+  retainedFx: false,
+  cooldownActive: false,
 });
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
@@ -123,21 +145,7 @@ const decimalFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-const base64ToArrayBuffer = (encoded: string) => {
-  const binary = atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes.buffer;
-};
-
-const INITIAL_WORKBOOK_BUFFER = base64ToArrayBuffer(INITIAL_WORKBOOK_BASE64);
-
-const INITIAL_SNAPSHOT = parseWorkbook(
-  INITIAL_WORKBOOK_BUFFER.slice(0),
-  "Portfolio_Accounting.xlsx",
-);
+const INITIAL_SNAPSHOT = INITIAL_DASHBOARD_SNAPSHOT;
 
 const formatThb = (value: number, digits = 0) => {
   const formatter =
@@ -327,11 +335,11 @@ function Bar3DTrackMesh({
     <mesh position={position}>
       <boxGeometry args={size} />
       <meshStandardMaterial
-        color="#dfe4e0"
+        color={GHIBLI_SCENE_LIGHTS.track}
         transparent
-        opacity={0.48}
+        opacity={0.54}
         metalness={0}
-        roughness={0.78}
+        roughness={0.92}
       />
     </mesh>
   );
@@ -365,25 +373,29 @@ function BarChart3DScene({
   const groupRotation: [number, number, number] = isPerformanceMode
     ? [-0.13, 0, 0]
     : [0, 0, 0];
-  const materialMetalness = isPerformanceMode ? 0.16 : 0.015;
-  const materialRoughness = isPerformanceMode ? 0.3 : 0.72;
-  const highlightIntensity = isPerformanceMode ? 0.11 : 0.025;
+  const materialMetalness = isPerformanceMode
+    ? 0.035
+    : PAINTED_CLAY_MATERIAL.metalness;
+  const materialRoughness = isPerformanceMode
+    ? 0.76
+    : PAINTED_CLAY_MATERIAL.roughness;
+  const highlightIntensity = isPerformanceMode
+    ? 0.055
+    : PAINTED_CLAY_MATERIAL.selectedEmissiveIntensity;
 
   return (
     <>
-      <ambientLight intensity={isPerformanceMode ? 1.2 : 1.45} />
-      <hemisphereLight
-        args={["#eef7f3", "#17303b", isPerformanceMode ? 1.25 : 1.4]}
-      />
+      <ambientLight intensity={isPerformanceMode ? 1.05 : 1.2} />
+      <hemisphereLight args={[GHIBLI_SCENE_LIGHTS.sky, GHIBLI_SCENE_LIGHTS.ground, isPerformanceMode ? 1.35 : 1.5]} />
       <directionalLight
         position={[-4, 5, 7]}
-        intensity={isPerformanceMode ? 3.2 : 2.2}
-        color="#fffdf7"
+        intensity={isPerformanceMode ? 2.8 : 2.35}
+        color={GHIBLI_SCENE_LIGHTS.sun}
       />
       <pointLight
         position={[4, -2, 5]}
-        intensity={isPerformanceMode ? 11 : 1.8}
-        color="#9bd8c8"
+        intensity={isPerformanceMode ? 7.5 : 2.2}
+        color={GHIBLI_SCENE_LIGHTS.rim}
       />
       <group rotation={groupRotation}>
         {mode === "diverging" ? (
@@ -618,9 +630,11 @@ function AllocationSegment({
       <meshStandardMaterial
         color={color}
         emissive={isActive ? color : "#000000"}
-        emissiveIntensity={isActive ? 0.08 : 0}
-        metalness={0.16}
-        roughness={0.28}
+        emissiveIntensity={
+          isActive ? PAINTED_CLAY_MATERIAL.selectedEmissiveIntensity : 0
+        }
+        metalness={PAINTED_CLAY_MATERIAL.metalness}
+        roughness={PAINTED_CLAY_MATERIAL.roughness}
       />
     </mesh>
   );
@@ -652,16 +666,21 @@ function PortfolioRingScene({
 
   return (
     <>
-      <ambientLight intensity={1.15} />
-      <hemisphereLight args={["#eef9f5", "#172c35", 1.3]} />
+      <ambientLight intensity={1.05} />
+      <hemisphereLight args={[GHIBLI_SCENE_LIGHTS.sky, GHIBLI_SCENE_LIGHTS.ground, 1.55]} />
       <directionalLight
         castShadow
         position={[-3.5, 5.5, 7]}
-        intensity={3.4}
+        intensity={3.05}
+        color={GHIBLI_SCENE_LIGHTS.sun}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <pointLight position={[4.5, -1.5, 4]} intensity={18} color="#a9dfd2" />
+      <pointLight
+        position={[4.5, -1.5, 4]}
+        intensity={10}
+        color={GHIBLI_SCENE_LIGHTS.rim}
+      />
       <group rotation={[-0.69, 0.05, -0.08]} position={[0, 0.1, 0]}>
         {segments.map((segment, index) => (
           <AllocationSegment
@@ -677,7 +696,7 @@ function PortfolioRingScene({
       </group>
       <ContactShadows
         position={[0, -1.72, -0.2]}
-        opacity={0.32}
+        opacity={0.27}
         scale={6.4}
         blur={2.8}
         far={4.2}
@@ -799,6 +818,8 @@ function PortfolioComposition3D({
 
 export function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importPasswordRef = useRef("");
+  const pendingImportFileRef = useRef<File | null>(null);
   const editModeButtonRef = useRef<HTMLButtonElement>(null);
   const editPasswordInputRef = useRef<HTMLInputElement>(null);
   const refreshRequestIdRef = useRef(0);
@@ -811,6 +832,8 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showScenario, setShowScenario] = useState(false);
   const [showEditPasswordDialog, setShowEditPasswordDialog] = useState(false);
+  const [editPasswordPurpose, setEditPasswordPurpose] =
+    useState<EditPasswordPurpose>("edit");
   const [editPassword, setEditPassword] = useState("");
   const [editPasswordError, setEditPasswordError] = useState("");
   const [editPasswordPromptVersion, setEditPasswordPromptVersion] = useState(0);
@@ -821,8 +844,8 @@ export function Dashboard() {
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState("ALL");
   const [accountFilter, setAccountFilter] = useState("ALL");
-  const [sourceWorkbookBytes, setSourceWorkbookBytes] = useState<ArrayBuffer>(() =>
-    INITIAL_WORKBOOK_BUFFER.slice(0),
+  const [portfolioHoldings, setPortfolioHoldings] = useState<SharedHoldingInput[]>(
+    () => INITIAL_SHARED_PORTFOLIO_STATE.holdings,
   );
   const [holdingEdits, setHoldingEdits] = useState<HoldingEdits>(() =>
     createHoldingEdits(INITIAL_SNAPSHOT),
@@ -839,53 +862,72 @@ export function Dashboard() {
 
   useEffect(() => {
     let isActive = true;
-    const restoreRequestId = workbookRequestIdRef.current;
+    const requestId = workbookRequestIdRef.current;
 
-    const restorePersistedWorkbook = async () => {
-      const persisted = await loadPersistedWorkbook();
-      if (!isActive || restoreRequestId !== workbookRequestIdRef.current) return;
-
-      if (persisted.status === "empty") return;
-      if (persisted.status === "unavailable") {
-        setImportNotice("Browser นี้ไม่รองรับการเก็บ Excel ล่าสุด จึงใช้ไฟล์ embedded");
-        return;
-      }
-      if (persisted.status === "error") {
-        setImportNotice("ไม่สามารถอ่าน Excel ที่บันทึกไว้ได้ จึงใช้ไฟล์ embedded");
-        return;
-      }
-      if (persisted.status === "invalid") {
-        await removePersistedWorkbook();
-        if (!isActive || restoreRequestId !== workbookRequestIdRef.current) return;
-        setImportNotice("Excel ที่บันทึกไว้ไม่สมบูรณ์ จึงกลับมาใช้ไฟล์ embedded");
-        return;
-      }
-
+    const loadSharedPortfolio = async () => {
       try {
-        const sourceBytes = persisted.record.bytes.slice(0);
-        const nextSnapshot = parseWorkbook(sourceBytes.slice(0), persisted.record.filename);
-        if (!isActive || restoreRequestId !== workbookRequestIdRef.current) return;
+        const response = await fetch("/api/portfolio", { cache: "no-store" });
+        const body = (await response.json().catch(() => ({}))) as
+          | SharedPortfolioState
+          | { error?: string };
+        if (!response.ok) {
+          throw new Error(
+            "error" in body && body.error
+              ? body.error
+              : "Shared portfolio database is unavailable.",
+          );
+        }
+        if (!isActive || requestId !== workbookRequestIdRef.current) return;
+        const state = body as SharedPortfolioState;
+        const nextSnapshot = buildDashboardSnapshotFromSharedPortfolio(
+          state.holdings,
+          state.settings,
+          state.latestImport?.filename ?? "Shared portfolio database",
+        );
+        const nextEdits = createHoldingEdits(nextSnapshot);
+        const plan = createLiveMarketRefreshPlan(nextSnapshot, nextEdits);
+        const timestamps = Object.values(state.quotes)
+          .map((quote) => quote.quoteTimestamp)
+          .filter((value): value is string => Boolean(value));
+        const nextLiveState = createLiveMarketState(plan, {
+          quotes: state.quotes,
+          failures: {},
+          fetchedAt:
+            timestamps.sort().at(-1) ??
+            state.latestImport?.importedAt ??
+            new Date().toISOString(),
+          provider: "Shared PostgreSQL",
+          ...(state.marketSources?.length
+            ? { sources: state.marketSources }
+            : {}),
+          refreshedKeys: [],
+          retainedKeys: Object.keys(state.quotes),
+        });
+        setPortfolioHoldings(validateSharedHoldings(state.holdings));
         setSnapshot(nextSnapshot);
         setScenario(createScenario(nextSnapshot));
-        setSourceWorkbookBytes(sourceBytes);
-        setHoldingEdits(createHoldingEdits(nextSnapshot));
+        setHoldingEdits(nextEdits);
         setMarketUi({});
-        refreshRequestIdRef.current += 1;
-        setLiveMarketState(createEmptyLiveMarketState());
-        setLiveMarketNotice("");
+        setLiveMarketState(nextLiveState);
+        setLiveMarketNotice("โหลดราคาล่าสุดที่บันทึกไว้ในฐานข้อมูลร่วมแล้ว");
         setIsRefreshingMarket(false);
         setExportError("");
         setExportNotice("");
-        setSourceMode("imported");
-        setImportNotice("กำลังใช้ Excel ล่าสุดที่ import ไว้ใน browser นี้");
-      } catch {
-        await removePersistedWorkbook();
-        if (!isActive || restoreRequestId !== workbookRequestIdRef.current) return;
-        setImportNotice("Excel ที่บันทึกไว้ไม่ผ่านการตรวจสอบ จึงกลับมาใช้ไฟล์ embedded");
+        setSourceMode("shared");
+        setImportNotice(
+          state.latestImport
+            ? `กำลังใช้ ${state.latestImport.filename} จากฐานข้อมูลร่วม`
+            : "กำลังใช้พอร์ตเริ่มต้นจากฐานข้อมูลร่วม",
+        );
+      } catch (error) {
+        if (!isActive || requestId !== workbookRequestIdRef.current) return;
+        setImportNotice(
+          `${error instanceof Error ? error.message : "Shared portfolio database is unavailable."} แสดง embedded snapshot ชั่วคราว`,
+        );
       }
     };
 
-    void restorePersistedWorkbook();
+    void loadSharedPortfolio();
     return () => {
       isActive = false;
     };
@@ -922,7 +964,9 @@ export function Dashboard() {
   const liveMarketFailureCount = Object.keys(liveMarketState.failures).length;
   const liveMarketProvider = liveMarketState.provider ?? MARKET_REFRESH_SOURCES;
   const liveMarketStatusText = liveMarketState.fetchedAt
-    ? `Market prices · ${liveMarketState.refreshedStockCount}/${liveMarketState.requestedStockCount} stock prices refreshed${liveMarketState.fx ? " · USD/THB refreshed" : " · USD/THB uses audit rate"} · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
+    ? liveMarketState.cooldownActive
+      ? `Market prices · saved quotes reused · 5-minute API cooldown · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
+      : `Market prices · ${liveMarketState.refreshedStockCount} refreshed · ${liveMarketState.retainedStockCount} retained${liveMarketState.refreshedFx ? " · USD/THB refreshed" : liveMarketState.retainedFx ? " · USD/THB retained" : " · USD/THB unavailable"} · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
     : `Market prices: refresh manually · ${MARKET_REFRESH_SOURCES}.`;
   const tickerEditsDirty = snapshot.holdings.some((holding) => {
     const editedTicker = getHoldingDisplayTicker(holding.ticker, holdingEdits)
@@ -1109,7 +1153,7 @@ export function Dashboard() {
     );
   });
 
-  const applyWorkbook = async (file: File) => {
+  const applyWorkbook = async (file: File, password: string) => {
     const requestId = ++workbookRequestIdRef.current;
     setImportError("");
     setImportNotice("");
@@ -1118,51 +1162,88 @@ export function Dashboard() {
         throw new Error("กรุณาเลือกไฟล์ .xlsx เท่านั้น");
       }
       const sourceBytes = await file.arrayBuffer();
-      const nextSnapshot = parseWorkbook(sourceBytes, file.name);
+      const parsed = parseMinimalHoldingsWorkbook(sourceBytes, file.name);
+      const response = await fetch("/api/portfolio/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          password,
+          filename: parsed.filename,
+          holdings: parsed.holdings,
+        }),
+      });
+      const body = (await response.json().catch(() => ({}))) as
+        | SharedPortfolioState
+        | { error?: string };
+      if (!response.ok) {
+        throw new Error(
+          "error" in body && body.error
+            ? body.error
+            : "บันทึกพอร์ตลงฐานข้อมูลร่วมไม่สำเร็จ",
+        );
+      }
       if (requestId !== workbookRequestIdRef.current) return;
+      const state = body as SharedPortfolioState;
+      const nextSnapshot = buildDashboardSnapshotFromSharedPortfolio(
+        state.holdings,
+        state.settings,
+        state.latestImport?.filename ?? file.name,
+      );
+      const nextEdits = createHoldingEdits(nextSnapshot);
+      const plan = createLiveMarketRefreshPlan(nextSnapshot, nextEdits);
+      const timestamps = Object.values(state.quotes)
+        .map((quote) => quote.quoteTimestamp)
+        .filter((value): value is string => Boolean(value));
+      const nextLiveState = createLiveMarketState(plan, {
+        quotes: state.quotes,
+        failures: {},
+        fetchedAt:
+          timestamps.sort().at(-1) ??
+          state.latestImport?.importedAt ??
+          new Date().toISOString(),
+        provider: "Shared PostgreSQL",
+        ...(state.marketSources?.length ? { sources: state.marketSources } : {}),
+        refreshedKeys: [],
+        retainedKeys: Object.keys(state.quotes),
+      });
+      setPortfolioHoldings(validateSharedHoldings(state.holdings));
       setSnapshot(nextSnapshot);
       setScenario(createScenario(nextSnapshot));
-      setSourceWorkbookBytes(sourceBytes.slice(0));
-      setHoldingEdits(createHoldingEdits(nextSnapshot));
+      setHoldingEdits(nextEdits);
       setMarketUi({});
       refreshRequestIdRef.current += 1;
-      setLiveMarketState(createEmptyLiveMarketState());
-      setLiveMarketNotice("");
+      setLiveMarketState(nextLiveState);
+      setLiveMarketNotice("ใช้ราคาล่าสุดที่บันทึกไว้ในฐานข้อมูลร่วม");
       setIsRefreshingMarket(false);
       setExportError("");
       setExportNotice("");
-      setSourceMode("imported");
+      setSourceMode("shared");
       setActiveTab("overview");
       setShowScenario(false);
       setShowEditPasswordDialog(false);
       setEditPassword("");
       setEditPasswordError("");
-
-      const saved = await savePersistedWorkbook(
-        file.name,
-        sourceBytes,
-        new Date().toISOString(),
-      );
-      if (requestId !== workbookRequestIdRef.current) return;
-      if (saved === "unavailable") {
-        setImportNotice("Import สำเร็จ แต่ browser นี้ไม่รองรับการเก็บไฟล์ไว้หลัง reload");
-      } else if (saved === "error") {
-        setImportNotice("Import สำเร็จ แต่บันทึกไฟล์ไว้ใน browser ไม่สำเร็จ");
-      } else {
-        setImportNotice("บันทึก Excel ล่าสุดไว้ใน browser นี้แล้ว");
-      }
+      setImportNotice("Import สำเร็จและบันทึกพอร์ตนี้ไว้ในฐานข้อมูลร่วมแล้ว");
     } catch (error) {
       setImportError(
         error instanceof Error
           ? `Import ไม่สำเร็จ: ${error.message}`
           : "Import ไม่สำเร็จ โปรดลองอีกครั้ง",
       );
+    } finally {
+      importPasswordRef.current = "";
+      pendingImportFileRef.current = null;
     }
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) await applyWorkbook(file);
+    const password = importPasswordRef.current;
+    if (file && password) {
+      await applyWorkbook(file, password);
+    } else if (file) {
+      setImportError("กรุณายืนยันรหัสผ่านก่อน Import Excel");
+    }
     event.target.value = "";
   };
 
@@ -1170,7 +1251,7 @@ export function Dashboard() {
     event.preventDefault();
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
-    if (file) await applyWorkbook(file);
+    if (file) requestImportWorkbook(file);
   };
 
   const updatePrice = (ticker: string, rawValue: string) => {
@@ -1365,36 +1446,32 @@ export function Dashboard() {
             : new Date().toISOString(),
         ...(typeof body.provider === "string" ? { provider: body.provider } : {}),
         ...(Array.isArray(body.sources) ? { sources: body.sources } : {}),
+        ...(Array.isArray(body.refreshedKeys)
+          ? { refreshedKeys: body.refreshedKeys }
+          : {}),
+        ...(Array.isArray(body.retainedKeys)
+          ? { retainedKeys: body.retainedKeys }
+          : {}),
+        ...(body.cooldownActive === true ? { cooldownActive: true } : {}),
       });
       setLiveMarketState(nextState);
       const failureCount = Object.keys(nextState.failures).length;
       const firstFailure = Object.values(nextState.failures)[0];
       setLiveMarketNotice(
-        failureCount
-          ? `${failureCount} รายการยังใช้ audit price จาก Excel · ${firstFailure}`
-          : "อัปเดตราคาตลาดแล้ว — Excel audit record ไม่ถูกเปลี่ยน",
+        nextState.cooldownActive
+          ? "ยังใช้ราคาที่บันทึกไว้เพราะอยู่ในช่วงพัก API 5 นาที — ไม่มีการเรียก OpenAI เพิ่ม"
+          : failureCount
+          ? `${failureCount} รายการยังไม่มีราคาที่ใช้ได้ · ${firstFailure}`
+          : nextState.retainedStockCount || nextState.retainedFx
+            ? `อัปเดตค่าที่หาได้แล้ว และคงค่าฐานข้อมูลเดิม ${nextState.retainedStockCount + (nextState.retainedFx ? 1 : 0)} รายการ`
+            : "อัปเดตราคาตลาดและบันทึกลงฐานข้อมูลร่วมแล้ว",
       );
     } catch (error) {
       if (requestId !== refreshRequestIdRef.current) return;
-      const failures = {
-        ...plan.unmappedTickers,
-        ...Object.fromEntries(
-          plan.stocks.map((stock) => [
-            stock.ticker,
-            "Market data provider could not return a quote.",
-          ]),
-        ),
-        USDTHB: "Market data provider could not return a USD/THB rate.",
-      };
-      setLiveMarketState({
-        ...createEmptyLiveMarketState(),
-        failures,
-        requestedStockCount: plan.stocks.length,
-      });
       setLiveMarketNotice(
         error instanceof Error
-          ? `${error.message} — แสดง audit price จาก Excel ต่อไป`
-          : "ดึงราคา live ไม่สำเร็จ — แสดง audit price จาก Excel ต่อไป",
+          ? `${error.message} — ยังคงแสดงค่าที่บันทึกไว้ก่อนหน้า`
+          : "ดึงราคา live ไม่สำเร็จ — ยังคงแสดงค่าที่บันทึกไว้ก่อนหน้า",
       );
     } finally {
       if (requestId === refreshRequestIdRef.current) {
@@ -1416,6 +1493,8 @@ export function Dashboard() {
     setShowEditPasswordDialog(false);
     setEditPassword("");
     setEditPasswordError("");
+    importPasswordRef.current = "";
+    pendingImportFileRef.current = null;
     window.requestAnimationFrame(() => editModeButtonRef.current?.focus());
   };
 
@@ -1426,6 +1505,17 @@ export function Dashboard() {
       setEditPasswordError("");
       return;
     }
+    setEditPasswordPurpose("edit");
+    setEditPassword("");
+    setEditPasswordError("");
+    setEditPasswordPromptVersion((current) => current + 1);
+    setShowEditPasswordDialog(true);
+  };
+
+  const requestImportWorkbook = (file: File | null = null) => {
+    pendingImportFileRef.current = file;
+    importPasswordRef.current = "";
+    setEditPasswordPurpose("import");
     setEditPassword("");
     setEditPasswordError("");
     setEditPasswordPromptVersion((current) => current + 1);
@@ -1465,11 +1555,27 @@ export function Dashboard() {
         return;
       }
 
+      const verifiedPassword = editPassword;
       setEditPassword("");
       setEditPasswordError("");
       setShowEditPasswordDialog(false);
-      setShowScenario(true);
-      window.requestAnimationFrame(() => editModeButtonRef.current?.focus());
+      if (editPasswordPurpose === "import") {
+        importPasswordRef.current = verifiedPassword;
+        const pendingFile = pendingImportFileRef.current;
+        if (pendingFile) {
+          void applyWorkbook(pendingFile, verifiedPassword);
+        } else {
+          window.requestAnimationFrame(() => fileInputRef.current?.click());
+        }
+        window.setTimeout(() => {
+          if (importPasswordRef.current === verifiedPassword) {
+            importPasswordRef.current = "";
+          }
+        }, 120_000);
+      } else {
+        setShowScenario(true);
+        window.requestAnimationFrame(() => editModeButtonRef.current?.focus());
+      }
     } catch {
       setEditPassword("");
       setEditPasswordError("เชื่อมต่อระบบตรวจสอบรหัสผ่านไม่ได้ โปรดลองอีกครั้ง");
@@ -1484,10 +1590,15 @@ export function Dashboard() {
     setExportNotice("");
     setIsExporting(true);
     try {
-      const exported = exportEditedWorkbook(
-        sourceWorkbookBytes.slice(0),
-        buildWorkbookEditRequest(snapshot, scenario, holdingEdits, new Date().toISOString()),
+      const exportHoldings = validateSharedHoldings(
+        portfolioHoldings.map((holding) => ({
+          ...holding,
+          ticker: getHoldingDisplayTicker(holding.ticker, holdingEdits),
+        })),
       );
+      const exported = exportMinimalHoldingsWorkbook(exportHoldings, {
+        exportedAt: new Date().toISOString(),
+      });
       const blob = new Blob([exported.bytes], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
@@ -1497,7 +1608,9 @@ export function Dashboard() {
       link.download = exported.filename;
       link.click();
       URL.revokeObjectURL(url);
-      setExportNotice(`สร้าง ${exported.filename} พร้อม Dashboard Audit แล้ว`);
+      setExportNotice(
+        `สร้าง ${exported.filename} แล้ว — มีเฉพาะ Ticker, Owner/Account, Entry Price และ Units`,
+      );
     } catch (error) {
       setExportError(
         error instanceof Error ? error.message : "สร้างไฟล์ Excel ใหม่ไม่สำเร็จ",
@@ -1508,7 +1621,7 @@ export function Dashboard() {
   };
 
   return (
-    <main className="dashboard-shell">
+    <main className="dashboard-shell ghibli-countryside-ledger">
       <header className="topbar">
         <div className="topbar-inner">
           <div className="brand-cluster">
@@ -1532,7 +1645,7 @@ export function Dashboard() {
             <button
               className="button button-secondary"
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => requestImportWorkbook()}
             >
               Import Excel
             </button>
@@ -1551,11 +1664,11 @@ export function Dashboard() {
         <section className="source-banner">
           <div>
             <span className={`source-dot ${sourceMode}`} aria-hidden="true" />
-            <strong>{sourceMode === "imported" ? "Imported audit snapshot" : "Embedded audit snapshot"}</strong>
+            <strong>{sourceMode === "shared" ? "Shared PostgreSQL portfolio" : "Embedded audit snapshot"}</strong>
             <span> · {snapshot.filename} · As of {snapshot.asOfDate}</span>
           </div>
           <span className={editableDirty ? "scenario-status active" : "scenario-status"}>
-            {editableDirty ? "Unsaved dashboard edits" : "Imported values"}
+            {editableDirty ? "Unsaved dashboard scenario" : sourceMode === "shared" ? "Shared values" : "Fallback values"}
           </span>
         </section>
 
@@ -1568,7 +1681,7 @@ export function Dashboard() {
             <strong>{liveMarketStatusText}</strong>
             <span>
               {liveMarketNotice ||
-                "Live quotes update the dashboard only; Excel stays the audit record."}
+                "Refresh saves the latest usable quotes to the shared database."}
             </span>
             {liveMarketState.sources?.length ? (
               <span className="live-market-source-links">
@@ -1594,13 +1707,13 @@ export function Dashboard() {
           onDrop={handleDrop}
         >
           <div>
-            <strong>อัปเดตจาก Excel</strong>
-            <span>ลากไฟล์ Portfolio_Accounting.xlsx มาวาง หรือเลือก Import Excel</span>
+            <strong>อัปเดต Holdings จาก Excel</strong>
+            <span>ใช้ไฟล์ 4 คอลัมน์: Ticker, Owner/Account, Entry Price, Units</span>
           </div>
           <button
             className="text-button"
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => requestImportWorkbook()}
           >
             เลือกไฟล์
           </button>
@@ -2101,8 +2214,8 @@ export function Dashboard() {
           <div className="scenario-heading">
             <div>
               <p className="eyebrow">EDIT &amp; EXPORT</p>
-              <h2>แก้ ticker, ดึงราคา Yahoo และ export Excel</h2>
-              <p>เลือก symbol ก่อนใช้ราคา แล้ว Save จะดาวน์โหลดไฟล์ Excel ใหม่พร้อม Dashboard Audit</p>
+              <h2>แก้ dashboard scenario และ export raw holdings</h2>
+              <p>ราคา Yahoo ใช้ดู scenario เท่านั้น; Save จะสร้าง Excel ใหม่แบบ 4 คอลัมน์</p>
             </div>
             <div className="scenario-actions">
               {showScenario ? (
@@ -2298,7 +2411,7 @@ export function Dashboard() {
                     </label>
                   </div>
                   <p className="scenario-note">
-                    Save จะเขียนราคา current, DPS forecast และ WHT ที่แก้ลงไฟล์ใหม่เท่านั้น; ประวัติปันผล, รายการซื้อขาย และ cost basis เดิมไม่เปลี่ยน
+                    ราคา current, DPS และ WHT เป็น dashboard scenario เท่านั้น; Excel ที่ export จะเก็บเฉพาะ Ticker, Owner/Account, Entry Price และ Units
                   </p>
                 </div>
               </div>
@@ -2336,11 +2449,17 @@ export function Dashboard() {
                 </span>
                 <div>
                   <p className="eyebrow">PRIVATE CONTROL</p>
-                  <h2 id="edit-password-title">Unlock Edit Mode</h2>
+                  <h2 id="edit-password-title">
+                    {editPasswordPurpose === "import"
+                      ? "Authorize Shared Import"
+                      : "Unlock Edit Mode"}
+                  </h2>
                 </div>
               </div>
               <p id="edit-password-description" className="edit-password-description">
-                ใส่รหัสผ่านเพื่อแก้ข้อมูลและ export Excel ระบบจะถามใหม่ทุกครั้งหลังปิด Edit Mode
+                {editPasswordPurpose === "import"
+                  ? "ใส่รหัสผ่านเพื่อแทนที่ Holdings ในฐานข้อมูลร่วม ระบบจะตรวจสอบไฟล์อีกครั้งบน server"
+                  : "ใส่รหัสผ่านเพื่อแก้ dashboard scenario และ export Excel ระบบจะถามใหม่ทุกครั้งหลังปิด Edit Mode"}
               </p>
               <form className="edit-password-form" onSubmit={verifyEditPassword}>
                 <label htmlFor="edit-password">Edit Mode password</label>
@@ -2386,7 +2505,11 @@ export function Dashboard() {
                     type="submit"
                     disabled={isVerifyingEditPassword}
                   >
-                    {isVerifyingEditPassword ? "กำลังตรวจสอบ..." : "Unlock Edit Mode"}
+                    {isVerifyingEditPassword
+                      ? "กำลังตรวจสอบ..."
+                      : editPasswordPurpose === "import"
+                        ? "Continue to Import"
+                        : "Unlock Edit Mode"}
                   </button>
                 </div>
               </form>
@@ -2395,8 +2518,8 @@ export function Dashboard() {
         ) : null}
 
         <footer className="dashboard-footer">
-          <span>Source of record: {snapshot.filename}</span>
-          <span>Save &amp; Download creates a new workbook; the original Excel stays unchanged.</span>
+          <span>Shared source of truth: Railway PostgreSQL</span>
+          <span>Excel import/export contains only the four raw holding fields.</span>
         </footer>
       </div>
     </main>

@@ -1,53 +1,95 @@
 # Dashboard change-impact map
 
-Created: 2026-07-16. Use this file with the `impact-check` skill before changing runtime, market-data, workbook, or presentation behavior.
+Updated: 2026-07-16. Use with the `impact-check` skill before changing shared
+portfolio, market data, workbook, runtime, or presentation behavior.
 
-## Artifact inventory
+## Canonical artifacts
 
-- **Live app/service (canonical):** `app/`, `worker/index.ts`, `vite.config.ts`, and `package.json`; deployed from GitHub `main` to Railway.
-- **Embedded audit source (canonical snapshot):** `app/dashboard/initial-workbook.ts`, generated from `../Portfolio_Accounting.xlsx`.
-- **Workbook parser/calculator:** `app/dashboard/model.ts`.
-- **Browser workbook persistence:** `app/dashboard/persisted-workbook.ts`; stores the last validated imported workbook in IndexedDB.
-- **Edit/export workflow:** `app/dashboard/edit-model.ts`, `app/dashboard/workbook-export.ts`, and `app/dashboard/edit-auth.ts`.
-- **Market refresh workflow:** `app/dashboard/market-api.ts`, `app/dashboard/live-market.ts`, `worker/index.ts`, and the UI in `app/dashboard/Dashboard.tsx`.
-- **3D and responsive presentation:** `app/dashboard/Dashboard.tsx`, `app/globals.css`, `public/family-portfolio-hero.png`.
-- **Canonical operator documentation:** `README.md`.
-- **Design records:** `docs/specs/2026-07-16-mobile-responsive-dashboard-design.md` and `docs/specs/2026-07-16-railway-runtime-mobile-r3f-design.md`.
-- **Automated verification:** `tests/*.test.ts` and `tests/rendered-html.test.mjs`.
-- **Diagrams and exported document figures:** none currently tracked.
+- **Live app/service:** `app/`, `worker/index.ts`, `vite.config.ts`, and
+  `package.json`; GitHub `main` deploys to Railway.
+- **Shared data authority:** `app/dashboard/postgres-portfolio-repository.ts`
+  backed by Railway PostgreSQL.
+- **Raw workbook contract and adapter:**
+  `app/dashboard/shared-portfolio.ts`.
+- **Shared portfolio routes:** `app/dashboard/portfolio-api.ts` and
+  `app/dashboard/initial-shared-portfolio.ts`.
+- **Embedded legacy seed:** `app/dashboard/initial-workbook.ts`, generated from
+  `../Portfolio_Accounting.xlsx` and parsed by `app/dashboard/model.ts`.
+- **Authentication:** `app/dashboard/edit-auth.ts`.
+- **Market refresh:** `app/dashboard/market-api.ts`,
+  `app/dashboard/portfolio-repository.ts`, `app/dashboard/live-market.ts`, and
+  `worker/index.ts`.
+- **Dashboard and 3D presentation:** `app/dashboard/Dashboard.tsx`,
+  `app/globals.css`, and `public/family-portfolio-hero.png`.
+- **Operator documentation:** `README.md`.
+- **Approved architecture record:**
+  `docs/specs/2026-07-16-shared-postgres-minimal-workbook-design.md`.
+- **Approved visual-theme record:**
+  `docs/specs/2026-07-17-ghibli-countryside-ledger-theme-design.md`.
+- **Approved OpenAI usage policy:**
+  `docs/specs/2026-07-17-openai-market-usage-guard-design.md`.
+- **Verification:** `tests/*.test.ts` and `tests/rendered-html.test.mjs`.
 
 ## Impact matrix
 
-| If you change… | Code files | Diagram(s) to update + re-export | Doc figure(s) to re-export | Doc section(s) to edit | Also sync |
-|---|---|---|---|---|---|
-| OpenAI market lookup, quote parsing, retry policy, source requirements, or provider text | `app/dashboard/market-api.ts`, `worker/index.ts`, `tests/market-api.test.ts`, `tests/rendered-html.test.mjs` | None | None | `README.md` “Refresh market prices” and “Configure OpenAI web search”; `docs/specs/2026-07-16-railway-runtime-mobile-r3f-design.md` market route/verification sections | Confirm `OPENAI_API_KEY` / optional model variables in Railway; verify `/api/market/refresh` and the real UI button in production |
-| Mapping a workbook ticker to a market key or currency | `app/dashboard/live-market.ts`, `app/dashboard/market-api.ts`, `tests/live-market.test.ts`, `tests/market-api.test.ts` | None | None | `README.md` market source/limitations | Keep workbook ticker/currency assumptions in `model.ts` and Edit Mode export behavior aligned |
-| Applying live prices or FX to dashboard calculations | `app/dashboard/live-market.ts`, `app/dashboard/model.ts`, `app/dashboard/Dashboard.tsx`, `tests/live-market.test.ts`, `tests/dashboard-model.test.ts` | None | None | `README.md` display-only/audit separation | Do not mutate imported workbook bytes, transactions, cost basis, or exported Excel unless explicitly requested |
-| Workbook schema, parsing, formulas, shareholder labels, or source snapshot | `app/dashboard/model.ts`, `app/dashboard/initial-workbook.ts`, `app/dashboard/Dashboard.tsx`, relevant workbook tests | None | None | `README.md` import/persistence/accounting notes | Regenerate embedded workbook snapshot; reconcile `../Portfolio_Accounting.xlsx`; test imported-workbook persistence |
-| Edit Mode authentication or Railway secret resolution | `app/dashboard/edit-auth.ts`, `worker/index.ts`, `app/dashboard/Dashboard.tsx`, `tests/rendered-html.test.mjs` | None | None | `README.md` Edit Mode and Railway deployment; Railway runtime design spec | Set masked `EDIT_MODE_PASSWORD` in Railway and validate wrong=401/correct=200 |
-| Excel edit/export behavior | `app/dashboard/edit-model.ts`, `app/dashboard/workbook-export.ts`, `app/dashboard/Dashboard.tsx`, workbook/edit tests | None | None | `README.md` “Edit and export Excel” | Preserve the original imported workbook; validate generated workbook formulas and audit sheet |
-| Mobile hero, R3F, 3D bars, or responsive layout | `app/dashboard/Dashboard.tsx`, `app/globals.css`, `public/family-portfolio-hero.png`, `tests/rendered-html.test.mjs` | None | None | Both responsive/R3F design specs and README mobile section | Validate 393×852 and desktop; confirm R3F canvas-ready and touch/click selection |
-| Dev/start port or Railway process behavior | `package.json`, `vite.config.ts`, `worker/index.ts` | None | None | `README.md` local run and Railway deployment | Keep local dev on one explicit port; production must honor Railway `PORT` |
+| If you change… | Update together | Verify |
+|---|---|---|
+| Four-column workbook headers, validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, workbook tests, README | Parse/export round trip; reject extra/missing columns; authenticated production import |
+| Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
+| PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
+| Market keys, quote parsing, usage limits, cooldown, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | One bounded OpenAI request; persisted five-minute cooldown; usage log; retain failed keys; source links; production refresh |
+| Edit/import authentication | `edit-auth.ts`, `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests | Wrong password 401; correct password succeeds; no secret in bundle/log/DB |
+| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/key/password visible only server-side |
+| Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
 
-## Internal code graph
+## Internal flow
 
-- `worker/index.ts` → routes Edit Auth to `edit-auth.ts`, market endpoints to `market-api.ts`, then all other requests to vinext. Runtime-secret resolution here affects both Railway and Cloudflare-style execution.
-- `Dashboard.tsx` → loads `initial-workbook.ts` → parses via `model.ts` → overlays display-only data via `live-market.ts` → renders all financial cards and 3D charts.
-- `Dashboard.tsx` → `/api/market/refresh` → `worker/index.ts` → `market-api.ts` → OpenAI Responses API → `live-market.ts` validation → `model.ts` calculation.
-- `Dashboard.tsx` → `persisted-workbook.ts` for the active browser workbook; a newly imported valid workbook replaces the previous browser copy.
-- `Dashboard.tsx` → `edit-model.ts` → `workbook-export.ts`; this path deliberately writes a new downloadable workbook and does not alter the imported source bytes.
-- High-fan-in hubs: `Dashboard.tsx` (UI orchestration), `model.ts` (accounting model), `worker/index.ts` (runtime routing/secrets), and `market-api.ts` (external quote contract).
+1. `worker/index.ts` resolves server-only runtime variables and creates one
+   cached PostgreSQL repository per connection string.
+2. `GET /api/portfolio` calls `portfolio-api.ts` → PostgreSQL. An empty database
+   is protected by an advisory transaction lock and seeded from
+   `initial-shared-portfolio.ts` exactly once.
+3. `Dashboard.tsx` renders the embedded seed first, then loads shared holdings,
+   settings, and persisted quotes. It adapts raw holdings through
+   `shared-portfolio.ts` into the existing calculation model.
+4. Import parses a one-sheet/four-column workbook in the browser, requests the
+   Edit Mode password, then posts validated raw rows to
+   `/api/portfolio/import`. The server revalidates and replaces all holdings in
+   one transaction.
+5. Market refresh first asks PostgreSQL for a quote saved within five minutes.
+   A cache hit returns retained shared values without OpenAI. Otherwise
+   `market-api.ts` makes one bounded OpenAI request, logs token/tool-call usage,
+   and the repository upserts successful keys while retaining prior failed
+   keys.
+6. Export builds a new minimal workbook directly from current shared raw
+   holdings. It never serializes derived display values.
 
-## Data-contract ripple
+## Data contracts
 
-- `/api/market/refresh` returns `{ quotes, failures, fetchedAt, provider?, sources? }`. Any shape change must update `MarketRefreshPayload` in `market-api.ts`, `LiveMarketBatchResponse` in `live-market.ts`, the fetch handler/status text in `Dashboard.tsx`, and both market test files.
-- A quote must carry `symbol`, positive numeric `price`, expected `currency`, `exchange`, `marketState`, and timestamp/source metadata. Currency validation happens again in `live-market.ts` before calculation.
-- Runtime secret changes must be reflected in the `Env` and `RuntimeSecret` types in `worker/index.ts`, `.dev.vars.example`, README deployment instructions, and Railway service variables.
-- Workbook schema changes ripple through `parseWorkbook`, scenario creation, dashboard calculations, browser persistence, edit/export generation, the embedded workbook snapshot, and workbook fixtures.
+- Workbook: exactly one `Holdings` sheet and exactly `Ticker`,
+  `Owner/Account`, `Entry Price`, `Units`.
+- Holdings: supported ticker and owner mapping; positive finite native-currency
+  entry price and units.
+- Shared market keys: `GOOGL`, `SCB`, `KBANK`, `USDTHB`.
+- `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
+  and optional market sources.
+- Market refresh: quote map plus failures, refreshed/retained keys, fetched
+  time, provider, optional source links, and optional `cooldownActive`.
+- Runtime variables: `DATABASE_URL`, `EDIT_MODE_PASSWORD`, `OPENAI_API_KEY`,
+  and optional `OPENAI_MARKET_MODEL`.
 
-## Known sync debts
+## Known constraints and debt
 
-- The public refresh is a sourced OpenAI web lookup rather than a licensed exchange feed; missing or ambiguous search results intentionally retain audit prices.
-- `market-api.ts` still exposes legacy Yahoo search/quote endpoints for Edit Mode even though the public Refresh button is OpenAI-only. Provider copy must not imply Yahoo powers the public refresh.
-- The Railway service variables are deployment state and are not represented in Git; a fresh Railway service requires manual secret configuration.
-- Live market prices are intentionally display-only and are not persisted to IndexedDB or written back to Excel by the Refresh button.
+- OpenAI web search is sourced but is not a licensed exchange feed; the first
+  refresh after each shared five-minute cooldown can incur API usage.
+- Only GOOGL, SCB, and KBANK holdings are accepted until ticker currency and
+  market mappings are added deliberately.
+- GOOGL entry price is native USD; the compatibility adapter converts its cost
+  basis using the stored default audit FX assumption.
+- Legacy transactions, realized P&L, shareholder pool settings, and dividend
+  assumptions live in the seeded settings row. They are not exported in the
+  minimal workbook and need a future explicit settings UI if they must change.
+- Tables are currently created lazily with idempotent SQL. Schema versioned
+  migrations should be added before incompatible production schema changes.
+- Railway variables are deployment state and are intentionally absent from
+  Git; a fresh service must connect PostgreSQL and add its secrets.

@@ -13,8 +13,12 @@ export type MarketQuote = {
   exchange: string;
   marketState: string;
   quoteTimestamp?: string;
-  source?: "Yahoo Finance" | "OpenAI web search";
-  freshness?: "delayed" | "latest close" | "searched live";
+  source?: "Yahoo Finance" | "OpenAI web search" | "Embedded audit seed";
+  freshness?:
+    | "delayed"
+    | "latest close"
+    | "searched live"
+    | "initial database seed";
 };
 
 const symbolPattern = /^[A-Za-z0-9.^=-]{1,32}$/;

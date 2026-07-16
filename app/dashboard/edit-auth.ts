@@ -1,4 +1,4 @@
-interface EditAuthEnv {
+export interface EditAuthEnv {
   EDIT_MODE_PASSWORD?: string;
 }
 
@@ -33,6 +33,14 @@ const securelyMatches = async (candidate: string, expected: string) => {
   }
   return mismatch === 0;
 };
+
+export async function isEditPasswordValid(
+  candidate: string,
+  configuredPassword: string | undefined,
+) {
+  if (!configuredPassword) return false;
+  return securelyMatches(candidate, configuredPassword);
+}
 
 export async function handleEditAuthRequest(
   request: Request,
@@ -81,7 +89,7 @@ export async function handleEditAuthRequest(
     );
   }
 
-  if (!(await securelyMatches(password, configuredPassword))) {
+  if (!(await isEditPasswordValid(password, configuredPassword))) {
     return jsonResponse(
       { authenticated: false, error: "Incorrect password." },
       401,
