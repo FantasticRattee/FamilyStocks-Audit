@@ -11,7 +11,10 @@ workbook through the UI. The original Excel file is never modified.
 npm run dev
 ```
 
-Open the Local URL printed by the command (normally `http://localhost:3000`).
+Open `http://localhost:3001`. Local development is intentionally pinned to this
+single port so preview links and browser comments always point to the same app.
+The production `npm run start` command does not hardcode a port, so Railway can
+continue supplying its own runtime `PORT`.
 
 ## Mobile layout
 
@@ -23,6 +26,9 @@ remains usable down to **320×568**:
   width.
 - The hero, ownership comparison, allocation ring, P&L, and dividend charts
   stay visible without overlapping their labels or values.
+- The family portrait fills the complete hero stage. The allocation ring keeps
+  its R3F canvas on WebGL-capable phones and exposes a clickable ring fallback
+  when WebGL is unavailable.
 - Dashboard tabs scroll horizontally when needed. Data tables retain their
   intentional horizontal scroll wrappers.
 
@@ -88,8 +94,8 @@ price/cost basis as the historical audit record.
 
 For Cloudflare deployment, set `OPENAI_API_KEY` (and optionally
 `OPENAI_MARKET_MODEL`) as Worker secrets rather than browser-visible variables.
-The key is used only in `worker/index.ts` → `market-api.ts` and is never sent to
-the browser.
+For Railway, use the service Variables described below. The key is used only
+in `worker/index.ts` → `market-api.ts` and is never sent to the browser.
 
 ## Edit and export Excel
 
@@ -103,6 +109,31 @@ cookie. Closing Edit Mode relocks it, so every new opening asks for the password
 again. Local development reads `EDIT_MODE_PASSWORD` from the ignored
 `.dev.vars` file; use `.dev.vars.example` as the configuration template. Before
 deploying, configure `EDIT_MODE_PASSWORD` as a secret in the Worker environment.
+
+## Deploy on Railway
+
+Use `npm run build` as the build command and `npm run start` as the start
+command. In the Railway service's **Variables** page, add:
+
+```text
+EDIT_MODE_PASSWORD=<your-production-password>
+OPENAI_API_KEY=<your-openai-api-key>
+OPENAI_MARKET_MODEL=gpt-5.6
+```
+
+`OPENAI_MARKET_MODEL` is optional. Deploy or redeploy after changing a
+variable; the currently running deployment cannot see a newly saved value
+until the replacement deployment starts.
+
+No database is required for the current design. Password verification is a
+stateless server check, and the latest validated imported workbook remains in
+that browser profile's IndexedDB. A database would only be needed later for
+user accounts, server sessions, or a workbook shared across devices.
+
+The server adapter reads only the three allow-listed names above. It prefers a
+Cloudflare Worker binding when present and otherwise reads Railway's Node
+runtime environment. Secrets are never embedded in browser JavaScript or
+committed `.dev.vars` files.
 
 1. Enter a company name or ticker in **Search Yahoo**, choose the correct
    result, then fetch its current price. A search result is never selected

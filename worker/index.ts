@@ -6,12 +6,12 @@ import { handleEditAuthRequest } from "../app/dashboard/edit-auth";
 import { handleMarketApiRequest } from "../app/dashboard/market-api";
 
 interface Env {
-  ASSETS: Fetcher;
-  DB: D1Database;
+  ASSETS?: Fetcher;
+  DB?: D1Database;
   EDIT_MODE_PASSWORD?: string;
   OPENAI_API_KEY?: string;
   OPENAI_MARKET_MODEL?: string;
-  IMAGES: {
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
@@ -25,6 +25,38 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
+type RuntimeSecret =
+  | "EDIT_MODE_PASSWORD"
+  | "OPENAI_API_KEY"
+  | "OPENAI_MARKET_MODEL";
+
+const RUNTIME_SECRETS: RuntimeSecret[] = [
+  "EDIT_MODE_PASSWORD",
+  "OPENAI_API_KEY",
+  "OPENAI_MARKET_MODEL",
+];
+
+const getNodeEnvironment = (): Partial<Record<RuntimeSecret, string>> => {
+  const nodeProcess = (
+    globalThis as typeof globalThis & {
+      process?: { env?: Partial<Record<RuntimeSecret, string>> };
+    }
+  ).process;
+
+  return nodeProcess?.env ?? {};
+};
+
+const resolveRuntimeEnvironment = (workerEnv?: Env): Env => {
+  const resolvedEnv: Env = { ...(workerEnv ?? {}) };
+  const nodeEnv = getNodeEnvironment();
+
+  for (const secret of RUNTIME_SECRETS) {
+    resolvedEnv[secret] = workerEnv?.[secret] ?? nodeEnv[secret];
+  }
+
+  return resolvedEnv;
+};
+
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
 // To route SVGs through the optimizer (with security headers), set
@@ -32,7 +64,8 @@ interface ExecutionContext {
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
 const worker = {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env | undefined, ctx: ExecutionContext): Promise<Response> {
+    env = resolveRuntimeEnvironment(env);
     const url = new URL(request.url);
 
     const editAuthResponse = await handleEditAuthRequest(request, env);
@@ -42,6 +75,11 @@ const worker = {
     if (marketResponse) return marketResponse;
 
     if (url.pathname === "/_vinext/image") {
+      if (!env.ASSETS || !env.IMAGES) {
+        return new Response("Image optimization is unavailable in this runtime.", {
+          status: 503,
+        });
+      }
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),

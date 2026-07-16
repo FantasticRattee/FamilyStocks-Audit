@@ -700,18 +700,30 @@ function PortfolioComposition3D({
   const [canvasReady, setCanvasReady] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const activeAllocation = allocations[activeIndex] ?? allocations[0];
+  const activateNextAllocation = () => {
+    if (!allocations.length) return;
+    setActiveIndex((currentIndex) => (currentIndex + 1) % allocations.length);
+  };
 
   return (
     <div className="composition-experience">
       <div
-        className="composition-3d-stage"
-        role="img"
+        className={`composition-3d-stage ${canvasReady ? "canvas-ready" : ""}`}
+        role="group"
         aria-label="Interactive 3D portfolio composition ring"
       >
-        <div
+        <button
           className={`allocation-fallback-ring ${canvasReady ? "canvas-ready" : ""}`}
+          type="button"
           style={fallbackStyle}
-          aria-hidden="true"
+          onClick={activateNextAllocation}
+          aria-label={
+            activeAllocation
+              ? `Select next allocation. Current allocation is ${activeAllocation.displayTicker} at ${formatPct(activeAllocation.ratio, 1)}`
+              : "Portfolio allocation ring"
+          }
+          aria-hidden={canvasReady}
+          tabIndex={canvasReady ? -1 : 0}
         />
         {allocations.length ? (
           <Canvas
@@ -721,7 +733,7 @@ function PortfolioComposition3D({
             frameloop="demand"
             camera={{ position: [0, 1.05, 7.1], fov: 34 }}
             onCreated={() => setCanvasReady(true)}
-            fallback={<div className="webgl-fallback">3D preview unavailable</div>}
+            fallback={null}
           >
             <PortfolioRingScene
               allocations={allocations}

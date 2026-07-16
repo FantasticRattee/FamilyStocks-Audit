@@ -1,6 +1,6 @@
 # Mobile-Responsive Dashboard Design
 
-**Status:** Approved — implementation complete<br>
+**Status:** Implemented and regression-verified<br>
 **Date:** 16 Jul 2026<br>
 **Scope:** The Stock Audit dashboard presentation at narrow phone widths.
 
@@ -19,9 +19,9 @@ separate mobile dashboard.
 
 ## Layout Contract
 
-- At 760px and below, the hero remains one visual story: compact copy stays
-  legible over a smaller, right-aligned portrait; its three metrics become a
-  dense vertical list instead of wide cards.
+- At 760px and below, the hero remains one visual story: the portrait and its
+  overlays fill the complete stage while compact copy stays legible; its three
+  metrics become a dense vertical list instead of wide cards.
 - At 620px and below, the sticky top bar becomes a compact brand row plus a
   full-width two-button action row. Buttons retain at least 42px touch height.
 - At 520px and below, ownership, P&L, and dividend figures use stacked
@@ -34,6 +34,9 @@ separate mobile dashboard.
   panels; tables retain their existing intentional horizontal scrolling.
 - The 3D allocation ring stays interactive. Its exact-value detail list moves
   below the ring; the center value stays readable and never intercepts taps.
+- When WebGL cannot initialize, a keyboard- and touch-activated CSS ring
+  replaces the canvas and cycles the selected allocation instead of showing an
+  unavailable message.
 - The section tabs retain all labels and use horizontal scrolling without a
   visible scrollbar when space is constrained.
 
@@ -69,3 +72,10 @@ separate mobile dashboard.
    accessible.
 5. Existing dashboard server-render, model, workbook-editing, and market tests
    remain green.
+6. The 393px hero has no blank right-side strip, and the R3F canvas permits
+   vertical page scrolling through `touch-action: pan-y`.
+
+Final browser QA at 393 x 852 confirmed no document overflow
+(`scrollWidth === innerWidth`), the complete hero background, touch selection
+on a real R3F segment, and selection through the fallback ring with WebGL
+disabled.

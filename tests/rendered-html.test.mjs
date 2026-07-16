@@ -4,10 +4,15 @@ import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
 
-async function requestWorker(path = "/", init = {}, env = {}) {
+async function loadWorker() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
+  return worker;
+}
+
+async function requestWorker(path = "/", init = {}, env = {}) {
+  const worker = await loadWorker();
 
   return worker.fetch(
     new Request(`http://localhost${path}`, init),
@@ -17,6 +22,15 @@ async function requestWorker(path = "/", init = {}, env = {}) {
       },
       ...env,
     },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+}
+
+async function requestWorkerWithoutEnv(path, init = {}) {
+  const worker = await loadWorker();
+  return worker.fetch(
+    new Request(`http://localhost${path}`, init),
+    undefined,
     { waitUntil() {}, passThroughOnException() {} },
   );
 }
@@ -51,6 +65,15 @@ test("removes the disposable starter preview from the finished dashboard", async
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
+});
+
+test("uses one fixed local preview port while leaving Railway production dynamic", async () => {
+  const packageJson = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+
+  assert.match(packageJson.scripts.dev, /vinext dev --port 3001$/);
+  assert.doesNotMatch(packageJson.scripts.start, /--port\s+3001/);
 });
 
 test("keeps Yahoo selection and Excel export in the finished dashboard source", async () => {
@@ -156,6 +179,14 @@ test("defines a compact, no-overflow layout for phone-sized Family Wealth views"
   );
   assert.match(
     styles,
+    /@media \(max-width: 520px\)\s*\{[\s\S]*?\.wealth-hero-artwork\s*\{[^}]*width:\s*100%/i,
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 520px\)\s*\{[\s\S]*?\.wealth-hero-artwork img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/i,
+  );
+  assert.match(
+    styles,
     /@media \(max-width: 360px\)\s*\{[\s\S]*?\.topbar-actions\s*\{[\s\S]*?grid-template-columns:\s*1fr/i,
   );
   assert.match(styles, /\.tabs::-webkit-scrollbar\s*\{[^}]*display:\s*none/i);
@@ -186,6 +217,22 @@ test("keeps the approved R3F runtime, demand rendering, and motion fallback", as
   assert.match(dashboard, /shadows="basic"/);
   assert.match(dashboard, /onPointerOver/);
   assert.match(dashboard, /onFocus/);
+  assert.match(dashboard, /<button\s+className=\{`allocation-fallback-ring/);
+  assert.match(dashboard, /onClick=\{activateNextAllocation\}/);
+  assert.match(dashboard, /fallback=\{null\}/);
+  assert.doesNotMatch(dashboard, /3D preview unavailable/);
+  assert.match(
+    dashboard,
+    /className=\{`composition-3d-stage \$\{canvasReady \? "canvas-ready" : ""\}`\}/,
+  );
+  assert.match(
+    styles,
+    /\.composition-3d-stage canvas\s*\{[^}]*touch-action:\s*pan-y/i,
+  );
+  assert.match(
+    styles,
+    /\.composition-3d-stage:not\(\.canvas-ready\) canvas\s*\{[^}]*pointer-events:\s*none/i,
+  );
   assert.match(styles, /prefers-reduced-motion:\s*reduce/i);
   assert.match(packageJson, /"@react-three\/fiber"/);
   assert.match(packageJson, /"@react-three\/drei"/);
@@ -281,6 +328,89 @@ test("verifies the Edit Mode password on the Worker without persisting a session
 
   const unsupported = await requestWorker("/api/edit-auth", {}, env);
   assert.equal(unsupported.status, 405);
+});
+
+test("reads the Railway password from Node env when Worker env is absent", async () => {
+  const previousPassword = process.env.EDIT_MODE_PASSWORD;
+  process.env.EDIT_MODE_PASSWORD = "railway-test-password";
+  try {
+    const wrong = await requestWorkerWithoutEnv("/api/edit-auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "wrong-password" }),
+    });
+    assert.equal(wrong.status, 401);
+
+    const correct = await requestWorkerWithoutEnv("/api/edit-auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "railway-test-password" }),
+    });
+    assert.equal(correct.status, 200);
+    assert.deepEqual(await correct.json(), { authenticated: true });
+  } finally {
+    if (previousPassword === undefined) delete process.env.EDIT_MODE_PASSWORD;
+    else process.env.EDIT_MODE_PASSWORD = previousPassword;
+  }
+});
+
+test("reads the Railway OpenAI key from Node env when Worker env is absent", async () => {
+  const previousKey = process.env.OPENAI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "railway-test-openai-key";
+  globalThis.fetch = async (input, init) => {
+    assert.equal(String(input), "https://api.openai.com/v1/responses");
+    assert.equal(
+      new Headers(init?.headers).get("authorization"),
+      "Bearer railway-test-openai-key",
+    );
+    return Response.json({
+      created_at: 1784131200,
+      output: [
+        {
+          type: "web_search_call",
+          action: {
+            type: "search",
+            sources: [
+              {
+                url: "https://example.com/market-source",
+                title: "Market source",
+              },
+            ],
+          },
+        },
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify({
+                quotes: [
+                  { key: "GOOGL", price: 372.49 },
+                  { key: "USDTHB", price: 33.8 },
+                  { key: "SCB", price: 122.5 },
+                  { key: "KBANK", price: 175.5 },
+                ],
+              }),
+            },
+          ],
+        },
+      ],
+    });
+  };
+
+  try {
+    const response = await requestWorkerWithoutEnv("/api/market/refresh");
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.provider, "OpenAI web search");
+    assert.deepEqual(Object.keys(body.quotes).sort(), ["GOOGL", "KBANK", "SCB", "USDTHB"]);
+    assert.deepEqual(body.failures, {});
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousKey;
+  }
 });
 
 test("keeps the dashboard public but gates every Edit Mode opening with a dialog", async () => {
