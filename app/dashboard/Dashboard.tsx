@@ -69,7 +69,7 @@ const PORTFOLIO_THEME = {
 } as const;
 
 const MARKET_REFRESH_SOURCES =
-  "OpenAI web search · one manual request for GOOGL, USD/THB, SCB, and KBANK";
+  "OpenAI web search · one request for GOOGL, USD/THB, SCB, and KBANK, plus one focused retry for missing quotes";
 
 type Tab = (typeof TABS)[number][0];
 type SourceMode = "embedded" | "imported";

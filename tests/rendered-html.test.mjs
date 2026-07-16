@@ -100,6 +100,8 @@ test("keeps one manual sourced market refresh separate from the Excel audit reco
   assert.match(dashboard, /createLiveMarketRefreshPlan/);
   assert.match(dashboard, /applyLiveMarketState/);
   assert.match(dashboard, /OpenAI web search/);
+  assert.match(dashboard, /focused retry for missing quotes/);
+  assert.doesNotMatch(dashboard, /one manual request for/);
   assert.match(dashboard, /liveMarketState\.sources/);
   assert.doesNotMatch(dashboard, /Google Finance|EODHD/);
   assert.doesNotMatch(dashboard, /setInterval\s*\(/);
