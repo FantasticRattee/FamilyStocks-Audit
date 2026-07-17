@@ -35,6 +35,7 @@ export type DividendLine = {
 };
 
 export type HistoricalDividend = {
+  whtRate: number;
   lines: DividendLine[];
   gross: number;
   wht: number;

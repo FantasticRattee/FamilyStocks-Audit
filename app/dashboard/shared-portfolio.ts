@@ -1,10 +1,11 @@
 import * as XLSX from "xlsx";
 
-import type {
-  DashboardSnapshot,
-  HistoricalDividend,
-  Shareholder,
-  Transaction,
+import {
+  parseWorkbook,
+  type DashboardSnapshot,
+  type HistoricalDividend,
+  type Shareholder,
+  type Transaction,
 } from "./model";
 
 export const MINIMAL_HOLDINGS_HEADERS = [
@@ -47,10 +48,23 @@ export type PortfolioSettings = {
   transactions: Transaction[];
 };
 
-export type MinimalHoldingsParseResult = {
+export const CANONICAL_AUDIT_SHEET_NAMES = [
+  "Summary",
+  "Shareholders",
+  "Lot Holdings",
+  "Dividends",
+  "Holdings",
+  "Transactions",
+] as const;
+
+export type WorkbookImportParseResult = {
   filename: string;
   holdings: SharedHoldingInput[];
+  source: "minimal" | "audit";
+  settings?: PortfolioSettings;
 };
+
+export type MinimalHoldingsParseResult = WorkbookImportParseResult;
 
 export type MinimalHoldingsExportResult = {
   bytes: ArrayBuffer;
@@ -134,21 +148,195 @@ export function validateSharedHoldings(input: unknown): SharedHoldingInput[] {
   });
 }
 
-export function parseMinimalHoldingsWorkbook(
-  input: ArrayBuffer,
+const asRecord = (value: unknown, label: string): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return value as Record<string, unknown>;
+};
+
+const finiteNumber = (value: unknown, label: string) => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be a finite number.`);
+  }
+  return value;
+};
+
+const nonNegativeNumber = (value: unknown, label: string) => {
+  const number = finiteNumber(value, label);
+  if (number < 0) throw new Error(`${label} cannot be negative.`);
+  return number;
+};
+
+const requiredText = (value: unknown, label: string) => {
+  const result = text(value);
+  if (!result) throw new Error(`${label} is required.`);
+  return result;
+};
+
+const validateDividendLine = (value: unknown, label: string) => {
+  const line = asRecord(value, label);
+  return {
+    ticker: requiredText(line.ticker, `${label}.ticker`),
+    eligibleQuantity: nonNegativeNumber(
+      line.eligibleQuantity,
+      `${label}.eligibleQuantity`,
+    ),
+    dps: nonNegativeNumber(line.dps, `${label}.dps`),
+    gross: nonNegativeNumber(line.gross, `${label}.gross`),
+    wht: nonNegativeNumber(line.wht, `${label}.wht`),
+    net: nonNegativeNumber(line.net, `${label}.net`),
+    xdDate: text(line.xdDate),
+    note: text(line.note),
+  };
+};
+
+export function validatePortfolioSettings(input: unknown): PortfolioSettings {
+  const settings = asRecord(input, "Audit settings");
+  if (settings.schemaVersion !== 1) {
+    throw new Error("Audit settings schemaVersion must be 1.");
+  }
+  const defaultFx = finiteNumber(settings.defaultFx, "Audit settings defaultFx");
+  if (defaultFx <= 0) {
+    throw new Error("Audit settings defaultFx must be positive.");
+  }
+  if (!Array.isArray(settings.shareholders)) {
+    throw new Error("Audit settings shareholders must be an array.");
+  }
+  const dividend = asRecord(settings.dividend, "Audit settings dividend");
+  const whtRate = finiteNumber(dividend.whtRate, "Audit settings dividend.whtRate");
+  if (whtRate < 0 || whtRate > 1) {
+    throw new Error("Audit settings dividend.whtRate must be between 0 and 1.");
+  }
+  if (!Array.isArray(dividend.lines)) {
+    throw new Error("Audit settings dividend.lines must be an array.");
+  }
+  const historical = asRecord(
+    settings.historicalDividend,
+    "Audit settings historicalDividend",
+  );
+  if (!Array.isArray(historical.lines)) {
+    throw new Error("Audit settings historicalDividend.lines must be an array.");
+  }
+  const historicalWhtRate = finiteNumber(
+    historical.whtRate,
+    "Audit settings historicalDividend.whtRate",
+  );
+  if (historicalWhtRate < 0 || historicalWhtRate > 1) {
+    throw new Error("Audit settings historicalDividend.whtRate must be between 0 and 1.");
+  }
+  if (!Array.isArray(settings.transactions)) {
+    throw new Error("Audit settings transactions must be an array.");
+  }
+
+  return {
+    schemaVersion: 1,
+    asOfDate: requiredText(settings.asOfDate, "Audit settings asOfDate"),
+    defaultFx,
+    totalRealizedPnl: finiteNumber(
+      settings.totalRealizedPnl,
+      "Audit settings totalRealizedPnl",
+    ),
+    shareholders: settings.shareholders.map((value, index) => {
+      const shareholder = asRecord(value, `Audit settings shareholders[${index}]`);
+      return {
+        owner: requiredText(shareholder.owner, `Audit settings shareholders[${index}].owner`),
+        sharedCapital: nonNegativeNumber(
+          shareholder.sharedCapital,
+          `Audit settings shareholders[${index}].sharedCapital`,
+        ),
+        poolPercent: nonNegativeNumber(
+          shareholder.poolPercent,
+          `Audit settings shareholders[${index}].poolPercent`,
+        ),
+        personalCapital: nonNegativeNumber(
+          shareholder.personalCapital,
+          `Audit settings shareholders[${index}].personalCapital`,
+        ),
+        totalInvested: nonNegativeNumber(
+          shareholder.totalInvested,
+          `Audit settings shareholders[${index}].totalInvested`,
+        ),
+      };
+    }),
+    dividend: {
+      whtRate,
+      lines: dividend.lines.map((value, index) => {
+        const line = asRecord(value, `Audit settings dividend.lines[${index}]`);
+        return {
+          ticker: requiredText(line.ticker, `Audit settings dividend.lines[${index}].ticker`),
+          dps: nonNegativeNumber(line.dps, `Audit settings dividend.lines[${index}].dps`),
+          note: text(line.note),
+        };
+      }),
+    },
+    historicalDividend: {
+      whtRate: historicalWhtRate,
+      lines: historical.lines.map((value, index) =>
+        validateDividendLine(value, `Audit settings historicalDividend.lines[${index}]`),
+      ),
+      gross: nonNegativeNumber(historical.gross, "Audit settings historicalDividend.gross"),
+      wht: nonNegativeNumber(historical.wht, "Audit settings historicalDividend.wht"),
+      net: nonNegativeNumber(historical.net, "Audit settings historicalDividend.net"),
+    },
+    transactions: settings.transactions.map((value, index) => {
+      const transaction = asRecord(value, `Audit settings transactions[${index}]`);
+      return {
+        date: requiredText(transaction.date, `Audit settings transactions[${index}].date`),
+        account: requiredText(transaction.account, `Audit settings transactions[${index}].account`),
+        ticker: requiredText(transaction.ticker, `Audit settings transactions[${index}].ticker`),
+        side: requiredText(transaction.side, `Audit settings transactions[${index}].side`),
+        order: text(transaction.order),
+        quantity: nonNegativeNumber(transaction.quantity, `Audit settings transactions[${index}].quantity`),
+        priceNative: nonNegativeNumber(transaction.priceNative, `Audit settings transactions[${index}].priceNative`),
+        currency: requiredText(transaction.currency, `Audit settings transactions[${index}].currency`),
+        grossNative: nonNegativeNumber(transaction.grossNative, `Audit settings transactions[${index}].grossNative`),
+        fx: nonNegativeNumber(transaction.fx, `Audit settings transactions[${index}].fx`),
+        costProceedsThb: finiteNumber(transaction.costProceedsThb, `Audit settings transactions[${index}].costProceedsThb`),
+        realizedPnlThb: finiteNumber(transaction.realizedPnlThb, `Audit settings transactions[${index}].realizedPnlThb`),
+        note: text(transaction.note),
+      };
+    }),
+  };
+}
+
+const snapshotToPortfolioSettings = (
+  snapshot: DashboardSnapshot,
+): PortfolioSettings => ({
+  schemaVersion: 1,
+  asOfDate: snapshot.asOfDate,
+  defaultFx: snapshot.defaultFx,
+  totalRealizedPnl: snapshot.summary.totalRealizedPnl,
+  shareholders: snapshot.shareholders,
+  dividend: {
+    whtRate: snapshot.dividend.whtRate,
+    lines: snapshot.dividend.lines.map((line) => ({
+      ticker: line.ticker,
+      dps: line.dps,
+      note: line.note,
+    })),
+  },
+  historicalDividend: snapshot.historicalDividend,
+  transactions: snapshot.transactions,
+});
+
+const snapshotToSharedHoldings = (snapshot: DashboardSnapshot) =>
+  validateSharedHoldings(
+    snapshot.holdings.map((holding) => ({
+      ticker: holding.ticker,
+      ownerAccount: holding.category === "shared" ? "Shared" : holding.owner,
+      entryPrice:
+        holding.currency === "USD"
+          ? holding.avgCostThb / snapshot.defaultFx
+          : holding.avgCostThb,
+      units: holding.quantity,
+    })),
+  );
+
+const parseMinimalHoldingsRows = (
+  workbook: XLSX.WorkBook,
   filename: string,
-): MinimalHoldingsParseResult {
-  let workbook: XLSX.WorkBook;
-  try {
-    workbook = XLSX.read(input, { type: "array", cellDates: false });
-  } catch {
-    throw new Error("Unable to read this file as an XLSX workbook.");
-  }
-
-  if (workbook.SheetNames.length !== 1 || workbook.SheetNames[0] !== "Holdings") {
-    throw new Error('The minimal workbook must contain exactly one sheet named "Holdings".');
-  }
-
+): WorkbookImportParseResult => {
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Holdings, {
     header: 1,
     raw: true,
@@ -177,8 +365,44 @@ export function parseMinimalHoldingsWorkbook(
         units: row[3],
       })),
   );
-  return { filename, holdings };
+  return { filename, holdings, source: "minimal" };
+};
+
+export function parseWorkbookForImport(
+  input: ArrayBuffer,
+  filename: string,
+): WorkbookImportParseResult {
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(input, { type: "array", cellDates: false });
+  } catch {
+    throw new Error("Unable to read this file as an XLSX workbook.");
+  }
+
+  if (workbook.SheetNames.length === 1 && workbook.SheetNames[0] === "Holdings") {
+    return parseMinimalHoldingsRows(workbook, filename);
+  }
+
+  const isCanonicalAudit = CANONICAL_AUDIT_SHEET_NAMES.every((name) =>
+    workbook.SheetNames.includes(name),
+  );
+  if (!isCanonicalAudit) {
+    throw new Error(
+      "Choose either the canonical six-sheet Portfolio_Accounting.xlsx or a one-sheet Holdings workbook with Ticker, Owner/Account, Entry Price, Units.",
+    );
+  }
+
+  const snapshot = parseWorkbook(input, filename);
+  return {
+    filename,
+    holdings: snapshotToSharedHoldings(snapshot),
+    settings: snapshotToPortfolioSettings(snapshot),
+    source: "audit",
+  };
 }
+
+// Retained as a compatibility export for callers that used the former name.
+export const parseMinimalHoldingsWorkbook = parseWorkbookForImport;
 
 const asArrayBuffer = (value: unknown): ArrayBuffer => {
   if (value instanceof ArrayBuffer) return value;

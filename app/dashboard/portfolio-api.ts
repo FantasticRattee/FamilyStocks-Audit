@@ -1,6 +1,7 @@
 import { isEditPasswordValid, type EditAuthEnv } from "./edit-auth";
 import type { MarketQuoteSnapshot } from "./portfolio-repository";
 import {
+  validatePortfolioSettings,
   validateSharedHoldings,
   type PortfolioSettings,
   type SharedHoldingInput,
@@ -26,6 +27,7 @@ export interface PortfolioRepository {
   replaceHoldings(
     holdings: SharedHoldingInput[],
     metadata: Omit<PortfolioImportMetadata, "rowCount">,
+    settingsOverride?: PortfolioSettings,
   ): Promise<SharedPortfolioState>;
 }
 
@@ -39,8 +41,13 @@ const jsonResponse = (body: unknown, status = 200, headers: HeadersInit = {}) =>
     },
   });
 
-const contentHash = async (holdings: SharedHoldingInput[]) => {
-  const bytes = new TextEncoder().encode(JSON.stringify(holdings));
+const contentHash = async (
+  holdings: SharedHoldingInput[],
+  settingsOverride?: PortfolioSettings,
+) => {
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({ holdings, settings: settingsOverride ?? null }),
+  );
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
 };
@@ -105,14 +112,26 @@ export async function handlePortfolioApiRequest(
     );
   }
 
+  let settingsOverride: PortfolioSettings | undefined;
+  if (payload.settings !== undefined) {
+    try {
+      settingsOverride = validatePortfolioSettings(payload.settings);
+    } catch (error) {
+      return jsonResponse(
+        { error: error instanceof Error ? error.message : "Invalid audit settings." },
+        400,
+      );
+    }
+  }
+
   try {
     await repository.loadOrSeed(seed);
     const importedAt = new Date().toISOString();
     const next = await repository.replaceHoldings(holdings, {
       filename: payload.filename.trim().slice(0, 255),
       importedAt,
-      contentHash: await contentHash(holdings),
-    });
+      contentHash: await contentHash(holdings, settingsOverride),
+    }, settingsOverride);
     return jsonResponse(next);
   } catch {
     return jsonResponse(

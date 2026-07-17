@@ -34,7 +34,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 
 | If you change… | Update together | Verify |
 |---|---|---|
-| Four-column workbook headers, validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, workbook tests, README | Parse/export round trip; reject extra/missing columns; authenticated production import |
+| Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; authenticated production import |
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
 | Market keys, quote parsing, usage limits, cooldown, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | One bounded OpenAI request; persisted five-minute cooldown; usage log; retain failed keys; source links; production refresh |
@@ -52,10 +52,12 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 3. `Dashboard.tsx` renders the embedded seed first, then loads shared holdings,
    settings, and persisted quotes. It adapts raw holdings through
    `shared-portfolio.ts` into the existing calculation model.
-4. Import parses a one-sheet/four-column workbook in the browser, requests the
-   Edit Mode password, then posts validated raw rows to
-   `/api/portfolio/import`. The server revalidates and replaces all holdings in
-   one transaction.
+4. Import detects either the canonical six-sheet audit workbook or a one-sheet
+   four-column holdings workbook in the browser, requests the Edit Mode
+   password, then posts normalized holdings and optional audit settings to
+   `/api/portfolio/import`. The server revalidates and atomically replaces
+   holdings plus settings for canonical imports; minimal imports replace only
+   holdings.
 5. Market refresh first asks PostgreSQL for a quote saved within five minutes.
    A cache hit returns retained shared values without OpenAI. Otherwise
    `market-api.ts` makes one bounded OpenAI request, logs token/tool-call usage,
@@ -66,7 +68,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Data contracts
 
-- Workbook: exactly one `Holdings` sheet and exactly `Ticker`,
+- Workbook import: either the canonical audit sheets (`Summary`, `Shareholders`,
+  `Lot Holdings`, `Dividends`, `Holdings`, `Transactions`) or exactly one
+  `Holdings` sheet with `Ticker`, `Owner/Account`, `Entry Price`, `Units`.
+- Workbook export: exactly one `Holdings` sheet and exactly `Ticker`,
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
@@ -86,9 +91,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   market mappings are added deliberately.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost
   basis using the stored default audit FX assumption.
-- Legacy transactions, realized P&L, shareholder pool settings, and dividend
-  assumptions live in the seeded settings row. They are not exported in the
-  minimal workbook and need a future explicit settings UI if they must change.
+- Minimal import/export does not carry transactions, realized P&L, shareholder
+  pool settings, or dividend assumptions. The canonical audit import updates
+  those settings atomically; a future settings UI remains optional rather than
+  required for workbook-driven updates.
 - Tables are currently created lazily with idempotent SQL. Schema versioned
   migrations should be added before incompatible production schema changes.
 - Railway variables are deployment state and are intentionally absent from

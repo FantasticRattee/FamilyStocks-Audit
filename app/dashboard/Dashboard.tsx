@@ -50,7 +50,7 @@ import type { SharedPortfolioState } from "./portfolio-api";
 import {
   buildDashboardSnapshotFromSharedPortfolio,
   exportMinimalHoldingsWorkbook,
-  parseMinimalHoldingsWorkbook,
+  parseWorkbookForImport,
   validateSharedHoldings,
   type SharedHoldingInput,
 } from "./shared-portfolio";
@@ -1162,7 +1162,7 @@ export function Dashboard() {
         throw new Error("กรุณาเลือกไฟล์ .xlsx เท่านั้น");
       }
       const sourceBytes = await file.arrayBuffer();
-      const parsed = parseMinimalHoldingsWorkbook(sourceBytes, file.name);
+      const parsed = parseWorkbookForImport(sourceBytes, file.name);
       const response = await fetch("/api/portfolio/import", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1170,6 +1170,7 @@ export function Dashboard() {
           password,
           filename: parsed.filename,
           holdings: parsed.holdings,
+          settings: parsed.settings,
         }),
       });
       const body = (await response.json().catch(() => ({}))) as
@@ -1223,7 +1224,11 @@ export function Dashboard() {
       setShowEditPasswordDialog(false);
       setEditPassword("");
       setEditPasswordError("");
-      setImportNotice("Import สำเร็จและบันทึกพอร์ตนี้ไว้ในฐานข้อมูลร่วมแล้ว");
+      setImportNotice(
+        parsed.source === "audit"
+          ? "Import audit เต็มสำเร็จแล้ว: Holdings, ownership, dividend และ transactions ถูกบันทึกในฐานข้อมูลร่วม"
+          : "Import Holdings สำเร็จและบันทึกพอร์ตนี้ไว้ในฐานข้อมูลร่วมแล้ว",
+      );
     } catch (error) {
       setImportError(
         error instanceof Error
@@ -1707,8 +1712,8 @@ export function Dashboard() {
           onDrop={handleDrop}
         >
           <div>
-            <strong>อัปเดต Holdings จาก Excel</strong>
-            <span>ใช้ไฟล์ 4 คอลัมน์: Ticker, Owner/Account, Entry Price, Units</span>
+            <strong>อัปเดตพอร์ตจาก Excel</strong>
+            <span>ใช้ canonical six-sheet audit workbook หรือไฟล์ Holdings 4 คอลัมน์: Ticker, Owner/Account, Entry Price, Units</span>
           </div>
           <button
             className="text-button"
@@ -2458,7 +2463,7 @@ export function Dashboard() {
               </div>
               <p id="edit-password-description" className="edit-password-description">
                 {editPasswordPurpose === "import"
-                  ? "ใส่รหัสผ่านเพื่อแทนที่ Holdings ในฐานข้อมูลร่วม ระบบจะตรวจสอบไฟล์อีกครั้งบน server"
+                  ? "ใส่รหัสผ่านเพื่อ import audit เต็ม หรือแทนที่ Holdings ในฐานข้อมูลร่วม ระบบจะตรวจสอบข้อมูลอีกครั้งบน server"
                   : "ใส่รหัสผ่านเพื่อแก้ dashboard scenario และ export Excel ระบบจะถามใหม่ทุกครั้งหลังปิด Edit Mode"}
               </p>
               <form className="edit-password-form" onSubmit={verifyEditPassword}>
@@ -2519,7 +2524,7 @@ export function Dashboard() {
 
         <footer className="dashboard-footer">
           <span>Shared source of truth: Railway PostgreSQL</span>
-          <span>Excel import/export contains only the four raw holding fields.</span>
+          <span>Import accepts the canonical audit or four raw holding fields; export remains minimal.</span>
         </footer>
       </div>
     </main>

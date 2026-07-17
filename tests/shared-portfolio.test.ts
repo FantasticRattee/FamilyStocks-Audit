@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import XLSX from "xlsx";
@@ -8,6 +9,7 @@ import {
   buildDashboardSnapshotFromSharedPortfolio,
   exportMinimalHoldingsWorkbook,
   parseMinimalHoldingsWorkbook,
+  validatePortfolioSettings,
   validateSharedHoldings,
   type PortfolioSettings,
   type SharedHoldingInput,
@@ -55,7 +57,7 @@ const settings: PortfolioSettings = {
       { ticker: "KBANK", dps: 12, note: "FY2025 ordinary" },
     ],
   },
-  historicalDividend: { lines: [], gross: 0, wht: 0, net: 0 },
+  historicalDividend: { whtRate: 0.1, lines: [], gross: 0, wht: 0, net: 0 },
   transactions: [],
 };
 
@@ -68,6 +70,39 @@ const workbookBytes = (rows: unknown[][]) => {
   );
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 };
+
+const canonicalAuditWorkbook = new URL(
+  "../../Portfolio_Accounting.xlsx",
+  import.meta.url,
+);
+
+test("imports the canonical six-sheet audit workbook as a full portfolio update", async () => {
+  const file = await readFile(canonicalAuditWorkbook);
+  const parsed = parseMinimalHoldingsWorkbook(
+    file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength),
+    "Portfolio_Accounting.xlsx",
+  ) as {
+    filename: string;
+    holdings: SharedHoldingInput[];
+    settings?: PortfolioSettings;
+  };
+
+  assert.equal(parsed.filename, "Portfolio_Accounting.xlsx");
+  assert.deepEqual(
+    parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
+    [
+      ["GOOGL", "Mom", 33],
+      ["GOOGL", "Rattee", 31],
+      ["SCB", "Shared", 14_999],
+      ["KBANK", "Shared", 630],
+    ],
+  );
+  assert.ok(parsed.settings);
+  assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
+  assert.equal(parsed.settings?.asOfDate, "18 Jul 2026");
+  assert.equal(parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested, 977_923.6416283695);
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-07-18");
+});
 
 test("uses exactly the approved four-column raw holdings contract", () => {
   assert.deepEqual(MINIMAL_HOLDINGS_HEADERS, [

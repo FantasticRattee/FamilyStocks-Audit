@@ -2,8 +2,8 @@
 
 Interactive family-portfolio dashboard backed by Railway PostgreSQL. Every
 device loads the same holdings and the latest successfully refreshed market
-prices. Excel is a small import/export record containing raw position inputs
-only.
+prices. The dashboard accepts the canonical six-sheet audit workbook as well
+as a small raw-holdings import/export workbook.
 
 ## Data ownership
 
@@ -14,12 +14,28 @@ Railway PostgreSQL is the shared source of truth for:
 - non-derived family, dividend, and audit settings;
 - import metadata.
 
-The embedded legacy audit snapshot is used only to seed an empty database and
-to keep a safe read-only view visible if the database is unavailable. Browser
-IndexedDB is not used, so one device cannot silently override another with a
-stale workbook.
+The embedded audit snapshot is used to seed an empty database and to keep a
+safe read-only view visible if the database is unavailable. Browser IndexedDB
+is not used, so one device cannot silently override another with a stale
+workbook.
 
-## Minimal Excel contract
+## Excel import formats
+
+### Canonical audit workbook
+
+The dashboard accepts the canonical `Portfolio_Accounting.xlsx` when it
+contains these sheets:
+
+`Summary`, `Shareholders`, `Lot Holdings`, `Dividends`, `Holdings`, and
+`Transactions`.
+
+The browser parses the audit first, then the authenticated server validates and
+atomically replaces both current holdings and portfolio settings in PostgreSQL.
+This carries forward the audit date, default FX, realized-P&L figure,
+shareholder ownership, dividend settings, historical dividend record, and
+transaction snapshot. Existing persisted market quotes are retained.
+
+### Minimal holdings workbook
 
 Import and export use exactly one sheet named `Holdings` with these four
 columns in this order:
@@ -38,10 +54,12 @@ columns in this order:
   URLs, and timestamps are derived by the application and are never exported
   to Excel.
 
-Importing replaces the shared holdings transactionally and requires the Edit
-Mode password every time. An invalid row or incorrect password leaves the
-existing portfolio unchanged. Export creates a fresh
-`Portfolio_Holdings_YYYY-MM-DD.xlsx`; it never overwrites the imported file.
+Minimal import replaces shared holdings transactionally and preserves existing
+portfolio settings. Canonical audit import replaces holdings and settings in
+the same transaction. Both require the Edit Mode password every time, and any
+invalid input or incorrect password leaves the existing portfolio unchanged.
+Export creates a fresh minimal `Portfolio_Holdings_YYYY-MM-DD.xlsx`; it never
+overwrites the canonical audit workbook.
 
 ## Market refresh
 

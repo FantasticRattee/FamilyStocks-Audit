@@ -244,6 +244,7 @@ export class PostgresPortfolioRepository
   async replaceHoldings(
     input: SharedHoldingInput[],
     metadata: Omit<PortfolioImportMetadata, "rowCount">,
+    settingsOverride?: PortfolioSettings,
   ): Promise<SharedPortfolioState> {
     await this.ensureSchema();
     const holdings = validateSharedHoldings(input);
@@ -251,6 +252,16 @@ export class PostgresPortfolioRepository
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock($1)", [DATABASE_LOCK_ID]);
+      if (settingsOverride) {
+        await client.query(
+          `INSERT INTO portfolio_settings (id, payload, updated_at)
+           VALUES (1, $1::jsonb, now())
+           ON CONFLICT (id) DO UPDATE SET
+             payload = EXCLUDED.payload,
+             updated_at = now()`,
+          [JSON.stringify(settingsOverride)],
+        );
+      }
       await client.query("DELETE FROM portfolio_holdings");
       for (const [index, holding] of holdings.entries()) {
         await client.query(

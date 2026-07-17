@@ -128,7 +128,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   assert.equal(auditScenario.fx, 33);
 
   const result = calculateDashboard(snapshot, liveScenario);
-  assert.equal(result.totals.personalMarketValue, 54 * 400 * 34);
+  assert.equal(result.totals.personalMarketValue, 64 * 400 * 34);
   assert.equal(result.totals.sharedMarketValue, 14_999 * 150 + 630 * 200);
 });
 

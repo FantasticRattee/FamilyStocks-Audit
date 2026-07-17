@@ -468,7 +468,9 @@ test("loads and replaces the latest validated portfolio through shared PostgreSQ
 
   assert.match(dashboard, /fetch\("\/api\/portfolio"/);
   assert.match(dashboard, /fetch\("\/api\/portfolio\/import"/);
-  assert.match(dashboard, /parseMinimalHoldingsWorkbook/);
+  assert.match(dashboard, /parseWorkbookForImport/);
+  assert.match(dashboard, /settings: parsed\.settings/);
+  assert.match(dashboard, /canonical six-sheet audit workbook/);
   assert.match(dashboard, /Authorize Shared Import/);
   assert.doesNotMatch(
     dashboard,

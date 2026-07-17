@@ -30,7 +30,7 @@ const settings: PortfolioSettings = {
   totalRealizedPnl: 0,
   shareholders: [],
   dividend: { whtRate: 0.1, lines: [] },
-  historicalDividend: { lines: [], gross: 0, wht: 0, net: 0 },
+  historicalDividend: { whtRate: 0.1, lines: [], gross: 0, wht: 0, net: 0 },
   transactions: [],
 };
 
@@ -55,12 +55,14 @@ class FakeRepository implements PortfolioRepository {
   async replaceHoldings(
     holdings: SharedHoldingInput[],
     metadata: { filename: string; importedAt: string; contentHash: string },
+    settingsOverride?: PortfolioSettings,
   ) {
     this.replaceCalls += 1;
     assert.ok(this.current);
     this.current = {
       ...this.current,
       holdings: structuredClone(holdings),
+      settings: settingsOverride ? structuredClone(settingsOverride) : this.current.settings,
       latestImport: {
         ...metadata,
         rowCount: holdings.length,
@@ -142,6 +144,93 @@ test("POST /api/portfolio/import validates and transactionally replaces shared h
   assert.equal(body.latestImport?.filename, "new.xlsx");
   assert.equal(body.latestImport?.rowCount, 1);
   assert.match(body.latestImport?.contentHash ?? "", /^[a-f0-9]{64}$/);
+});
+
+test("POST canonical audit import atomically replaces holdings and audit settings", async () => {
+  const repository = new FakeRepository();
+  repository.current = state();
+  const auditSettings: PortfolioSettings = {
+    ...settings,
+    asOfDate: "18 Jul 2026",
+    totalRealizedPnl: 33_871.68157610536,
+    shareholders: [
+      {
+        owner: "Rattee",
+        sharedCapital: 605_932.19,
+        poolPercent: 0.2811,
+        personalCapital: 371_991.4516283695,
+        totalInvested: 977_923.6416283695,
+      },
+    ],
+    transactions: [
+      {
+        date: "2026-07-18",
+        account: "Personal-US (Me)",
+        ticker: "GOOGL",
+        side: "BUY",
+        order: "Limit",
+        quantity: 10,
+        priceNative: 343,
+        currency: "USD",
+        grossNative: 3435.34,
+        fx: 33.76667229444538,
+        costProceedsThb: -116_000,
+        realizedPnlThb: 0,
+        note: "Canonical audit import test",
+      },
+    ],
+  };
+  const replacement = [
+    { ticker: "GOOGL", ownerAccount: "Rattee", entryPrice: 355.42, units: 31 },
+  ];
+  const response = await handlePortfolioApiRequest(
+    new Request("https://dashboard.local/api/portfolio/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        password: "test-edit-password",
+        filename: "Portfolio_Accounting.xlsx",
+        holdings: replacement,
+        settings: auditSettings,
+      }),
+    }),
+    { EDIT_MODE_PASSWORD: "test-edit-password" },
+    repository,
+    state(),
+  );
+
+  assert.ok(response);
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as SharedPortfolioState;
+  assert.deepEqual(body.holdings, replacement);
+  assert.equal(body.settings.asOfDate, "18 Jul 2026");
+  assert.equal(body.settings.shareholders[0]?.totalInvested, 977_923.6416283695);
+  assert.equal(body.settings.transactions.at(-1)?.quantity, 10);
+});
+
+test("POST canonical audit import rejects malformed settings without changing shared state", async () => {
+  const repository = new FakeRepository();
+  repository.current = state();
+  const response = await handlePortfolioApiRequest(
+    new Request("https://dashboard.local/api/portfolio/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        password: "test-edit-password",
+        filename: "Portfolio_Accounting.xlsx",
+        holdings: [seedHolding],
+        settings: { ...settings, defaultFx: 0 },
+      }),
+    }),
+    { EDIT_MODE_PASSWORD: "test-edit-password" },
+    repository,
+    state(),
+  );
+
+  assert.ok(response);
+  assert.equal(response.status, 400);
+  assert.equal(repository.replaceCalls, 0);
+  assert.equal(repository.current?.settings.asOfDate, "16 Jul 2026");
 });
 
 test("partial refresh updates successes and explicitly retains prior database quotes", () => {
