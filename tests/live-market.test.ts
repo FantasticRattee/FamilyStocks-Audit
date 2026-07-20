@@ -25,7 +25,6 @@ type BatchQuotes = {
   sources?: Array<{ url: string; title: string }>;
   refreshedKeys?: string[];
   retainedKeys?: string[];
-  cooldownActive?: boolean;
 };
 
 type LiveMarketModule = {
@@ -132,7 +131,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   assert.equal(result.totals.sharedMarketValue, 14_999 * 150 + 630 * 200);
 });
 
-test("retains OpenAI web-search source links with the display-only market state", async () => {
+test("retains free public-source links with the display-only market state", async () => {
   const liveMarket = await loadLiveMarketModule();
   const snapshot = await loadSnapshot();
   const plan = liveMarket.createLiveMarketRefreshPlan(
@@ -144,8 +143,8 @@ test("retains OpenAI web-search source links with the display-only market state"
     quotes: {
       GOOGL: {
         ...quote("GOOGL", 372.49, "USD"),
-        source: "OpenAI web search",
-        freshness: "searched live",
+        source: "Google Finance",
+        freshness: "delayed",
       },
       SCB: quote("SCB", 122.5, "THB"),
       KBANK: quote("KBANK", 175.5, "THB"),
@@ -153,7 +152,7 @@ test("retains OpenAI web-search source links with the display-only market state"
     },
     failures: {},
     fetchedAt: "2026-07-15T16:00:00.000Z",
-    provider: "OpenAI web search",
+    provider: "Google Finance + SET public quotes",
     sources: [
       {
         url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
@@ -165,7 +164,7 @@ test("retains OpenAI web-search source links with the display-only market state"
     sources?: Array<{ url: string; title: string }>;
   };
 
-  assert.equal(state.provider, "OpenAI web search");
+  assert.equal(state.provider, "Google Finance + SET public quotes");
   assert.deepEqual(state.sources, [
     {
       url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
@@ -174,7 +173,7 @@ test("retains OpenAI web-search source links with the display-only market state"
   ]);
 });
 
-test("marks a persisted five-minute cooldown response for transparent UI status", async () => {
+test("does not expose an obsolete market-refresh cooldown in display state", async () => {
   const liveMarket = await loadLiveMarketModule();
   const snapshot = await loadSnapshot();
   const plan = liveMarket.createLiveMarketRefreshPlan(
@@ -191,13 +190,14 @@ test("marks a persisted five-minute cooldown response for transparent UI status"
     },
     failures: {},
     fetchedAt: "2026-07-15T16:00:00.000Z",
-    provider: "OpenAI web search",
+    provider: "Google Finance + SET public quotes",
     refreshedKeys: [],
     retainedKeys: ["GOOGL", "SCB", "KBANK", "USDTHB"],
+    // Legacy payloads must not cause the free public refresh to look cached.
     cooldownActive: true,
-  }) as { cooldownActive?: boolean };
+  } as unknown as BatchQuotes) as { cooldownActive?: boolean };
 
-  assert.equal(state.cooldownActive, true);
+  assert.equal(state.cooldownActive, undefined);
 });
 
 test("keeps the audit price and FX for failed or currency-mismatched quotes", async () => {
@@ -216,8 +216,8 @@ test("keeps the audit price and FX for failed or currency-mismatched quotes", as
       USDTHB: quote("USDTHB", -1, "THB"),
     },
     failures: {
-      SCB: "OpenAI web search is temporarily unavailable.",
-      KBANK: "OpenAI web search is temporarily unavailable.",
+      SCB: "SET public quote is temporarily unavailable.",
+      KBANK: "SET public quote is temporarily unavailable.",
     },
     fetchedAt: "2026-07-15T16:01:00.000Z",
   });

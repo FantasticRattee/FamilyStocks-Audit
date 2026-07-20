@@ -1,5 +1,9 @@
 # Shared PostgreSQL Portfolio and Minimal Workbook Design
 
+> Market-refresh details that name OpenAI were superseded on 20 Jul 2026 by
+> [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
+> The shared PostgreSQL and workbook portions remain current.
+
 ## Goal
 
 Make the family portfolio and its latest market prices consistent across every

@@ -241,7 +241,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     exchange: "Test",
     marketState: "CLOSED",
     quoteTimestamp: "2026-07-15T09:00:00.000Z",
-    source: "OpenAI web search",
+    source: "Google Finance",
   });
   const stored = {
     GOOGL: oldQuote("GOOGL", 370, "USD"),
@@ -326,74 +326,4 @@ test("retries PostgreSQL schema setup after a transient first failure", async ()
 
   assert.equal(schemaAttempts, 2);
   assert.deepEqual(loaded.holdings, [seedHolding]);
-});
-
-test("PostgreSQL cooldown returns fresh persisted quotes and expires stale ones", async () => {
-  const createRepository = (quoteTimestamp: string, includeOlderSeed = false) => {
-    const fakePool = {
-      async query(sql: string) {
-        if (sql.includes("CREATE TABLE IF NOT EXISTS")) return { rows: [] };
-        if (sql.includes("FROM market_quotes")) {
-          const olderSeed = {
-            market_key: "KBANK",
-            symbol: "KBANK",
-            price: 231,
-            currency: "THB",
-            exchange: "SET",
-            market_state: "CLOSED",
-            quote_timestamp: new Date(
-              Date.parse(quoteTimestamp) - 24 * 60 * 60 * 1000,
-            ).toISOString(),
-            source: "Embedded audit seed",
-            freshness: "imported audit value",
-            sources: [],
-          };
-          return {
-            rows: [
-              ...(includeOlderSeed ? [olderSeed] : []),
-              {
-                market_key: "GOOGL",
-                symbol: "GOOGL",
-                price: 372.49,
-                currency: "USD",
-                exchange: "NASDAQ",
-                market_state: "SEARCHED",
-                quote_timestamp: quoteTimestamp,
-                source: "OpenAI web search",
-                freshness: "searched live",
-                sources: [
-                  {
-                    url: "https://www.google.com/finance/quote/GOOGL:NASDAQ",
-                    title: "Alphabet Inc Class A",
-                  },
-                ],
-              },
-            ],
-          };
-        }
-        throw new Error(`Unexpected test query: ${sql}`);
-      },
-    };
-    return new PostgresPortfolioRepository(fakePool as never);
-  };
-
-  const freshRepository = createRepository(
-    new Date(Date.now() - 60_000).toISOString(),
-    true,
-  );
-  const fresh = await freshRepository.loadRecentMarketRefresh(5 * 60 * 1000);
-  assert.ok(fresh);
-  assert.equal(fresh.quotes.GOOGL?.price, 372.49);
-  assert.deepEqual(fresh.refreshedKeys, []);
-  assert.deepEqual(fresh.retainedKeys, ["GOOGL", "KBANK"]);
-  assert.equal(fresh.provider, "OpenAI web search");
-  assert.equal(fresh.sources?.length, 1);
-
-  const staleRepository = createRepository(
-    new Date(Date.now() - 6 * 60_000).toISOString(),
-  );
-  assert.equal(
-    await staleRepository.loadRecentMarketRefresh(5 * 60 * 1000),
-    null,
-  );
 });

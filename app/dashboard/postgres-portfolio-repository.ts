@@ -325,49 +325,6 @@ export class PostgresPortfolioRepository
     );
   }
 
-  async loadRecentMarketRefresh(
-    maxAgeMs: number,
-  ): Promise<PersistedMarketRefresh | null> {
-    await this.ensureSchema();
-    if (!Number.isFinite(maxAgeMs) || maxAgeMs <= 0) return null;
-    const rows = await this.pool.query<QuoteRow>(`
-      SELECT market_key, symbol, price, currency, exchange, market_state,
-             quote_timestamp, source, freshness, sources
-      FROM market_quotes
-    `);
-    if (rows.rows.length === 0) return null;
-
-    const latestTimestamp = Math.max(
-      ...rows.rows.map((row) => Date.parse(isoString(row.quote_timestamp))),
-    );
-    if (
-      !Number.isFinite(latestTimestamp) ||
-      Date.now() - latestTimestamp >= maxAgeMs
-    ) {
-      return null;
-    }
-
-    const stored = Object.fromEntries(
-      rows.rows.map((row) => [row.market_key, quoteFromRow(row)]),
-    );
-    const merged = mergePersistedMarketQuotes(stored, {
-      quotes: {},
-      failures: {},
-    });
-    const sources = uniqueSources(rows.rows.map((row) => row.sources));
-    const provider = rows.rows.find(
-      (row) =>
-        Date.parse(isoString(row.quote_timestamp)) === latestTimestamp &&
-        row.source,
-    )?.source;
-    return {
-      ...merged,
-      fetchedAt: new Date(latestTimestamp).toISOString(),
-      ...(provider ? { provider } : {}),
-      ...(sources.length ? { sources } : {}),
-    };
-  }
-
   async persistMarketRefresh(
     refresh: PersistableMarketRefresh,
   ): Promise<PersistedMarketRefresh> {

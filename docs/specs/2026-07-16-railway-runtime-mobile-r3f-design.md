@@ -1,5 +1,10 @@
 # Railway Runtime + Mobile Hero/R3F Design
 
+> The OpenAI runtime and market-refresh portions of this record were superseded
+> on 20 Jul 2026 by
+> [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
+> The Railway/mobile/R3F portions remain historical design context.
+
 **Status:** implemented and regression-verified<br>
 **Date:** 16 Jul 2026<br>
 **Decision:** use one platform-neutral server environment adapter so the same

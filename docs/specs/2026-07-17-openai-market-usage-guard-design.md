@@ -3,6 +3,11 @@
 Date: 17 Jul 2026
 Status: Approved — option A
 
+> Superseded on 20 Jul 2026 by
+> [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
+> The OpenAI refresh and cooldown details below are retained only as historical
+> context and are no longer implemented.
+
 ## Goal
 
 Reduce OpenAI token and web-search consumption without changing portfolio

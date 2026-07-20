@@ -1921,46 +1921,6 @@ select:focus-visible {
   margin-top: 18px;
 }
 
-.dividend-compact-grid {
-  display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) 84px;
-  align-items: center;
-  gap: 10px;
-}
-
-.dividend-r3f-bars,
-.dividend-row-labels,
-.dividend-row-values {
-  height: 102px;
-}
-
-.dividend-row-labels,
-.dividend-row-values {
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  align-items: center;
-}
-
-.dividend-row-labels > div {
-  display: grid;
-  gap: 2px;
-}
-
-.dividend-row-labels strong,
-.dividend-row-values b {
-  color: var(--navy);
-  font-size: 0.73rem;
-}
-
-.dividend-row-labels span {
-  color: #7a8992;
-  font-size: 0.65rem;
-}
-
-.dividend-row-values b {
-  text-align: right;
-}
-
 .dividend-owner-row {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr) 84px;
@@ -3246,11 +3206,6 @@ td strong {
     grid-template-columns: 74px minmax(0, 1fr);
   }
 
-  .dividend-compact-grid {
-    grid-template-columns: 74px minmax(0, 1fr) 78px;
-    gap: 7px;
-  }
-
   .dividend-owner-row > b {
     grid-column: 2;
     text-align: left;
@@ -3378,18 +3333,6 @@ td strong {
     font-size: 0.69rem;
   }
 
-  .dividend-compact-grid {
-    grid-template-columns: 68px minmax(0, 1fr) 72px;
-  }
-
-  .dividend-row-labels strong,
-  .dividend-row-values b {
-    font-size: 0.68rem;
-  }
-
-  .dividend-row-labels span {
-    font-size: 0.61rem;
-  }
 }
 
 @media (max-width: 360px) {

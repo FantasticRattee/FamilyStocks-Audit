@@ -91,7 +91,7 @@ test("keeps Yahoo selection and minimal Excel export in the finished dashboard s
   assert.match(worker, /handleMarketApiRequest\([\s\S]*?portfolioRepository/);
 });
 
-test("persists one manual sourced market refresh in shared PostgreSQL", async () => {
+test("persists one fresh free-source market refresh in shared PostgreSQL", async () => {
   const [dashboard, marketApi, styles] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/dashboard/market-api.ts", import.meta.url), "utf8"),
@@ -102,19 +102,15 @@ test("persists one manual sourced market refresh in shared PostgreSQL", async ()
   assert.match(dashboard, /\/api\/market\/refresh/);
   assert.match(dashboard, /createLiveMarketRefreshPlan/);
   assert.match(dashboard, /applyLiveMarketState/);
-  assert.match(dashboard, /OpenAI web search/);
+  assert.match(dashboard, /Google Finance \+ SET public quotes/);
   assert.match(dashboard, /saved to shared PostgreSQL/);
-  assert.match(marketApi, /reasoning:\s*\{ effort: "none" \}/);
-  assert.match(marketApi, /max_output_tokens:\s*300/);
-  assert.match(marketApi, /max_tool_calls:\s*2/);
-  assert.match(marketApi, /loadRecentMarketRefresh/);
-  assert.match(marketApi, /cooldownActive:\s*true/);
-  assert.doesNotMatch(marketApi, /previous lookup omitted|retryResponse/);
+  assert.match(marketApi, /PUBLIC_MARKET_QUOTES/);
+  assert.match(marketApi, /www\.google\.com\/finance/);
+  assert.match(marketApi, /www\.set\.or\.th\/en\/market/);
   assert.match(marketApi, /persistMarketRefresh/);
-  assert.match(dashboard, /5-minute API cooldown/);
-  assert.doesNotMatch(dashboard, /one manual request for/);
+  assert.doesNotMatch(marketApi, /api\.openai\.com|OPENAI_API_KEY|loadRecentMarketRefresh/);
+  assert.doesNotMatch(dashboard, /5-minute API cooldown|OpenAI/);
   assert.match(dashboard, /liveMarketState\.sources/);
-  assert.doesNotMatch(dashboard, /Google Finance|EODHD/);
   assert.doesNotMatch(dashboard, /setInterval\s*\(/);
   assert.match(styles, /\.live-market-status/);
   assert.match(styles, /\.live-market-source-links/);
@@ -123,8 +119,8 @@ test("persists one manual sourced market refresh in shared PostgreSQL", async ()
   const response = await render();
   const html = await response.text();
   assert.match(html, /Refresh market prices/);
-  assert.match(html, /OpenAI web search/);
-  assert.doesNotMatch(html, /Google Finance|EODHD/);
+  assert.match(html, /Google Finance \+ SET public quotes/);
+  assert.doesNotMatch(html, /OpenAI web search|EODHD/);
 });
 
 test("server-renders the approved Family Wealth graph-first overview", async () => {
@@ -141,6 +137,22 @@ test("server-renders the approved Family Wealth graph-first overview", async () 
   assert.match(html, /aria-label="Unrealized P&amp;L by ticker/i);
   assert.match(html, /aria-label="Net dividend forecast distribution/i);
   assert.doesNotMatch(html, /portfolio value history|historical performance chart/i);
+});
+
+test("renders the transaction ledger newest date first without mutating audit rows", async () => {
+  const dashboard = await readFile(
+    new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+  const transactionFilter =
+    dashboard.match(/const filteredTransactions =[\s\S]*?\n  \};/)?.[0] ?? "";
+
+  assert.match(transactionFilter, /\.filter\(\(transaction\) =>/);
+  assert.match(
+    transactionFilter,
+    /\.sort\(\(left, right\) => right\.date\.localeCompare\(left\.date\)\)/,
+  );
+  assert.doesNotMatch(transactionFilter, /snapshot\.transactions\.sort\(/);
 });
 
 test("renders the approved family portrait hero with one image-derived theme", async () => {
@@ -277,20 +289,22 @@ test("keeps the approved R3F runtime, demand rendering, and motion fallback", as
   assert.match(packageJson, /"three"/);
 });
 
-test("keeps the previous compact chart structure while rendering only the bars in 3D", async () => {
+test("keeps ownership and P&L bars in 3D while dividend distribution uses normal bars", async () => {
   const response = await render();
   assert.equal(response.status, 200);
 
   const html = await response.text();
   assert.match(html, /Interactive 3D family ownership bars/i);
   assert.match(html, /Interactive 3D unrealized P&amp;L bars/i);
-  assert.match(html, /Interactive 3D net dividend forecast bars/i);
+  assert.doesNotMatch(html, /Interactive 3D net dividend forecast bars/i);
   assert.match(html, /class="ownership-chart"/i);
   assert.match(html, /class="pnl-chart"/i);
   assert.match(html, /class="dividend-owner-chart"/i);
   assert.match(html, /class="compact-r3f-bar-field ownership-r3f-bars"/i);
   assert.match(html, /class="compact-r3f-bar-field pnl-r3f-bars"/i);
-  assert.match(html, /class="compact-r3f-bar-field dividend-r3f-bars"/i);
+  assert.match(html, /class="dividend-owner-row"/i);
+  assert.match(html, /class="dividend-track"/i);
+  assert.doesNotMatch(html, /class="compact-r3f-bar-field dividend-r3f-bars"/i);
   assert.doesNotMatch(
     html,
     /bar3d-stage|bar3d-controls|bar3d-stage-readout|bar3d-interaction-hint|bar3d-selection/i,
@@ -304,7 +318,7 @@ test("uses one reusable demand-rendered compact R3F bar-field implementation", a
   );
 
   assert.match(dashboard, /function CompactBarField3D/);
-  assert.equal((dashboard.match(/<CompactBarField3D/g) ?? []).length, 3);
+  assert.equal((dashboard.match(/<CompactBarField3D/g) ?? []).length, 2);
   assert.doesNotMatch(dashboard, /function InteractiveBarChart3D/);
   assert.match(dashboard, /frameloop="demand"/);
   assert.match(dashboard, /THREE\.MathUtils\.damp/);
@@ -392,14 +406,12 @@ test("reads the Railway password from Node env when Worker env is absent", async
   }
 });
 
-test("requires Railway PostgreSQL before a Railway OpenAI refresh can mutate shared state", async () => {
-  const previousKey = process.env.OPENAI_API_KEY;
+test("requires Railway PostgreSQL before a market refresh can mutate shared state", async () => {
   const previousDatabaseUrl = process.env.DATABASE_URL;
   const originalFetch = globalThis.fetch;
-  process.env.OPENAI_API_KEY = "railway-test-openai-key";
   delete process.env.DATABASE_URL;
   globalThis.fetch = async () => {
-    throw new Error("OpenAI must not run before shared persistence is configured");
+    throw new Error("Market sources must not run before shared persistence is configured");
   };
 
   try {
@@ -409,8 +421,6 @@ test("requires Railway PostgreSQL before a Railway OpenAI refresh can mutate sha
     assert.match(body.error, /DATABASE_URL|database/i);
   } finally {
     globalThis.fetch = originalFetch;
-    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = previousKey;
     if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = previousDatabaseUrl;
   }

@@ -63,27 +63,25 @@ overwrites the canonical audit workbook.
 
 ## Market refresh
 
-`Refresh market prices` is public and manual. The server uses one OpenAI
-Responses API web-search request for all four market keys. It uses no automatic
-second request when a key is missing.
+`Refresh market prices` is public and manual. Each click fetches the four
+allow-listed market keys from free public sources without an API key:
+
+- Google Finance public quote pages: `GOOGL` and `USDTHB`.
+- Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared
   values for every device.
-- A successful persisted quote starts a shared five-minute cooldown. Refreshes
-  during that window reuse PostgreSQL values and do not call OpenAI again.
+- Every click requests fresh provider pages; there is no API-use cooldown.
 - If one key fails, its last successful database value is retained while the
   successful keys are updated.
 - If a key has never succeeded, the embedded audit seed remains the visible
   fallback and the status line reports the failure.
 - No refresh changes entry price, units, transactions, or cost basis.
 
-This is a sourced web lookup, not a licensed real-time exchange feed. The UI
-shows the returned source links and freshness. Each click can incur OpenAI API
-usage after the cooldown expires. Requests use `reasoning.effort: none`, a
-300-token output ceiling, at most two web-search tool calls, and low search
-context. Railway logs each completed request as
-`[market-refresh] OpenAI usage` with token and tool-call counts; no API key or
-portfolio data is logged.
+These are public quote pages, not licensed real-time exchange feeds. They may
+be delayed and their HTML can change. The parser only accepts the configured
+symbol/currency/exchange pages, and the UI shows the source links, freshness,
+and any retained values. No OpenAI request or token charge is made.
 
 ## Edit Mode
 
@@ -99,11 +97,9 @@ Create an ignored `.dev.vars` from `.dev.vars.example` and set:
 ```text
 DATABASE_URL=postgresql://...
 EDIT_MODE_PASSWORD=...
-OPENAI_API_KEY=...
-OPENAI_MARKET_MODEL=gpt-5.6
 ```
 
-`OPENAI_MARKET_MODEL` is optional. Then run:
+No market-data API key is required. Then run:
 
 ```bash
 npm install
@@ -132,8 +128,6 @@ Add a PostgreSQL service to the same Railway project. In the
 ```text
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 EDIT_MODE_PASSWORD=<production password>
-OPENAI_API_KEY=<OpenAI API key>
-OPENAI_MARKET_MODEL=gpt-5.6
 ```
 
 Use Railway's variable reference picker for `DATABASE_URL`; do not copy a
@@ -141,9 +135,9 @@ production connection string into Git. Redeploy after changing variables. The
 application creates its four tables on first access and atomically seeds an
 empty database from the validated embedded snapshot.
 
-After a real market refresh, Railway Logs should contain a structured
-`[market-refresh] OpenAI usage` entry. A second click within five minutes should
-show the cooldown message in the dashboard and create no new OpenAI usage log.
+After a real market refresh, the dashboard should show the fresh timestamp,
+source links, and refreshed/retained status. A second click should request the
+public source pages again.
 
 ## API flow
 
@@ -151,8 +145,8 @@ show the cooldown message in the dashboard and create no new OpenAI usage log.
   persisted quotes, and latest import metadata.
 - `POST /api/portfolio/import` verifies the Edit Mode password, validates every
   raw holding, and replaces holdings in one transaction.
-- `GET /api/market/refresh` performs the OpenAI lookup, upserts successful
-  quotes, and returns the merged persisted snapshot.
+- `GET /api/market/refresh` fetches Google Finance and SET public quote pages,
+  upserts successful quotes, and returns the merged persisted snapshot.
 - `POST /api/edit-auth` verifies the Edit Mode password without creating a
   session.
 

@@ -30,19 +30,61 @@ type YahooQuoteResult =
   | { quote: MarketQuote }
   | { failure: YahooFailure };
 
-export type MarketApiEnvironment = {
-  OPENAI_API_KEY?: string;
-  OPENAI_MARKET_MODEL?: string;
+type PublicQuoteParser = "google" | "set";
+
+type PublicMarketQuoteConfig = {
+  symbol: string;
+  currency: "THB" | "USD";
+  exchange: string;
+  provider: "Google Finance" | "SET public quote";
+  url: string;
+  title: string;
+  parser: PublicQuoteParser;
+  googlePageTitles?: string[];
 };
 
-const OPENAI_MARKET_QUOTES = {
-  GOOGL: { symbol: "GOOGL", currency: "USD", exchange: "NASDAQ" },
-  USDTHB: { symbol: "USDTHB", currency: "THB", exchange: "FX" },
-  SCB: { symbol: "SCB", currency: "THB", exchange: "SET" },
-  KBANK: { symbol: "KBANK", currency: "THB", exchange: "SET" },
-} as const;
+const PUBLIC_MARKET_QUOTES = {
+  GOOGL: {
+    symbol: "GOOGL",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/GOOGL:NASDAQ?hl=en",
+    title: "Google Finance · GOOGL (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["GOOGL:NASDAQ"],
+  },
+  USDTHB: {
+    symbol: "USDTHB",
+    currency: "THB",
+    exchange: "FX",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/USD-THB?hl=en",
+    title: "Google Finance · USD/THB",
+    parser: "google",
+    googlePageTitles: ["USD / THB", "USD-THB"],
+  },
+  SCB: {
+    symbol: "SCB",
+    currency: "THB",
+    exchange: "SET",
+    provider: "SET public quote",
+    url: "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
+    title: "SET · SCB",
+    parser: "set",
+  },
+  KBANK: {
+    symbol: "KBANK",
+    currency: "THB",
+    exchange: "SET",
+    provider: "SET public quote",
+    url: "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",
+    title: "SET · KBANK",
+    parser: "set",
+  },
+} as const satisfies Record<string, PublicMarketQuoteConfig>;
 
-type OpenAiMarketKey = keyof typeof OPENAI_MARKET_QUOTES;
+type PublicMarketKey = keyof typeof PUBLIC_MARKET_QUOTES;
 
 type MarketRefreshSource = {
   url: string;
@@ -57,48 +99,7 @@ export type MarketRefreshPayload = {
   sources?: MarketRefreshSource[];
 };
 
-const OPENAI_MARKET_RESPONSE_URL = "https://api.openai.com/v1/responses";
-
-const OPENAI_MARKET_SCHEMA = {
-  type: "object",
-  properties: {
-    quotes: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          key: { type: "string", enum: Object.keys(OPENAI_MARKET_QUOTES) },
-          price: { type: "number" },
-        },
-        required: ["key", "price"],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["quotes"],
-  additionalProperties: false,
-};
-
-const OPENAI_MARKET_DESCRIPTIONS: Record<OpenAiMarketKey, string> = {
-  GOOGL: "GOOGL: Alphabet Class A share price in USD on NASDAQ.",
-  USDTHB: "USDTHB: USD to THB exchange-rate quote in THB per USD.",
-  SCB: "SCB: SCB X Public Company Limited share price in THB on SET.",
-  KBANK: "KBANK: Kasikornbank Public Company Limited share price in THB on SET.",
-};
-
-const openAiMarketInput = (keys: OpenAiMarketKey[]) =>
-  [
-    "Use live web search to find exact, current market prices. Return only JSON matching the schema.",
-    "Do not estimate, calculate, or convert currencies.",
-    "Use an active intraday quote when the market is open, or the latest official close when the market is closed.",
-    "Include only a key whose numeric price can be verified from the search results.",
-    ...keys.map((key) => OPENAI_MARKET_DESCRIPTIONS[key]),
-  ]
-    .filter(Boolean)
-    .join("\n");
-
 const cacheTtlMs = 5 * 60 * 1000;
-const marketRefreshCooldownMs = 5 * 60 * 1000;
 const responseCache = new Map<string, CachedPayload>();
 
 const json = (
@@ -181,279 +182,133 @@ const isMarketQuote = (value: unknown): value is MarketQuote => {
   );
 };
 
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
+const parsePositivePrice = (value: string) => {
+  const normalized = value.replace(/,/g, "").replace(/[^0-9.]/g, "");
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return undefined;
+  const price = Number(normalized);
+  return Number.isFinite(price) && price > 0 ? price : undefined;
+};
 
-const text = (value: unknown) =>
-  typeof value === "string" ? value.trim() : "";
-
-const positiveFinite = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-
-const nonNegativeFinite = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
-
-const httpsUrl = (value: unknown) => {
-  const raw = text(value);
-  if (!raw) return undefined;
-  try {
-    const url = new URL(raw);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : undefined;
-  } catch {
-    return undefined;
+const googleQuoteSegment = (page: string, config: PublicMarketQuoteConfig) => {
+  for (const title of config.googlePageTitles ?? []) {
+    const offset = page.indexOf(`title="${title}"`);
+    if (offset >= 0) return page.slice(offset, offset + 120_000);
   }
+  return "";
 };
 
-const marketRefreshFailures = (message: string) =>
-  Object.fromEntries(Object.keys(OPENAI_MARKET_QUOTES).map((key) => [key, message]));
-
-const responseTimestamp = (payload: unknown) => {
-  const createdAt = positiveFinite(asRecord(payload)?.created_at);
-  return createdAt ? new Date(createdAt * 1000).toISOString() : new Date().toISOString();
-};
-
-const openAiOutputText = (payload: unknown) => {
-  const root = asRecord(payload);
-  const rootOutputText = text(root?.output_text);
-  if (rootOutputText) return rootOutputText;
-  if (!Array.isArray(root?.output)) return "";
-
-  return root.output
-    .flatMap((item) => {
-      const message = asRecord(item);
-      if (!Array.isArray(message?.content)) return [];
-      return message.content.flatMap((content) => {
-        const part = asRecord(content);
-        return part?.type === "output_text" ? [text(part.text)] : [];
-      });
-    })
-    .filter(Boolean)
-    .join("\n");
-};
-
-const openAiSources = (payload: unknown): MarketRefreshSource[] => {
-  const root = asRecord(payload);
-  if (!Array.isArray(root?.output)) return [];
-
-  const sources = new Map<string, MarketRefreshSource>();
-  const add = (value: unknown) => {
-    const source = asRecord(value);
-    const url = httpsUrl(source?.url);
-    if (!url || sources.has(url)) return;
-    sources.set(url, { title: text(source?.title) || new URL(url).hostname, url });
+const parseGoogleFinanceQuote = (
+  page: string,
+  config: PublicMarketQuoteConfig,
+  fetchedAt: string,
+): MarketQuote | null => {
+  const segment = googleQuoteSegment(page, config);
+  if (!segment) return null;
+  const priceText = segment.match(
+    /<div\s+class="N6SYTe"[^>]*>[\s\S]{0,700}?<span[^>]*>\s*([^<]+?)\s*<\/span>/i,
+  )?.[1];
+  const price = priceText ? parsePositivePrice(priceText) : undefined;
+  if (!price) return null;
+  return {
+    symbol: config.symbol,
+    price,
+    currency: config.currency,
+    exchange: config.exchange,
+    marketState: "DELAYED",
+    quoteTimestamp: fetchedAt,
+    source: "Google Finance",
+    freshness: "delayed",
   };
-
-  for (const item of root.output) {
-    const output = asRecord(item);
-    const action = asRecord(output?.action);
-    if (Array.isArray(action?.sources)) action.sources.forEach(add);
-    if (!Array.isArray(output?.content)) continue;
-    for (const content of output.content) {
-      const part = asRecord(content);
-      if (!Array.isArray(part?.annotations)) continue;
-      part.annotations.forEach(add);
-    }
-  }
-
-  return [...sources.values()].slice(0, 6);
 };
 
-const parseOpenAiMarketQuotes = (
-  payload: unknown,
-  quoteTimestamp: string,
-): Record<string, MarketQuote> | null => {
-  const rawOutput = openAiOutputText(payload);
-  if (!rawOutput) return null;
-
-  try {
-    const result = asRecord(JSON.parse(rawOutput));
-    if (!Array.isArray(result?.quotes)) return null;
-
-    const quotes: Record<string, MarketQuote> = {};
-    for (const item of result.quotes) {
-      const candidate = asRecord(item);
-      const key = text(candidate?.key).toUpperCase() as OpenAiMarketKey;
-      const config = OPENAI_MARKET_QUOTES[key];
-      const price = positiveFinite(candidate?.price);
-      if (!config || !price || quotes[key]) continue;
-      quotes[key] = {
-        symbol: config.symbol,
-        price,
-        currency: config.currency,
-        exchange: config.exchange,
-        marketState: "SEARCHED",
-        quoteTimestamp,
-        source: "OpenAI web search",
-        freshness: "searched live",
-      };
-    }
-    return quotes;
-  } catch {
-    return null;
-  }
+const parseSetPublicQuote = (
+  page: string,
+  config: PublicMarketQuoteConfig,
+  fetchedAt: string,
+): MarketQuote | null => {
+  const priceText = page.match(
+    /<label>\s*Last\s*<\/label>\s*<span[^>]*>\s*([^<]+?)\s*<\/span>/i,
+  )?.[1];
+  const price = priceText ? parsePositivePrice(priceText) : undefined;
+  if (!price) return null;
+  return {
+    symbol: config.symbol,
+    price,
+    currency: config.currency,
+    exchange: config.exchange,
+    marketState: "DELAYED",
+    quoteTimestamp: fetchedAt,
+    source: "SET public quote",
+    freshness: "delayed",
+  };
 };
 
-const requestOpenAiMarketResponse = (
-  environment: MarketApiEnvironment,
-  apiKey: string,
-  keys: OpenAiMarketKey[],
+const readPublicMarketQuote = async (
+  key: PublicMarketKey,
+  config: PublicMarketQuoteConfig,
   fetchImplementation: FetchImplementation,
-) =>
-  fetchImplementation(OPENAI_MARKET_RESPONSE_URL, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6",
-      reasoning: { effort: "none" },
-      max_output_tokens: 300,
-      max_tool_calls: 2,
-      tools: [
-        {
-          type: "web_search",
-          search_context_size: "low",
-          external_web_access: true,
-        },
-      ],
-      tool_choice: "required",
-      include: ["web_search_call.action.sources"],
-      store: false,
-      text: {
-        format: {
-          type: "json_schema",
-          name: "market_quotes",
-          strict: true,
-          schema: OPENAI_MARKET_SCHEMA,
-        },
-      },
-      input: openAiMarketInput(keys),
-    }),
-  });
-
-const logOpenAiUsage = (payload: unknown, model: string) => {
-  const root = asRecord(payload);
-  const usage = asRecord(root?.usage);
-  if (!usage) return;
-  const inputDetails = asRecord(usage.input_tokens_details);
-  const outputDetails = asRecord(usage.output_tokens_details);
-  const webSearchCalls = Array.isArray(root?.output)
-    ? root.output.filter((item) => asRecord(item)?.type === "web_search_call").length
-    : 0;
-
-  console.info("[market-refresh] OpenAI usage", {
-    model,
-    inputTokens: nonNegativeFinite(usage.input_tokens),
-    cachedInputTokens: nonNegativeFinite(inputDetails?.cached_tokens),
-    outputTokens: nonNegativeFinite(usage.output_tokens),
-    reasoningTokens: nonNegativeFinite(outputDetails?.reasoning_tokens),
-    totalTokens: nonNegativeFinite(usage.total_tokens),
-    webSearchCalls,
-  });
-};
-
-const refreshOpenAiMarketQuotes = async (
-  environment: MarketApiEnvironment,
-  fetchImplementation: FetchImplementation,
-): Promise<MarketRefreshPayload> => {
-  const apiKey = environment.OPENAI_API_KEY?.trim();
-  const model = environment.OPENAI_MARKET_MODEL?.trim() || "gpt-5.6";
-  const fallbackTimestamp = new Date().toISOString();
-  if (!apiKey) {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures("OpenAI is not configured. Add OPENAI_API_KEY."),
-      fetchedAt: fallbackTimestamp,
-      provider: "OpenAI web search",
-    };
-  }
-
+  fetchedAt: string,
+): Promise<{ key: PublicMarketKey; quote?: MarketQuote; failure?: string }> => {
   let response: Response;
   try {
-    response = await requestOpenAiMarketResponse(
-      environment,
-      apiKey,
-      Object.keys(OPENAI_MARKET_QUOTES) as OpenAiMarketKey[],
-      fetchImplementation,
-    );
+    response = await fetchImplementation(config.url, {
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.8",
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131 Safari/537.36",
+      },
+    });
   } catch {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures("OpenAI web search could not be reached."),
-      fetchedAt: fallbackTimestamp,
-      provider: "OpenAI web search",
-    };
+    return { key, failure: `${config.provider} could not be reached.` };
   }
-
   if (!response.ok) {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures(`OpenAI web search returned HTTP ${response.status}.`),
-      fetchedAt: fallbackTimestamp,
-      provider: "OpenAI web search",
-    };
+    return { key, failure: `${config.provider} returned HTTP ${response.status}.` };
   }
 
-  let payload: unknown;
+  let page: string;
   try {
-    payload = await response.json();
+    page = await response.text();
   } catch {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures("OpenAI web search returned unreadable data."),
-      fetchedAt: fallbackTimestamp,
-      provider: "OpenAI web search",
-    };
-  }
-  logOpenAiUsage(payload, model);
-
-  const fetchedAt = responseTimestamp(payload);
-  const sources = openAiSources(payload);
-  if (sources.length === 0) {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures("OpenAI web search returned no auditable sources."),
-      fetchedAt,
-      provider: "OpenAI web search",
-    };
+    return { key, failure: `${config.provider} returned unreadable data.` };
   }
 
-  const initialQuotes = parseOpenAiMarketQuotes(payload, fetchedAt);
-  if (!initialQuotes) {
-    return {
-      quotes: {},
-      failures: marketRefreshFailures("OpenAI web search did not return a valid quote response."),
-      fetchedAt,
-      provider: "OpenAI web search",
-      sources,
-    };
-  }
+  const quote =
+    config.parser === "google"
+      ? parseGoogleFinanceQuote(page, config, fetchedAt)
+      : parseSetPublicQuote(page, config, fetchedAt);
+  return quote
+    ? { key, quote }
+    : { key, failure: `${config.provider} did not return a valid ${config.symbol} quote.` };
+};
 
-  const quotes = { ...initialQuotes };
-
+const refreshMarketQuotes = async (
+  fetchImplementation: FetchImplementation,
+): Promise<MarketRefreshPayload> => {
+  const fetchedAt = new Date().toISOString();
+  const entries = Object.entries(PUBLIC_MARKET_QUOTES) as Array<
+    [PublicMarketKey, PublicMarketQuoteConfig]
+  >;
+  const results = await Promise.all(
+    entries.map(([key, config]) =>
+      readPublicMarketQuote(key, config, fetchImplementation, fetchedAt),
+    ),
+  );
+  const quotes: Record<string, MarketQuote> = {};
   const failures: Record<string, string> = {};
-  for (const [key, config] of Object.entries(OPENAI_MARKET_QUOTES)) {
-    if (!quotes[key]) {
-      failures[key] = `OpenAI web search did not return a valid ${config.currency} quote for ${key}.`;
-    }
+  for (const result of results) {
+    if (result.quote) quotes[result.key] = result.quote;
+    else if (result.failure) failures[result.key] = result.failure;
   }
+
   return {
     quotes,
     failures,
     fetchedAt,
-    provider: "OpenAI web search",
-    sources,
+    provider: "Google Finance + SET public quotes",
+    sources: entries.map(([, config]) => ({ url: config.url, title: config.title })),
   };
 };
-
-const refreshMarketQuotes = (
-  environment: MarketApiEnvironment,
-  fetchImplementation: FetchImplementation,
-) => refreshOpenAiMarketQuotes(environment, fetchImplementation);
 
 const fetchYahooQuote = async (
   symbol: string,
@@ -512,7 +367,6 @@ const parseBatchSymbols = (rawSymbols: string | null) => {
 export async function handleMarketApiRequest(
   request: Request,
   fetchImplementation: FetchImplementation = fetch,
-  environment: MarketApiEnvironment = {},
   persistence?: MarketQuotePersistenceRepository,
 ): Promise<Response | null> {
   const url = new URL(request.url);
@@ -523,27 +377,7 @@ export async function handleMarketApiRequest(
   if (!isSearch && !isQuote && !isBatchQuote && !isMarketRefresh) return null;
 
   if (isMarketRefresh) {
-    if (persistence) {
-      try {
-        const recent = await persistence.loadRecentMarketRefresh(
-          marketRefreshCooldownMs,
-        );
-        if (recent) {
-          return json(
-            { ...recent, cooldownActive: true },
-            200,
-            "no-store",
-          );
-        }
-      } catch {
-        return json(
-          { error: "Shared market-price storage is unavailable." },
-          503,
-          "no-store",
-        );
-      }
-    }
-    const refreshed = await refreshMarketQuotes(environment, fetchImplementation);
+    const refreshed = await refreshMarketQuotes(fetchImplementation);
     if (!persistence) {
       return json(refreshed, 200, "no-store");
     }

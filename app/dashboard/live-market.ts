@@ -36,7 +36,6 @@ export type LiveMarketBatchResponse = {
   sources?: LiveMarketSource[];
   refreshedKeys?: string[];
   retainedKeys?: string[];
-  cooldownActive?: boolean;
 };
 
 export type LiveMarketSource = {
@@ -56,7 +55,6 @@ export type LiveMarketState = {
   requestedStockCount: number;
   refreshedFx: boolean;
   retainedFx: boolean;
-  cooldownActive: boolean;
 };
 
 const uniqueHoldings = (snapshot: DashboardSnapshot) =>
@@ -72,7 +70,7 @@ export function createLiveMarketRefreshPlan(
   _edits: HoldingEdits,
 ): LiveMarketRefreshPlan {
   // Edit Mode's Yahoo selection affects a deliberate export/manual override.
-  // The public refresh uses a stable OpenAI request contract instead.
+  // The public refresh uses the fixed free public-source mapping instead.
   void _edits;
   const stocks: LiveMarketStockRequest[] = [];
   const unmappedTickers: Record<string, string> = {};
@@ -81,7 +79,7 @@ export function createLiveMarketRefreshPlan(
     const configured = AUDIT_TICKER_MARKET_KEYS[holding.ticker.trim().toUpperCase()];
     if (!configured) {
       unmappedTickers[holding.ticker] =
-        "No OpenAI market mapping is configured for this holding.";
+        "No free public market-source mapping is configured for this holding.";
       continue;
     }
     if (configured.currency !== holding.currency) {
@@ -161,7 +159,6 @@ export function createLiveMarketState(
     requestedStockCount: plan.stocks.length,
     refreshedFx: refreshedKeys.has(USD_THB_MARKET_KEY),
     retainedFx: retainedKeys.has(USD_THB_MARKET_KEY),
-    cooldownActive: response.cooldownActive === true,
   };
 }
 

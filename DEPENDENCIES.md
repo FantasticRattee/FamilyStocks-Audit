@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-07-16. Use with the `impact-check` skill before changing shared
+Updated: 2026-07-20. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -26,8 +26,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `docs/specs/2026-07-16-shared-postgres-minimal-workbook-design.md`.
 - **Approved visual-theme record:**
   `docs/specs/2026-07-17-ghibli-countryside-ledger-theme-design.md`.
-- **Approved OpenAI usage policy:**
-  `docs/specs/2026-07-17-openai-market-usage-guard-design.md`.
+- **Approved free market-source record:**
+  `docs/specs/2026-07-20-free-public-market-sources-design.md`.
 - **Verification:** `tests/*.test.ts` and `tests/rendered-html.test.mjs`.
 
 ## Impact matrix
@@ -37,9 +37,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; authenticated production import |
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
-| Market keys, quote parsing, usage limits, cooldown, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | One bounded OpenAI request; persisted five-minute cooldown; usage log; retain failed keys; source links; production refresh |
+| Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Four fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
 | Edit/import authentication | `edit-auth.ts`, `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests | Wrong password 401; correct password succeeds; no secret in bundle/log/DB |
-| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/key/password visible only server-side |
+| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; only DB/password stay server-side |
 | Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
 
 ## Internal flow
@@ -58,11 +58,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
    `/api/portfolio/import`. The server revalidates and atomically replaces
    holdings plus settings for canonical imports; minimal imports replace only
    holdings.
-5. Market refresh first asks PostgreSQL for a quote saved within five minutes.
-   A cache hit returns retained shared values without OpenAI. Otherwise
-   `market-api.ts` makes one bounded OpenAI request, logs token/tool-call usage,
-   and the repository upserts successful keys while retaining prior failed
-   keys.
+5. Market refresh fetches each allow-listed Google Finance or SET public quote
+   page on every click. `market-api.ts` validates the parsed price against the
+   configured symbol/currency/exchange and the repository upserts successful
+   keys while retaining prior failed keys.
 6. Export builds a new minimal workbook directly from current shared raw
    holdings. It never serializes derived display values.
 
@@ -79,14 +78,14 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
-  time, provider, optional source links, and optional `cooldownActive`.
-- Runtime variables: `DATABASE_URL`, `EDIT_MODE_PASSWORD`, `OPENAI_API_KEY`,
-  and optional `OPENAI_MARKET_MODEL`.
+  time, provider, and source links.
+- Runtime variables: `DATABASE_URL` and `EDIT_MODE_PASSWORD`.
 
 ## Known constraints and debt
 
-- OpenAI web search is sourced but is not a licensed exchange feed; the first
-  refresh after each shared five-minute cooldown can incur API usage.
+- Google Finance and SET quote pages are public pages, not licensed real-time
+  exchange feeds. Their values can be delayed or their HTML can change; a
+  parsing failure retains the last verified shared quote.
 - Only GOOGL, SCB, and KBANK holdings are accepted until ticker currency and
   market mappings are added deliberately.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost

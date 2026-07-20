@@ -33,9 +33,6 @@ export type PersistedMarketRefresh = PersistedQuoteMerge & {
 };
 
 export interface MarketQuotePersistenceRepository {
-  loadRecentMarketRefresh(
-    maxAgeMs: number,
-  ): Promise<PersistedMarketRefresh | null>;
   persistMarketRefresh(
     refresh: PersistableMarketRefresh,
   ): Promise<PersistedMarketRefresh>;

@@ -13,8 +13,6 @@ interface Env {
   DB?: unknown;
   DATABASE_URL?: string;
   EDIT_MODE_PASSWORD?: string;
-  OPENAI_API_KEY?: string;
-  OPENAI_MARKET_MODEL?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -31,15 +29,11 @@ interface ExecutionContext {
 
 type RuntimeSecret =
   | "DATABASE_URL"
-  | "EDIT_MODE_PASSWORD"
-  | "OPENAI_API_KEY"
-  | "OPENAI_MARKET_MODEL";
+  | "EDIT_MODE_PASSWORD";
 
 const RUNTIME_SECRETS: RuntimeSecret[] = [
   "DATABASE_URL",
   "EDIT_MODE_PASSWORD",
-  "OPENAI_API_KEY",
-  "OPENAI_MARKET_MODEL",
 ];
 
 const getNodeEnvironment = (): Partial<Record<RuntimeSecret, string>> => {
@@ -116,7 +110,6 @@ const worker = {
     const marketResponse = await handleMarketApiRequest(
       request,
       fetch,
-      env,
       portfolioRepository ?? undefined,
     );
     if (marketResponse) return marketResponse;

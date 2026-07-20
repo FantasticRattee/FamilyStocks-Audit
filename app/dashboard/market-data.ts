@@ -13,11 +13,15 @@ export type MarketQuote = {
   exchange: string;
   marketState: string;
   quoteTimestamp?: string;
-  source?: "Yahoo Finance" | "OpenAI web search" | "Embedded audit seed";
+  source?:
+    | "Yahoo Finance"
+    | "Google Finance"
+    | "SET public quote"
+    | "Embedded audit seed";
   freshness?:
     | "delayed"
     | "latest close"
-    | "searched live"
+    | "public quote"
     | "initial database seed";
 };
 

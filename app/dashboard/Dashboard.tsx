@@ -86,7 +86,7 @@ const GHIBLI_SCENE_LIGHTS = {
 } as const;
 
 const MARKET_REFRESH_SOURCES =
-  "OpenAI web search · saved to shared PostgreSQL";
+  "Google Finance + SET public quotes · saved to shared PostgreSQL";
 
 type Tab = (typeof TABS)[number][0];
 type SourceMode = "embedded" | "shared";
@@ -133,7 +133,6 @@ const createEmptyLiveMarketState = (): LiveMarketState => ({
   requestedStockCount: 0,
   refreshedFx: false,
   retainedFx: false,
-  cooldownActive: false,
 });
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
@@ -964,9 +963,7 @@ export function Dashboard() {
   const liveMarketFailureCount = Object.keys(liveMarketState.failures).length;
   const liveMarketProvider = liveMarketState.provider ?? MARKET_REFRESH_SOURCES;
   const liveMarketStatusText = liveMarketState.fetchedAt
-    ? liveMarketState.cooldownActive
-      ? `Market prices · saved quotes reused · 5-minute API cooldown · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
-      : `Market prices · ${liveMarketState.refreshedStockCount} refreshed · ${liveMarketState.retainedStockCount} retained${liveMarketState.refreshedFx ? " · USD/THB refreshed" : liveMarketState.retainedFx ? " · USD/THB retained" : " · USD/THB unavailable"} · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
+    ? `Market prices · ${liveMarketState.refreshedStockCount} refreshed · ${liveMarketState.retainedStockCount} retained${liveMarketState.refreshedFx ? " · USD/THB refreshed" : liveMarketState.retainedFx ? " · USD/THB retained" : " · USD/THB unavailable"} · ${formatLiveTimestamp(liveMarketState.fetchedAt)} · ${liveMarketProvider}`
     : `Market prices: refresh manually · ${MARKET_REFRESH_SOURCES}.`;
   const tickerEditsDirty = snapshot.holdings.some((holding) => {
     const editedTicker = getHoldingDisplayTicker(holding.ticker, holdingEdits)
@@ -1104,27 +1101,6 @@ export function Dashboard() {
       ],
     };
   });
-  const dividendChartRows: BarChart3DRow[] = dividendOwners.map((owner) => ({
-    id: owner.owner,
-    label: owner.owner,
-    meta: `${formatPct(owner.capitalPercent, 1)} of forecast`,
-    badge: owner.owner.startsWith("Me")
-      ? "ME"
-      : owner.owner.slice(0, 1).toUpperCase(),
-    headline: formatThb(owner.net),
-    detail: `${owner.owner}: ${formatPct(owner.capitalPercent, 1)} of net forecast · ${formatThb(owner.net)}`,
-    buttonAriaLabel: `Select ${owner.owner} dividend forecast ${formatPct(owner.capitalPercent, 1)}, ${formatThb(owner.net)}`,
-    values: [
-      {
-        id: "forecast",
-        label: "Net forecast",
-        value: owner.capitalPercent,
-        formattedValue: formatThb(owner.net),
-        color: PORTFOLIO_THEME.sky,
-      },
-    ],
-  }));
-
   const dividendLines = snapshot.dividend.lines.map((line) => {
     const dps = scenario.dividendDps[line.ticker] ?? line.dps;
     const gross = line.eligibleQuantity * dps;
@@ -1136,22 +1112,24 @@ export function Dashboard() {
   const accountOptions = Array.from(
     new Set(snapshot.transactions.map((transaction) => transaction.account)),
   ).sort();
-  const filteredTransactions = snapshot.transactions.filter((transaction) => {
-    const haystack = [
-      transaction.date,
-      transaction.account,
-      transaction.ticker,
-      transaction.side,
-      transaction.note,
-    ]
-      .join(" ")
-      .toLowerCase();
-    return (
-      haystack.includes(search.toLowerCase()) &&
-      (sideFilter === "ALL" || transaction.side === sideFilter) &&
-      (accountFilter === "ALL" || transaction.account === accountFilter)
-    );
-  });
+  const filteredTransactions = snapshot.transactions
+    .filter((transaction) => {
+      const haystack = [
+        transaction.date,
+        transaction.account,
+        transaction.ticker,
+        transaction.side,
+        transaction.note,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return (
+        haystack.includes(search.toLowerCase()) &&
+        (sideFilter === "ALL" || transaction.side === sideFilter) &&
+        (accountFilter === "ALL" || transaction.account === accountFilter)
+      );
+    })
+    .sort((left, right) => right.date.localeCompare(left.date));
 
   const applyWorkbook = async (file: File, password: string) => {
     const requestId = ++workbookRequestIdRef.current;
@@ -1430,7 +1408,7 @@ export function Dashboard() {
     const requestId = refreshRequestIdRef.current + 1;
     refreshRequestIdRef.current = requestId;
     setIsRefreshingMarket(true);
-    setLiveMarketNotice("กำลังค้นหาราคาตลาด…");
+    setLiveMarketNotice("กำลังดึงราคาจาก Google Finance และ SET…");
 
     try {
       const response = await fetch("/api/market/refresh", { cache: "no-store" });
@@ -1457,15 +1435,12 @@ export function Dashboard() {
         ...(Array.isArray(body.retainedKeys)
           ? { retainedKeys: body.retainedKeys }
           : {}),
-        ...(body.cooldownActive === true ? { cooldownActive: true } : {}),
       });
       setLiveMarketState(nextState);
       const failureCount = Object.keys(nextState.failures).length;
       const firstFailure = Object.values(nextState.failures)[0];
       setLiveMarketNotice(
-        nextState.cooldownActive
-          ? "ยังใช้ราคาที่บันทึกไว้เพราะอยู่ในช่วงพัก API 5 นาที — ไม่มีการเรียก OpenAI เพิ่ม"
-          : failureCount
+        failureCount
           ? `${failureCount} รายการยังไม่มีราคาที่ใช้ได้ · ${firstFailure}`
           : nextState.retainedStockCount || nextState.retainedFx
             ? `อัปเดตค่าที่หาได้แล้ว และคงค่าฐานข้อมูลเดิม ${nextState.retainedStockCount + (nextState.retainedFx ? 1 : 0)} รายการ`
@@ -1914,28 +1889,28 @@ export function Dashboard() {
                   <small>{formatPct(result.dividend.grossYield)} gross yield · current capital</small>
                 </div>
                 <div className="dividend-owner-chart">
-                  <div className="dividend-compact-grid">
-                    <div className="dividend-row-labels">
-                      {dividendOwners.map((owner) => (
-                        <div key={owner.owner}>
+                  {dividendOwners.map((owner) => {
+                    const percentage = Math.min(100, Math.max(0, owner.capitalPercent * 100));
+                    return (
+                      <div className="dividend-owner-row" key={owner.owner}>
+                        <div>
                           <strong>{owner.owner}</strong>
                           <span>{formatPct(owner.capitalPercent, 1)}</span>
                         </div>
-                      ))}
-                    </div>
-                    <CompactBarField3D
-                      rows={dividendChartRows}
-                      mode="progress"
-                      scaleMax={1}
-                      ariaLabel="Interactive 3D net dividend forecast bars"
-                      className="dividend-r3f-bars"
-                    />
-                    <div className="dividend-row-values">
-                      {dividendOwners.map((owner) => (
-                        <b key={owner.owner}>{formatThb(owner.net)}</b>
-                      ))}
-                    </div>
-                  </div>
+                        <div
+                          className="dividend-track"
+                          role="progressbar"
+                          aria-label={`${owner.owner} net dividend forecast`}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={Math.round(percentage)}
+                        >
+                          <i style={{ width: `${percentage}%` }} />
+                        </div>
+                        <b>{formatThb(owner.net)}</b>
+                      </div>
+                    );
+                  })}
                 </div>
                 <p className="panel-note warning">
                   Forecast from current capital; historical Apr 2026 net was {formatThb(snapshot.historicalDividend.net)}.
