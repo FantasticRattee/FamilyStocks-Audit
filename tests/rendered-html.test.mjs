@@ -488,3 +488,23 @@ test("loads and replaces the latest validated portfolio through shared PostgreSQ
   );
   assert.doesNotMatch(dashboard, /localStorage|sessionStorage|indexedDB/);
 });
+
+test("server-renders the isolated historical Stock Analyzer route", async () => {
+  const response = await requestWorker("/analyzer", {
+    headers: { accept: "text/html" },
+  });
+  assert.equal(response.status, 200);
+
+  const [html, analyzerApi, analyzerDashboard, worker] = await Promise.all([
+    response.text(),
+    readFile(new URL("../app/dashboard/stock-analyzer-api.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/dashboard/StockAnalyzerDashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(html, /Stock Analyzer/i);
+  assert.match(analyzerDashboard, /Historical Forward P\/E/i);
+  assert.match(analyzerApi, /\/api\/analyzer\/refresh/);
+  assert.match(analyzerApi, /TIINGO_API_KEY/);
+  assert.match(worker, /handleStockAnalyzerApiRequest/);
+  assert.doesNotMatch(html, /TIINGO_API_KEY|FMP_API_KEY/);
+});

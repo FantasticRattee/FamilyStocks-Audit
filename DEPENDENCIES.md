@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-07-20. Use with the `impact-check` skill before changing shared
+Updated: 2026-07-21. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -19,6 +19,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - **Market refresh:** `app/dashboard/market-api.ts`,
   `app/dashboard/portfolio-repository.ts`, `app/dashboard/live-market.ts`, and
   `worker/index.ts`.
+- **Historical Stock Analyzer:** `app/analyzer/page.tsx`,
+  `app/dashboard/StockAnalyzerDashboard.tsx`, `stock-analyzer.ts`,
+  `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`,
+  `postgres-portfolio-repository.ts`, and `worker/index.ts`.
 - **Dashboard and 3D presentation:** `app/dashboard/Dashboard.tsx`,
   `app/globals.css`, and `public/family-portfolio-hero.png`.
 - **Operator documentation:** `README.md`.
@@ -28,6 +32,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `docs/specs/2026-07-17-ghibli-countryside-ledger-theme-design.md`.
 - **Approved free market-source record:**
   `docs/specs/2026-07-20-free-public-market-sources-design.md`.
+- **Approved historical-analyzer record:**
+  `docs/specs/2026-07-21-stock-analyzer-design.md`.
 - **Verification:** `tests/*.test.ts` and `tests/rendered-html.test.mjs`.
 
 ## Impact matrix
@@ -38,8 +44,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
 | Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Four fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
+| Historical Analyzer metric definitions, source parsing, or snapshot retention | `stock-analyzer.ts`, `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`, `StockAnalyzerDashboard.tsx`, PostgreSQL repository, API/metric tests, README | 15-year history; adjusted averages; no look-ahead CAGR; negative P/E = N/M; failed provider refresh retains the last snapshot |
 | Edit/import authentication | `edit-auth.ts`, `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests | Wrong password 401; correct password succeeds; no secret in bundle/log/DB |
-| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; only DB/password stay server-side |
+| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/password/provider keys remain server-side |
 | Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
 
 ## Internal flow
@@ -64,6 +71,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
    keys while retaining prior failed keys.
 6. Export builds a new minimal workbook directly from current shared raw
    holdings. It never serializes derived display values.
+7. Analyzer refresh validates one U.S. ticker, fetches Tiingo EOD server-side,
+   derives deterministic metrics, and upserts only that ticker's normalized
+   snapshot. Cached reads do not require a provider key or mutate the audit.
 
 ## Data contracts
 
@@ -79,7 +89,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
   time, provider, and source links.
-- Runtime variables: `DATABASE_URL` and `EDIT_MODE_PASSWORD`.
+- Analyzer snapshot: normalized price/P/E input, derived metrics, source
+  metadata, warnings, and a successful fetch timestamp; never Excel data.
+- Runtime variables: `DATABASE_URL`, `EDIT_MODE_PASSWORD`, required
+  `TIINGO_API_KEY` for analyzer refresh, and optional `FMP_API_KEY`.
 
 ## Known constraints and debt
 
@@ -98,3 +111,6 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   migrations should be added before incompatible production schema changes.
 - Railway variables are deployment state and are intentionally absent from
   Git; a fresh service must connect PostgreSQL and add its secrets.
+- Historical Forward P/E remains unavailable until a licensed point-in-time
+  estimates provider is added. The app must not backfill it from current FMP
+  consensus values.

@@ -19,6 +19,10 @@ import {
   type PortfolioSettings,
   type SharedHoldingInput,
 } from "./shared-portfolio";
+import type {
+  StockAnalyzerRepository,
+  StockAnalyzerSnapshot,
+} from "./stock-analyzer-api";
 
 const DATABASE_LOCK_ID = 6688141;
 
@@ -51,6 +55,10 @@ type ImportRow = QueryResultRow & {
   content_hash: string;
 };
 
+type StockAnalyzerSnapshotRow = QueryResultRow & {
+  payload: StockAnalyzerSnapshot;
+};
+
 const isoString = (value: Date | string) =>
   value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 
@@ -78,7 +86,10 @@ const quoteFromRow = (row: QuoteRow): MarketQuoteSnapshot => ({
 });
 
 export class PostgresPortfolioRepository
-  implements PortfolioRepository, MarketQuotePersistenceRepository
+  implements
+    PortfolioRepository,
+    MarketQuotePersistenceRepository,
+    StockAnalyzerRepository
 {
   private schemaReady: Promise<void> | null = null;
 
@@ -134,6 +145,17 @@ export class PostgresPortfolioRepository
 
       CREATE INDEX IF NOT EXISTS portfolio_imports_imported_at_idx
         ON portfolio_imports (imported_at DESC, id DESC);
+
+      CREATE TABLE IF NOT EXISTS stock_analyzer_snapshots (
+        ticker text PRIMARY KEY,
+        payload jsonb NOT NULL,
+        fetched_at timestamptz NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS stock_analyzer_snapshots_fetched_at_idx
+        ON stock_analyzer_snapshots (fetched_at DESC);
     `).then(() => undefined);
     this.schemaReady = schemaSetup.catch((error) => {
       this.schemaReady = null;
@@ -361,6 +383,32 @@ export class PostgresPortfolioRepository
     } finally {
       client.release();
     }
+  }
+
+  async loadStockAnalyzerSnapshot(ticker: string) {
+    await this.ensureSchema();
+    const result = await this.pool.query<StockAnalyzerSnapshotRow>(
+      `SELECT payload
+       FROM stock_analyzer_snapshots
+       WHERE ticker = $1`,
+      [ticker.trim().toUpperCase()],
+    );
+    return result.rows[0]?.payload ?? null;
+  }
+
+  async saveStockAnalyzerSnapshot(snapshot: StockAnalyzerSnapshot) {
+    await this.ensureSchema();
+    const ticker = snapshot.ticker.trim().toUpperCase();
+    await this.pool.query(
+      `INSERT INTO stock_analyzer_snapshots (ticker, payload, fetched_at)
+       VALUES ($1, $2::jsonb, $3)
+       ON CONFLICT (ticker) DO UPDATE SET
+         payload = EXCLUDED.payload,
+         fetched_at = EXCLUDED.fetched_at,
+         updated_at = now()`,
+      [ticker, JSON.stringify({ ...snapshot, ticker }), snapshot.fetchedAt],
+    );
+    return { ...snapshot, ticker };
   }
 }
 

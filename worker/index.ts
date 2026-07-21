@@ -7,12 +7,15 @@ import { INITIAL_SHARED_PORTFOLIO_STATE } from "../app/dashboard/initial-shared-
 import { handleMarketApiRequest } from "../app/dashboard/market-api";
 import { handlePortfolioApiRequest } from "../app/dashboard/portfolio-api";
 import { createPostgresPortfolioRepository } from "../app/dashboard/postgres-portfolio-repository";
+import { handleStockAnalyzerApiRequest } from "../app/dashboard/stock-analyzer-api";
 
 interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> };
   DB?: unknown;
   DATABASE_URL?: string;
   EDIT_MODE_PASSWORD?: string;
+  TIINGO_API_KEY?: string;
+  FMP_API_KEY?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -29,11 +32,15 @@ interface ExecutionContext {
 
 type RuntimeSecret =
   | "DATABASE_URL"
-  | "EDIT_MODE_PASSWORD";
+  | "EDIT_MODE_PASSWORD"
+  | "TIINGO_API_KEY"
+  | "FMP_API_KEY";
 
 const RUNTIME_SECRETS: RuntimeSecret[] = [
   "DATABASE_URL",
   "EDIT_MODE_PASSWORD",
+  "TIINGO_API_KEY",
+  "FMP_API_KEY",
 ];
 
 const getNodeEnvironment = (): Partial<Record<RuntimeSecret, string>> => {
@@ -89,6 +96,25 @@ const worker = {
         INITIAL_SHARED_PORTFOLIO_STATE,
       );
       if (portfolioResponse) return portfolioResponse;
+    }
+
+    const isAnalyzerRoute =
+      url.pathname === "/api/analyzer" ||
+      url.pathname === "/api/analyzer/refresh";
+    if (isAnalyzerRoute && !portfolioRepository) {
+      return Response.json(
+        { error: "Analyzer storage is not configured. Add DATABASE_URL." },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (portfolioRepository) {
+      const analyzerResponse = await handleStockAnalyzerApiRequest(
+        request,
+        env,
+        portfolioRepository,
+        fetch,
+      );
+      if (analyzerResponse) return analyzerResponse;
     }
 
     if (url.pathname === "/api/market/refresh" && !portfolioRepository) {

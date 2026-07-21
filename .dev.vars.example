@@ -2,3 +2,7 @@ EDIT_MODE_PASSWORD=replace-with-a-strong-password
 # Shared portfolio and persisted market quotes. Railway supplies this from its PostgreSQL service.
 DATABASE_URL=postgresql://user:password@host:5432/database
 # Public market refresh uses Google Finance and SET quote pages; no market API key is required.
+# Stock Analyzer requires this server-only Tiingo credential for 15-year EOD price history.
+TIINGO_API_KEY=replace-with-tiingo-key
+# Optional: current consensus Forward P/E. Historical Forward P/E remains unavailable without a point-in-time provider.
+FMP_API_KEY=replace-with-fmp-key

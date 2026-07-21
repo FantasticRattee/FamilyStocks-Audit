@@ -1614,6 +1614,9 @@ export function Dashboard() {
             </div>
           </div>
           <div className="topbar-actions">
+            <a className="button button-secondary analyzer-link" href="/analyzer">
+              Stock Analyzer
+            </a>
             <button
               className="button button-market-refresh"
               type="button"

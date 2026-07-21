@@ -11,6 +11,7 @@ Railway PostgreSQL is the shared source of truth for:
 
 - current holdings;
 - the latest successful `GOOGL`, `SCB`, `KBANK`, and `USDTHB` quotes;
+- one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
 - import metadata.
 
@@ -83,6 +84,29 @@ be delayed and their HTML can change. The parser only accepts the configured
 symbol/currency/exchange pages, and the UI shows the source links, freshness,
 and any retained values. No OpenAI request or token charge is made.
 
+## Stock Analyzer
+
+`/analyzer` is a separate U.S.-equity research surface. It never changes the
+portfolio, the workbook, entry prices, units, cost basis, or the normal market
+refresh. One explicit refresh fetches and stores a snapshot for the selected
+ticker; every device continues to read that newest successful snapshot until
+someone refreshes the same ticker again.
+
+It displays:
+
+- split/dividend-adjusted EOD trend for 1Y, 5Y, 10Y, and 15Y;
+- monthly and annual average prices;
+- 5/10/15-year price and total-return CAGR;
+- historical trailing P/E when the Tiingo Fundamentals response includes it;
+- current Forward P/E only when FMP analyst estimates are configured.
+
+The historical price source is Tiingo EOD. `TIINGO_API_KEY` is required only
+for a new Analyzer refresh and remains server-side. `FMP_API_KEY` is optional
+and supplies the next annual EPS consensus used for current Forward P/E.
+Historical Forward P/E is deliberately not estimated from today's consensus:
+it needs a licensed point-in-time estimates provider to avoid look-ahead bias.
+If a provider fails, the last saved snapshot is retained.
+
 ## Edit Mode
 
 The dashboard is public, but opening Edit Mode and importing a workbook require
@@ -97,9 +121,14 @@ Create an ignored `.dev.vars` from `.dev.vars.example` and set:
 ```text
 DATABASE_URL=postgresql://...
 EDIT_MODE_PASSWORD=...
+TIINGO_API_KEY=...
+# Optional, for current Forward P/E only
+FMP_API_KEY=...
 ```
 
-No market-data API key is required. Then run:
+No API key is required for the normal portfolio market-refresh button. The
+Analyzer needs the Tiingo key only when you want to create a new historical
+analysis snapshot. Then run:
 
 ```bash
 npm install
@@ -128,11 +157,13 @@ Add a PostgreSQL service to the same Railway project. In the
 ```text
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 EDIT_MODE_PASSWORD=<production password>
+TIINGO_API_KEY=<server-only Tiingo key>
+FMP_API_KEY=<optional server-only FMP key>
 ```
 
 Use Railway's variable reference picker for `DATABASE_URL`; do not copy a
 production connection string into Git. Redeploy after changing variables. The
-application creates its four tables on first access and atomically seeds an
+application creates its five tables on first access and atomically seeds an
 empty database from the validated embedded snapshot.
 
 After a real market refresh, the dashboard should show the fresh timestamp,
@@ -147,6 +178,10 @@ public source pages again.
   raw holding, and replaces holdings in one transaction.
 - `GET /api/market/refresh` fetches Google Finance and SET public quote pages,
   upserts successful quotes, and returns the merged persisted snapshot.
+- `GET /api/analyzer?symbol=GOOGL` returns the latest historical-analysis
+  snapshot for a safe U.S. ticker.
+- `POST /api/analyzer/refresh` fetches and persists one fresh Tiingo-backed
+  snapshot. It never overwrites a prior snapshot after a provider failure.
 - `POST /api/edit-auth` verifies the Edit Mode password without creating a
   session.
 
