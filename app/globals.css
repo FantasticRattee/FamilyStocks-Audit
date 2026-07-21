@@ -3396,7 +3396,9 @@ td strong {
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   align-items: center;
   gap: 28px;
-  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
   background:
     radial-gradient(circle at 83% 24%, rgba(152, 202, 194, 0.36), transparent 16rem),
     linear-gradient(135deg, rgba(255, 250, 240, 0.96), rgba(238, 245, 233, 0.92));
@@ -3440,13 +3442,20 @@ td strong {
   text-transform: uppercase;
 }
 
-.analyzer-ticker-form > div {
+.analyzer-symbol-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
 }
 
+.analyzer-symbol-combobox {
+  position: relative;
+  min-width: 0;
+}
+
 .analyzer-ticker-form input {
+  width: 100%;
+  min-height: 48px;
   min-width: 0;
   border: 1px solid #b8cebf;
   border-radius: 10px;
@@ -3455,6 +3464,75 @@ td strong {
   padding: 0 12px;
   font-weight: 850;
   letter-spacing: 0.07em;
+}
+
+.analyzer-symbol-search > .button {
+  min-height: 48px;
+}
+
+.analyzer-symbol-hints {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  max-height: min(320px, 48vh);
+  overflow: auto;
+  margin: 0;
+  border: 1px solid #b9d0bd;
+  border-radius: 14px;
+  background: rgba(255, 253, 246, 0.98);
+  box-shadow: 0 18px 34px rgba(46, 81, 58, 0.18);
+  list-style: none;
+  padding: 5px;
+}
+
+.analyzer-symbol-hints li {
+  margin: 0;
+}
+
+.analyzer-symbol-hints button {
+  display: grid;
+  grid-template-columns: minmax(62px, auto) minmax(0, 1fr) auto;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--navy);
+  cursor: pointer;
+  padding: 10px 9px;
+  text-align: left;
+}
+
+.analyzer-symbol-hints button:hover,
+.analyzer-symbol-hints button.active,
+.analyzer-symbol-hints button[aria-selected="true"] {
+  background: rgba(112, 164, 112, 0.16);
+}
+
+.analyzer-symbol-hints strong {
+  color: var(--teal-deep);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+
+.analyzer-symbol-hints span {
+  min-width: 0;
+  overflow: hidden;
+  color: #405c4d;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analyzer-symbol-hints small {
+  color: #6f8073;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .analyzer-ticker-form small {
@@ -3846,12 +3924,21 @@ td strong {
     padding: 20px;
   }
 
-  .analyzer-ticker-form > div {
+  .analyzer-symbol-search {
     grid-template-columns: 1fr;
   }
 
-  .analyzer-ticker-form input {
+  .analyzer-ticker-form input,
+  .analyzer-symbol-search > .button {
     min-height: 44px;
+  }
+
+  .analyzer-symbol-hints button {
+    grid-template-columns: minmax(56px, auto) minmax(0, 1fr);
+  }
+
+  .analyzer-symbol-hints small {
+    display: none;
   }
 
   .analyzer-data-grid,

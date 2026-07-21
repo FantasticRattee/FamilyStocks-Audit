@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "catalog:stocks": "node scripts/update-us-stock-symbol-catalog.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

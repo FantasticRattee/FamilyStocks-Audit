@@ -100,6 +100,15 @@ It displays:
 - historical trailing P/E when the Tiingo Fundamentals response includes it;
 - current Forward P/E only when FMP analyst estimates are configured.
 
+The Analyzer search field starts empty and accepts either a U.S. ticker or a
+company-name fragment. It uses a bundled Nasdaq Trader U.S. listed-symbol
+catalog for local hints, so typing does not call Railway, Tiingo, PostgreSQL,
+or any model/API.
+For example, `A` includes `AAPL`, `AMZN`, and `ARM`; `AMA` finds
+`AMZN — Amazon.com, Inc.`. Selecting a hint inserts its ticker, then Refresh
+analysis explicitly requests Tiingo data. To update the bundled catalog during
+development, run `npm run catalog:stocks` and commit the generated file.
+
 The historical price source is Tiingo EOD. `TIINGO_API_KEY` is required only
 for a new Analyzer refresh and remains server-side. `FMP_API_KEY` is optional
 and supplies the next annual EPS consensus used for current Forward P/E.

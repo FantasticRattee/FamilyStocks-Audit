@@ -2,6 +2,7 @@
 
 import {
   type FormEvent,
+  type KeyboardEvent,
   useEffect,
   useMemo,
   useState,
@@ -14,6 +15,10 @@ import {
   type AveragePoint,
   type StockAnalyzerSnapshot,
 } from "./stock-analyzer";
+import {
+  searchUsSymbolHints,
+  type UsStockSymbolHint,
+} from "./us-stock-symbol-search";
 
 type Range = "1Y" | "5Y" | "10Y" | "15Y";
 
@@ -210,7 +215,9 @@ const responseError = async (response: Response) => {
 };
 
 export function StockAnalyzerDashboard() {
-  const [tickerInput, setTickerInput] = useState("GOOGL");
+  const [tickerInput, setTickerInput] = useState("");
+  const [isHintOpen, setIsHintOpen] = useState(false);
+  const [activeHintIndex, setActiveHintIndex] = useState(-1);
   const [snapshot, setSnapshot] = useState<StockAnalyzerSnapshot | null>(null);
   const [range, setRange] = useState<Range>("15Y");
   const [isLoading, setIsLoading] = useState(true);
@@ -230,7 +237,6 @@ export function StockAnalyzerDashboard() {
       }
       const next = await response.json() as StockAnalyzerSnapshot;
       setSnapshot(next);
-      setTickerInput(next.ticker);
       setNotice(`Showing the persisted snapshot from ${formatFetchedAt(next.fetchedAt)} Bangkok time.`);
     } catch {
       setSnapshot(null);
@@ -249,8 +255,10 @@ export function StockAnalyzerDashboard() {
   const requestAnalysis = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const ticker = tickerInput.trim().toUpperCase();
+    setIsHintOpen(false);
+    setActiveHintIndex(-1);
     if (!safeTicker(ticker)) {
-      setError("Use a normal U.S. ticker, such as GOOGL, MSFT, AMZN, META, or BRK.B.");
+      setError("Choose a suggestion, or enter a normal U.S. ticker such as AMZN, MSFT, META, or BRK.B.");
       return;
     }
     setIsRefreshing(true);
@@ -272,6 +280,49 @@ export function StockAnalyzerDashboard() {
       setError(requestError instanceof Error ? requestError.message : "Analysis refresh failed.");
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const tickerHints = useMemo(
+    () => searchUsSymbolHints(tickerInput, 8),
+    [tickerInput],
+  );
+  const hintListOpen = isHintOpen && tickerInput.trim().length > 0 && tickerHints.length > 0;
+  const activeHint = activeHintIndex >= 0 ? tickerHints[activeHintIndex] : undefined;
+
+  const chooseHint = (hint: UsStockSymbolHint) => {
+    setTickerInput(hint.symbol);
+    setIsHintOpen(false);
+    setActiveHintIndex(-1);
+    setError(null);
+  };
+
+  const handleTickerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!tickerHints.length) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsHintOpen(true);
+      setActiveHintIndex((index) => (index + 1) % tickerHints.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsHintOpen(true);
+      setActiveHintIndex((index) => (index <= 0 ? tickerHints.length - 1 : index - 1));
+      return;
+    }
+
+    if (event.key === "Enter" && hintListOpen && activeHint) {
+      event.preventDefault();
+      chooseHint(activeHint);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsHintOpen(false);
+      setActiveHintIndex(-1);
     }
   };
 
@@ -319,22 +370,67 @@ export function StockAnalyzerDashboard() {
             </p>
           </div>
           <form className="analyzer-ticker-form" onSubmit={requestAnalysis}>
-            <label htmlFor="analyzer-ticker">U.S. ticker</label>
-            <div>
-              <input
-                id="analyzer-ticker"
-                value={tickerInput}
-                onChange={(event) => setTickerInput(event.target.value.toUpperCase())}
-                placeholder="GOOGL"
-                autoCapitalize="characters"
-                spellCheck="false"
-                maxLength={12}
-              />
+            <label htmlFor="analyzer-ticker">U.S. ticker or company</label>
+            <div className="analyzer-symbol-search">
+              <div className="analyzer-symbol-combobox">
+                <input
+                  id="analyzer-ticker"
+                  value={tickerInput}
+                  onChange={(event) => {
+                    setTickerInput(event.target.value);
+                    setIsHintOpen(true);
+                    setActiveHintIndex(-1);
+                  }}
+                  onFocus={() => setIsHintOpen(tickerInput.trim().length > 0)}
+                  onBlur={(event) => {
+                    const nextTarget = event.relatedTarget;
+                    if (!(nextTarget instanceof HTMLElement) || !nextTarget.closest(".analyzer-symbol-combobox")) {
+                      setIsHintOpen(false);
+                      setActiveHintIndex(-1);
+                    }
+                  }}
+                  onKeyDown={handleTickerKeyDown}
+                  placeholder="Search U.S. ticker or company"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck="false"
+                  maxLength={80}
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls="analyzer-ticker-hints"
+                  aria-expanded={hintListOpen}
+                  aria-activedescendant={activeHint ? `analyzer-hint-${activeHint.symbol}` : undefined}
+                  aria-describedby="analyzer-ticker-help"
+                />
+                {hintListOpen ? (
+                  <ul id="analyzer-ticker-hints" className="analyzer-symbol-hints" role="listbox" aria-label="Matching U.S. tickers">
+                    {tickerHints.map((hint, index) => (
+                      <li key={hint.symbol}>
+                        <button
+                          id={`analyzer-hint-${hint.symbol}`}
+                          type="button"
+                          role="option"
+                          aria-selected={index === activeHintIndex}
+                          className={index === activeHintIndex ? "active" : ""}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            chooseHint(hint);
+                          }}
+                        >
+                          <strong>{hint.symbol}</strong>
+                          <span>{hint.name}</span>
+                          <small>{hint.exchange}</small>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <button className="button button-primary" type="submit" disabled={isRefreshing}>
                 {isRefreshing ? "Refreshing…" : "Refresh analysis"}
               </button>
             </div>
-            <small>Refresh one ticker at a time. The newest successful snapshot stays until the next refresh.</small>
+            <small id="analyzer-ticker-help">Search by ticker or company name, choose a hint, then refresh one ticker at a time.</small>
           </form>
         </section>
 

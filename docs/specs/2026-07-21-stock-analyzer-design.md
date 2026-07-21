@@ -25,6 +25,28 @@ estimates. It remains unavailable until a point-in-time consensus provider
 (such as FactSet or a licensed estimates dataset) is connected. The UI must
 state this rather than display a misleading historical series.
 
+## Symbol discovery
+
+The Analyzer starts with an empty search field. A persisted GOOGL snapshot may
+load into the page as the latest saved research, but it must never be copied
+into the search input.
+
+- The deployed client contains a versioned, generated catalog of active U.S.
+  non-ETF symbols from Nasdaq Trader's listed-symbol directories. It is a hint
+  catalog, not a market-data source.
+- Search is local to the browser: it matches normalized ticker prefixes and
+  fragments plus normalized company-name word prefixes and fragments. For
+  example, `A` includes `AAPL`, `AMZN`, and `ARM`; `AMA` and `Amazon` surface
+  `AMZN — Amazon.com, Inc.`.
+- The hint list is an accessible keyboard-selectable listbox. Selecting a hint
+  inserts its ticker; it does not trigger an analysis request. A user can also
+  enter a valid U.S. ticker directly and explicitly press Refresh analysis.
+- Catalog generation is a development/deploy artifact (`npm run
+  catalog:stocks`), not a Railway database table, runtime API, provider-key
+  request, or per-keystroke network call. The refresh endpoint remains the
+  source-of-truth validation step because a listed symbol can still be
+  unavailable from Tiingo.
+
 ## Data sources
 
 | Metric | Provider | Runtime variable | Notes |
@@ -33,6 +55,7 @@ state this rather than display a misleading historical series.
 | Historical P/E | Tiingo Fundamentals | `TIINGO_API_KEY` with fundamentals entitlement | Optional provider response; missing data remains visible as unavailable. |
 | Current forward P/E | FMP analyst estimates | `FMP_API_KEY` | Optional. Calculated from latest close divided by next annual consensus EPS. |
 | Historical forward P/E | Point-in-time estimates provider | future | Out of scope until a licensed point-in-time source is supplied. |
+| Ticker/company hints | Generated Nasdaq Trader directory catalog | none | Bundled with the deployed client; no database or runtime request. |
 
 The server makes provider requests. Browser code never receives an API key.
 
@@ -77,3 +100,6 @@ including raw price/P/E series, source metadata, and fetch timestamp.
    and no client-side reference to the API keys.
 4. Railway docs name the two optional server-only keys and keep the existing
    audit/workbook contracts unchanged.
+5. Symbol-search tests prove `AMA` reaches AMZN/Amazon, `A` includes AAPL,
+   AMZN, and ARM, blank input yields no default suggestion, and the UI has no
+   prefilled GOOGL input.

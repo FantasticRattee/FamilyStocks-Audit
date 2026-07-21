@@ -22,6 +22,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - **Historical Stock Analyzer:** `app/analyzer/page.tsx`,
   `app/dashboard/StockAnalyzerDashboard.tsx`, `stock-analyzer.ts`,
   `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`,
+  `us-stock-symbol-search.ts`, `us-stock-symbol-catalog.generated.ts`,
+  `scripts/update-us-stock-symbol-catalog.mjs`,
   `postgres-portfolio-repository.ts`, and `worker/index.ts`.
 - **Dashboard and 3D presentation:** `app/dashboard/Dashboard.tsx`,
   `app/globals.css`, and `public/family-portfolio-hero.png`.
@@ -45,6 +47,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
 | Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Four fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
 | Historical Analyzer metric definitions, source parsing, or snapshot retention | `stock-analyzer.ts`, `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`, `StockAnalyzerDashboard.tsx`, PostgreSQL repository, API/metric tests, README | 15-year history; adjusted averages; no look-ahead CAGR; negative P/E = N/M; failed provider refresh retains the last snapshot |
+| Historical Analyzer ticker/company hints or catalog refresh | `us-stock-symbol-search.ts`, `us-stock-symbol-catalog.generated.ts`, `scripts/update-us-stock-symbol-catalog.mjs`, `StockAnalyzerDashboard.tsx`, `globals.css`, symbol/UI tests, Analyzer spec, README | `AMA` resolves AMZN/Amazon; `A` includes AAPL/AMZN/ARM; blank input has no default; keyboard/mouse selection works at mobile width; no network, key, or database request while typing |
 | Edit/import authentication | `edit-auth.ts`, `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests | Wrong password 401; correct password succeeds; no secret in bundle/log/DB |
 | Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/password/provider keys remain server-side |
 | Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
@@ -74,6 +77,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 7. Analyzer refresh validates one U.S. ticker, fetches Tiingo EOD server-side,
    derives deterministic metrics, and upserts only that ticker's normalized
    snapshot. Cached reads do not require a provider key or mutate the audit.
+8. Analyzer typeahead filters its bundled Nasdaq Trader catalog in the browser.
+   It inserts a selected ticker locally; only an explicit refresh reaches the
+   server/provider.
 
 ## Data contracts
 
@@ -91,6 +97,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   time, provider, and source links.
 - Analyzer snapshot: normalized price/P/E input, derived metrics, source
   metadata, warnings, and a successful fetch timestamp; never Excel data.
+- Analyzer symbol catalog: generated ticker, company name, and exchange hint
+  tuples only; it is versioned with the client code and never stored in
+  PostgreSQL.
 - Runtime variables: `DATABASE_URL`, `EDIT_MODE_PASSWORD`, required
   `TIINGO_API_KEY` for analyzer refresh, and optional `FMP_API_KEY`.
 
@@ -114,3 +123,6 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Historical Forward P/E remains unavailable until a licensed point-in-time
   estimates provider is added. The app must not backfill it from current FMP
   consensus values.
+- The generated symbol catalog is a discovery aid, not proof that Tiingo has
+  valid historical coverage for every result. Refresh validates coverage and
+  retains a prior successful snapshot on failure.
