@@ -3,6 +3,7 @@
 import {
   type FormEvent,
   type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
   useState,
@@ -11,7 +12,6 @@ import Link from "next/link";
 
 import {
   buildStockAnalysis,
-  type AnalyzerPricePoint,
   type AveragePoint,
   type StockAnalyzerSnapshot,
 } from "./stock-analyzer";
@@ -19,20 +19,17 @@ import {
   searchUsSymbolHints,
   type UsStockSymbolHint,
 } from "./us-stock-symbol-search";
-
-type Range = "1Y" | "5Y" | "10Y" | "15Y";
-
-type ChartPoint = {
-  label: string;
-  value: number;
-};
-
-const RANGE_YEARS: Record<Range, number> = {
-  "1Y": 1,
-  "5Y": 5,
-  "10Y": 10,
-  "15Y": 15,
-};
+import {
+  buildLineChartGeometry,
+  formatChartTooltipDate,
+  nearestLineChartPointIndex,
+  type LineChartPoint,
+} from "./stock-chart";
+import {
+  PRICE_CHART_RANGES,
+  selectPriceRange,
+  type PriceChartRange,
+} from "./stock-chart-range";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -81,18 +78,6 @@ const formatFetchedAt = (value: string) => {
       }).format(date);
 };
 
-const targetDate = (latestDate: string, years: number) => {
-  const latest = new Date(`${latestDate}T00:00:00.000Z`);
-  latest.setUTCFullYear(latest.getUTCFullYear() - years);
-  return latest.toISOString().slice(0, 10);
-};
-
-const selectedPrices = (prices: AnalyzerPricePoint[], range: Range) => {
-  if (!prices.length) return [];
-  const cutoff = targetDate(prices.at(-1)!.date, RANGE_YEARS[range]);
-  return prices.filter((point) => point.date >= cutoff);
-};
-
 const downsample = <T,>(values: T[], maxPoints = 360) => {
   if (values.length <= maxPoints) return values;
   const step = (values.length - 1) / (maxPoints - 1);
@@ -105,13 +90,16 @@ function LineChart({
   points,
   formatter = currency.format,
   tone = "meadow",
+  yAxisLabel = "Price (USD)",
 }: {
   title: string;
   subtitle: string;
-  points: ChartPoint[];
+  points: LineChartPoint[];
   formatter?: (value: number) => string;
   tone?: "meadow" | "sky" | "gold";
+  yAxisLabel?: string;
 }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const sampled = downsample(points);
   if (!sampled.length) {
     return (
@@ -123,19 +111,46 @@ function LineChart({
     );
   }
 
-  const values = sampled.map((point) => point.value);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const spread = maximum - minimum || Math.max(maximum * 0.04, 1);
-  const width = 720;
-  const height = 240;
-  const padding = 18;
-  const coordinates = sampled.map((point, index) => {
-    const x = padding + (index / Math.max(sampled.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - ((point.value - minimum) / spread) * (height - padding * 2);
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  });
-  const area = `${padding},${height - padding} ${coordinates.join(" ")} ${width - padding},${height - padding}`;
+  const geometry = buildLineChartGeometry(sampled);
+  const linePoints = geometry.coordinates
+    .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
+    .join(" ");
+  const area = `${geometry.plotLeft},${geometry.plotBottom} ${linePoints} ${geometry.plotRight},${geometry.plotBottom}`;
+  const hovered = hoveredIndex === null ? null : geometry.coordinates[hoveredIndex] ?? null;
+  const tooltipWidth = 154;
+  const tooltipHeight = 48;
+  const tooltipX = hovered
+    ? Math.min(
+        Math.max(hovered.x - tooltipWidth / 2, geometry.plotLeft),
+        geometry.plotRight - tooltipWidth,
+      )
+    : 0;
+  const tooltipY = hovered
+    ? hovered.y < geometry.plotTop + tooltipHeight + 12
+      ? hovered.y + 12
+      : hovered.y - tooltipHeight - 12
+    : 0;
+  const priceTagWidth = 74;
+  const priceTagHeight = 24;
+  const priceTagY = hovered
+    ? Math.min(
+        Math.max(hovered.y - priceTagHeight / 2, geometry.plotTop),
+        geometry.plotBottom - priceTagHeight,
+      )
+    : 0;
+  const gradientId = `analyzer-fill-${tone}-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+
+  const updateHoveredPoint = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setHoveredIndex(
+      nearestLineChartPointIndex({
+        clientX: event.clientX,
+        rectLeft: bounds.left,
+        rectWidth: bounds.width,
+        geometry,
+      }),
+    );
+  };
 
   return (
     <section className={`analyzer-chart analyzer-chart-${tone}`} aria-label={title}>
@@ -146,29 +161,138 @@ function LineChart({
         </div>
         <strong>{formatter(sampled.at(-1)!.value)}</strong>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title} line chart`}>
+      <svg
+        viewBox={`0 0 ${geometry.width} ${geometry.height}`}
+        role="img"
+        aria-label={`${title} line chart. X axis is date. Y axis is ${yAxisLabel}.${hovered ? ` ${formatChartTooltipDate(hovered.point.label)}: ${formatter(hovered.point.value)}.` : ""}`}
+        onPointerMove={updateHoveredPoint}
+        onPointerDown={updateHoveredPoint}
+        onPointerLeave={(event) => {
+          if (event.pointerType !== "touch") setHoveredIndex(null);
+        }}
+      >
         <defs>
-          <linearGradient id={`analyzer-fill-${tone}`} x1="0" x2="0" y1="0" y2="1">
+          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="currentColor" stopOpacity="0.32" />
             <stop offset="100%" stopColor="currentColor" stopOpacity="0.015" />
           </linearGradient>
         </defs>
-        <line x1={padding} x2={width - padding} y1={height - padding} y2={height - padding} className="analyzer-chart-baseline" />
-        <polygon points={area} fill={`url(#analyzer-fill-${tone})`} />
-        <polyline points={coordinates.join(" ")} fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
+        {geometry.yTicks.map((tick) => (
+          <g key={tick.value} className="analyzer-chart-y-tick">
+            <line
+              x1={geometry.plotLeft}
+              x2={geometry.plotRight}
+              y1={tick.y}
+              y2={tick.y}
+              className="analyzer-chart-grid-line"
+            />
+            <text
+              x={geometry.yAxisX}
+              y={tick.y + 4}
+              textAnchor="start"
+              className="analyzer-chart-axis-tick"
+            >
+              {formatter(tick.value)}
+            </text>
+          </g>
+        ))}
+        <line
+          x1={geometry.plotLeft}
+          x2={geometry.plotRight}
+          y1={geometry.plotBottom}
+          y2={geometry.plotBottom}
+          className="analyzer-chart-baseline"
+        />
+        <line
+          x1={geometry.plotRight}
+          x2={geometry.plotRight}
+          y1={geometry.plotTop}
+          y2={geometry.plotBottom}
+          className="analyzer-chart-baseline"
+        />
+        <polygon points={area} fill={`url(#${gradientId})`} />
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
         <circle
-          cx={coordinates.at(-1)!.split(",")[0]}
-          cy={coordinates.at(-1)!.split(",")[1]}
+          cx={geometry.coordinates.at(-1)!.x}
+          cy={geometry.coordinates.at(-1)!.y}
           r="5"
           className="analyzer-chart-endpoint"
         />
+        {geometry.xTicks.map((tick) => (
+          <g key={`${tick.label}-${tick.index}`} className="analyzer-chart-x-tick">
+            <line
+              x1={tick.x}
+              x2={tick.x}
+              y1={geometry.plotBottom}
+              y2={geometry.plotBottom + 5}
+              className="analyzer-chart-baseline"
+            />
+            <text
+              x={tick.x}
+              y={geometry.plotBottom + 23}
+              textAnchor="middle"
+              className="analyzer-chart-axis-tick"
+            >
+              {tick.label}
+            </text>
+          </g>
+        ))}
+        <text
+          x={geometry.plotLeft + (geometry.plotRight - geometry.plotLeft) / 2}
+          y={geometry.height - 5}
+          textAnchor="middle"
+          className="analyzer-chart-axis-label"
+        >
+          Date
+        </text>
+        <text x={geometry.yAxisX} y={geometry.plotTop - 6} className="analyzer-chart-axis-label">
+          {yAxisLabel}
+        </text>
+        {hovered ? (
+          <g className="analyzer-chart-hover-tooltip" pointerEvents="none">
+            <line
+              x1={hovered.x}
+              x2={hovered.x}
+              y1={geometry.plotTop}
+              y2={geometry.plotBottom}
+              className="analyzer-chart-hover-line"
+            />
+            <line
+              x1={geometry.plotLeft}
+              x2={geometry.plotRight}
+              y1={hovered.y}
+              y2={hovered.y}
+              className="analyzer-chart-hover-line"
+            />
+            <circle cx={hovered.x} cy={hovered.y} r="6" className="analyzer-chart-hover-dot" />
+            <g
+              className="analyzer-chart-hover-price-tag"
+              transform={`translate(${geometry.yAxisX - 4} ${priceTagY})`}
+            >
+              <rect width={priceTagWidth} height={priceTagHeight} rx="7" />
+              <text x={priceTagWidth / 2} y="16" textAnchor="middle">
+                {formatter(hovered.point.value)}
+              </text>
+            </g>
+            <g transform={`translate(${tooltipX} ${tooltipY})`}>
+              <rect width={tooltipWidth} height={tooltipHeight} rx="9" />
+              <text x="10" y="18" className="analyzer-chart-hover-date">
+                {formatChartTooltipDate(hovered.point.label)}
+              </text>
+              <text x="10" y="37" className="analyzer-chart-hover-value">
+                {formatter(hovered.point.value)}
+              </text>
+            </g>
+          </g>
+        ) : null}
       </svg>
-      <div className="analyzer-chart-axis" aria-hidden="true">
-        <span>{sampled[0]!.label}</span>
-        <span>{formatter(minimum)}</span>
-        <span>{formatter(maximum)}</span>
-        <span>{sampled.at(-1)!.label}</span>
-      </div>
     </section>
   );
 }
@@ -219,7 +343,7 @@ export function StockAnalyzerDashboard() {
   const [isHintOpen, setIsHintOpen] = useState(false);
   const [activeHintIndex, setActiveHintIndex] = useState(-1);
   const [snapshot, setSnapshot] = useState<StockAnalyzerSnapshot | null>(null);
-  const [range, setRange] = useState<Range>("15Y");
+  const [range, setRange] = useState<PriceChartRange>("15Y");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notice, setNotice] = useState("Loading the latest saved analysis…");
@@ -331,7 +455,7 @@ export function StockAnalyzerDashboard() {
     [snapshot],
   );
   const rangePrices = useMemo(
-    () => (analysis ? selectedPrices(analysis.priceSeries, range) : []),
+    () => (analysis ? selectPriceRange(analysis.priceSeries, range) : []),
     [analysis, range],
   );
   const priceChart = rangePrices.map((point) => ({ label: point.date, value: point.adjustedClose }));
@@ -480,7 +604,7 @@ export function StockAnalyzerDashboard() {
                   <h2>{snapshot.ticker} · split-adjusted close</h2>
                 </div>
                 <div className="analyzer-range-controls" aria-label="Price-chart time range">
-                  {(Object.keys(RANGE_YEARS) as Range[]).map((option) => (
+                  {PRICE_CHART_RANGES.map((option) => (
                     <button
                       key={option}
                       type="button"
@@ -496,6 +620,7 @@ export function StockAnalyzerDashboard() {
                 title={`${range} adjusted-close trend`}
                 subtitle="Dividend- and split-adjusted market data. The visual is downsampled only for drawing."
                 points={priceChart}
+                yAxisLabel="Price (USD)"
               />
               <div className="analyzer-cagr-grid" aria-label="CAGR summary">
                 {([5, 10, 15] as const).map((horizon) => (
@@ -516,6 +641,7 @@ export function StockAnalyzerDashboard() {
                 subtitle="Arithmetic mean of daily split-adjusted closes."
                 points={annualPriceChart}
                 tone="sky"
+                yAxisLabel="Price (USD)"
               />
               <LineChart
                 title="Historical trailing P/E"
@@ -523,6 +649,7 @@ export function StockAnalyzerDashboard() {
                 points={historicalPe}
                 formatter={(value) => `${rounded.format(value)}×`}
                 tone="gold"
+                yAxisLabel="P/E (×)"
               />
             </section>
 

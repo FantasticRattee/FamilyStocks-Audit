@@ -100,6 +100,14 @@ It displays:
 - historical trailing P/E when the Tiingo Fundamentals response includes it;
 - current Forward P/E only when FMP analyst estimates are configured.
 
+All Analyzer charts use chronological dates on the X axis and a numeric
+price/P-E scale on the right-side Y axis. The primary price chart offers
+`1M`, `6M`, `YTD`, `1Y`, `5Y`, `10Y`, and `15Y` views from stored daily EOD
+data. Hover or tap a displayed chart point to inspect its sampled observation
+date and formatted value, including a right-edge price tag; this stays entirely
+in the browser and does not make another provider request. Intraday `1D`/`5D`
+views and volume bars are not part of the EOD Analyzer contract.
+
 The Analyzer search field starts empty and accepts either a U.S. ticker or a
 company-name fragment. It uses a bundled Nasdaq Trader U.S. listed-symbol
 catalog for local hints, so typing does not call Railway, Tiingo, PostgreSQL,

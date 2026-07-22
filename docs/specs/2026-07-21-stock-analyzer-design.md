@@ -81,6 +81,29 @@ including raw price/P/E series, source metadata, and fetch timestamp.
 - **Current forward P/E:** latest close divided by the next annual consensus
   EPS. It is labelled `current consensus`, not point-in-time history.
 
+## Chart interaction and axes
+
+The Analyzer uses a Yahoo-inspired EOD chart interaction while retaining the
+Ghibli Countryside Ledger palette, paper texture, rounded cards, and existing
+page layout. It does not copy Yahoo's dark theme.
+
+Every Analyzer line chart is Cartesian: the horizontal axis is the
+chronological date (shown as months for daily data and years for annual data),
+and the vertical axis is the metric value. The numeric Y-axis ticks are visible
+on the **right**, like a market chart. Price charts label that scale as USD
+price; valuation charts label it as P/E.
+
+The primary price-chart controls offer `1M`, `6M`, `YTD`, `1Y`, `5Y`, `10Y`,
+and `15Y`, derived only from the stored daily EOD series. `1D`, `5D`,
+intraday, and volume bars are expressly out of scope for this version because
+they require a distinct intraday/volume data contract.
+
+Hovering with a mouse or tapping a chart shows a client-only crosshair and
+tooltip with the exact observation date and formatted value, plus a right-edge
+price tag at the crosshair. The chart is downsampled only for drawing, so the
+tooltip identifies the displayed sampled observation; it never requests a
+provider, Railway, or database query.
+
 ## Error handling
 
 - No `DATABASE_URL`: the Analyzer returns a clear persistence error.

@@ -3722,12 +3722,36 @@ td strong {
   height: auto;
   margin-top: 10px;
   overflow: visible;
+  cursor: crosshair;
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .analyzer-chart-baseline {
   stroke: currentColor;
-  stroke-opacity: 0.16;
+  stroke-opacity: 0.28;
   stroke-width: 1;
+}
+
+.analyzer-chart-grid-line {
+  stroke: currentColor;
+  stroke-opacity: 0.14;
+  stroke-width: 1;
+}
+
+.analyzer-chart-axis-tick,
+.analyzer-chart-axis-label {
+  fill: #6f7b6d;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.analyzer-chart-axis-label {
+  fill: #546e59;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .analyzer-chart-endpoint {
@@ -3736,22 +3760,50 @@ td strong {
   stroke-width: 3;
 }
 
-.analyzer-chart-axis {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr 1.3fr;
-  gap: 8px;
-  margin-top: 2px;
-  color: #6f7b6d;
-  font-size: 0.66rem;
+.analyzer-chart-hover-line {
+  stroke: currentColor;
+  stroke-opacity: 0.72;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
 }
 
-.analyzer-chart-axis span:nth-child(2),
-.analyzer-chart-axis span:nth-child(3) {
-  text-align: center;
+.analyzer-chart-hover-dot {
+  fill: #fffaf0;
+  stroke: currentColor;
+  stroke-width: 3;
 }
 
-.analyzer-chart-axis span:last-child {
-  text-align: right;
+.analyzer-chart-hover-tooltip rect {
+  fill: #fffdf5;
+  fill-opacity: 0.97;
+  stroke: currentColor;
+  stroke-opacity: 0.52;
+  stroke-width: 1;
+}
+
+.analyzer-chart-hover-date {
+  fill: #697767;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.analyzer-chart-hover-value {
+  fill: #234e3d;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.analyzer-chart-hover-price-tag rect {
+  fill: currentColor;
+  stroke: #fffdf5;
+  stroke-opacity: 0.88;
+  stroke-width: 1;
+}
+
+.analyzer-chart-hover-price-tag text {
+  fill: #fffdf5;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .analyzer-chart-empty {
@@ -3957,13 +4009,12 @@ td strong {
     padding: 15px;
   }
 
-  .analyzer-chart-axis {
-    grid-template-columns: 1fr 1fr;
+  .analyzer-chart-axis-tick {
+    font-size: 10px;
   }
 
-  .analyzer-chart-axis span:nth-child(2),
-  .analyzer-chart-axis span:nth-child(3) {
-    display: none;
+  .analyzer-chart-axis-label {
+    font-size: 9px;
   }
 
   .analyzer-source-panel dl {
