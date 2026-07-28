@@ -36,18 +36,18 @@ test("uses the current-capital forecast rather than the historical payout", asyn
   assert.deepEqual(
     snapshot.dividend.lines.map((line) => [line.ticker, line.eligibleQuantity, line.dps]),
     [
-      ["SCB", 14999, 11.28],
+      ["SCB", 0, 11.28],
       ["KBANK", 630, 12],
     ],
   );
   closeTo(snapshot.dividend.costBasis, 2155932.19);
-  closeTo(result.dividend.gross, 176748.72);
-  closeTo(result.dividend.net, 159073.848);
+  closeTo(result.dividend.gross, 7560);
+  closeTo(result.dividend.net, 6804);
   closeTo(snapshot.historicalDividend.net, 64519.2);
 
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
   assert.ok(mom);
-  closeTo(mom.net, 92230.31731809709);
+  closeTo(mom.net, 3944.929269783759);
   closeTo(mom.capitalPercent, 1250000 / 2155932.19, 0.000001);
 });
 
@@ -57,7 +57,7 @@ test("recalculates the forecast when current shareholder capital increases", asy
 
   snapshot.shareholders[0].sharedCapital += 100000;
   const result = calculateDashboard(snapshot, createScenario(snapshot));
-  const expectedYield = 176748.72 / 2155932.19;
+  const expectedYield = 7560 / 2155932.19;
   const expectedCapital = 2255932.19;
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
 

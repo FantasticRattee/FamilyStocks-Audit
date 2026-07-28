@@ -52,7 +52,7 @@ const initialSettings: PortfolioSettings = {
   transactions: initialSnapshot.transactions,
 };
 
-const quoteTimestamp = "2026-06-15T00:00:00.000+07:00";
+const quoteTimestamp = "2026-07-28T18:13:18.714Z";
 
 const initialQuotes = initialSnapshot.holdings.reduce<Record<string, MarketQuote>>(
   (quotes, holding) => {
@@ -61,7 +61,7 @@ const initialQuotes = initialSnapshot.holdings.reduce<Record<string, MarketQuote
       SUPPORTED_HOLDING_TICKERS[
         holding.ticker as keyof typeof SUPPORTED_HOLDING_TICKERS
       ];
-    if (!config) return quotes;
+    if (!config?.marketKey) return quotes;
     quotes[holding.ticker] = {
       symbol: holding.ticker,
       price:

@@ -19,6 +19,7 @@ export const SUPPORTED_HOLDING_TICKERS = {
   GOOGL: { currency: "USD", marketKey: "GOOGL" },
   SCB: { currency: "THB", marketKey: "SCB" },
   KBANK: { currency: "THB", marketKey: "KBANK" },
+  CASH: { currency: "THB", marketKey: null },
 } as const;
 
 export type SupportedHoldingTicker = keyof typeof SUPPORTED_HOLDING_TICKERS;
@@ -124,7 +125,7 @@ export function validateSharedHoldings(input: unknown): SharedHoldingInput[] {
     const ticker = normalizeTicker(rawTicker);
     if (!ticker) {
       throw new Error(
-        `Row ${rowNumber}: ${rawTicker || "Ticker"} is not a supported ticker. Supported tickers are GOOGL, SCB, and KBANK.`,
+        `Row ${rowNumber}: ${rawTicker || "Ticker"} is not a supported ticker. Supported tickers are GOOGL, SCB, KBANK, and CASH.`,
       );
     }
 
@@ -133,6 +134,9 @@ export function validateSharedHoldings(input: unknown): SharedHoldingInput[] {
       throw new Error(
         `Row ${rowNumber}: Owner/Account must be Shared, Mom, Rattee, or Ryu.`,
       );
+    }
+    if (ticker === "CASH" && ownerAccount !== "Shared") {
+      throw new Error(`Row ${rowNumber}: CASH must use the Shared owner/account.`);
     }
 
     const entryPrice = numericValue(row.entryPrice);
@@ -532,7 +536,10 @@ export function buildDashboardSnapshotFromSharedPortfolio(
       whtRate: settings.dividend.whtRate,
       lines: dividendLines,
       basis: "current-capital",
-      costBasis: sharedCostBasis,
+      // Forecast yield is anchored to contributed shared capital. Cash is an
+      // asset in the portfolio, but it must not dilute a forecast based on the
+      // family's capital allocation.
+      costBasis: sharedCapital,
     },
     historicalDividend: settings.historicalDividend,
     transactions: settings.transactions,

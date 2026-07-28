@@ -76,6 +76,10 @@ export function createLiveMarketRefreshPlan(
   const unmappedTickers: Record<string, string> = {};
 
   for (const holding of uniqueHoldings(snapshot)) {
+    if (holding.ticker.trim().toUpperCase() === "CASH") {
+      // The audited cash balance is a THB value, not a market-priced security.
+      continue;
+    }
     const configured = AUDIT_TICKER_MARKET_KEYS[holding.ticker.trim().toUpperCase()];
     if (!configured) {
       unmappedTickers[holding.ticker] =

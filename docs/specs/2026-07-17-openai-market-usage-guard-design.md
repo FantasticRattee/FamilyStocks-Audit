@@ -1,7 +1,7 @@
 # OpenAI Market Usage Guard
 
 Date: 17 Jul 2026
-Status: Approved — option A
+Status: Superseded — historical record only
 
 > Superseded on 20 Jul 2026 by
 > [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
@@ -10,8 +10,9 @@ Status: Approved — option A
 
 ## Goal
 
-Reduce OpenAI token and web-search consumption without changing portfolio
-accounting, historical entry prices, units, or the shared PostgreSQL authority.
+This historical proposal described an OpenAI-based refresh guard. It is retained
+only to document the retired approach; the current public refresh uses the free
+Google Finance and SET sources linked above.
 
 ## Request policy
 

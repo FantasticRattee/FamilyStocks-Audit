@@ -93,15 +93,20 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
     [
       ["GOOGL", "Mom", 33],
       ["GOOGL", "Rattee", 31],
-      ["SCB", "Shared", 14_999],
       ["KBANK", "Shared", 630],
+      ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "18 Jul 2026");
-  assert.equal(parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested, 977_923.6416283695);
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-07-18");
+  assert.equal(parsed.settings?.asOfDate, "29 Jul 2026");
+  assert.ok(
+    Math.abs(
+      (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
+        977_923.64162837,
+    ) < 0.01,
+  );
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-07-27");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {
@@ -154,6 +159,53 @@ test("rejects derived columns, unsupported tickers, and invalid numeric inputs",
         { ticker: "SCB", ownerAccount: "Shared", entryPrice: 0, units: 10 },
       ]),
     /row 2.*entry price.*positive/i,
+  );
+});
+
+test("accepts shared THB cash without adding it to the dividend forecast", () => {
+  const [cash] = validateSharedHoldings([
+    { ticker: "CASH", ownerAccount: "Shared", entryPrice: 2_321_088, units: 1 },
+  ]);
+  assert.deepEqual(cash, {
+    ticker: "CASH",
+    ownerAccount: "Shared",
+    entryPrice: 2_321_088,
+    units: 1,
+  });
+
+  const snapshot = buildDashboardSnapshotFromSharedPortfolio(
+    [...holdings, cash],
+    settings,
+    "Shared_Portfolio.xlsx",
+  );
+  assert.deepEqual(snapshot.holdings.at(-1), {
+    ticker: "CASH",
+    account: "Shared-THB",
+    owner: null,
+    category: "shared",
+    currency: "THB",
+    quantity: 1,
+    avgCostThb: 2_321_088,
+    importedPriceThb: 2_321_088,
+    costBasis: 2_321_088,
+  });
+  assert.deepEqual(
+    snapshot.dividend.lines.map((line) => [line.ticker, line.eligibleQuantity]),
+    [
+      ["SCB", 14_999],
+      ["KBANK", 630],
+    ],
+  );
+  assert.equal(snapshot.dividend.costBasis, 2_155_932.19);
+});
+
+test("rejects cash that is assigned to a personal account", () => {
+  assert.throws(
+    () =>
+      validateSharedHoldings([
+        { ticker: "CASH", ownerAccount: "Rattee", entryPrice: 1_000, units: 1 },
+      ]),
+    /cash.*shared/i,
   );
 });
 

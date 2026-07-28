@@ -7,8 +7,9 @@
 ## Goal
 
 Make the family portfolio and its latest market prices consistent across every
-device. Railway PostgreSQL becomes the shared source of truth. Excel becomes a
-small, auditable transport/backup file containing only raw position inputs.
+device. Railway PostgreSQL becomes the shared source of truth. Excel remains
+both the six-sheet accounting audit and a small raw-holdings transport/backup
+format; the minimal workbook is not a replacement for the canonical audit.
 
 ## Approved decisions
 
@@ -20,6 +21,8 @@ small, auditable transport/backup file containing only raw position inputs.
   database value for each failed quote.
 - The initial supported market keys remain `GOOGL`, `SCB`, `KBANK`, and
   `USDTHB`.
+- `CASH` is a supported shared THB holding, not a market key: it retains its
+  imported audit value and is excluded from quote refresh and dividends.
 - Every device loads the same holdings and latest persisted quotes.
 - The minimal Excel contract is exactly `Ticker`, `Owner/Account`,
   `Entry Price`, and `Units`.
@@ -29,14 +32,16 @@ small, auditable transport/backup file containing only raw position inputs.
 PostgreSQL stores:
 
 - the current shared holdings;
-- the latest successful quote per market key;
+- the latest successful quote per market key; imported `CASH` has no quote row;
 - portfolio settings that are not derived from a holding row, including family
   pool contributions/ratios and the historical dividend reference assumption;
 - import metadata for auditability.
 
-Excel stores only raw holding rows. It must not contain current price, FX,
-market value, P&L, allocation, family equity, forecast dividend, source URLs,
-or refresh timestamps.
+The **minimal** Excel transport workbook stores only raw holding rows. It must
+not contain current price, FX, market value, P&L, allocation, family equity,
+forecast dividend, source URLs, or refresh timestamps. The canonical six-sheet
+audit intentionally retains formula-derived accounting fields and is not the
+minimal export format.
 
 The application derives every display metric at runtime from raw holdings,
 persisted settings, and persisted quotes.
@@ -58,7 +63,7 @@ persisted settings, and persisted quotes.
 - `market_key` — primary key (`GOOGL`, `SCB`, `KBANK`, `USDTHB`)
 - `symbol`, `price`, `currency`, `exchange`, `market_state`
 - `quote_timestamp`, `source`, `freshness`
-- `sources` — JSON array of auditable web-search links
+- `sources` — JSON array of auditable public-source links
 - `updated_at`
 
 ### `portfolio_settings`
@@ -84,18 +89,19 @@ validated embedded snapshot before responding.
 
 ### `POST /api/portfolio/import`
 
-Accepts the Edit Mode password and a validated minimal holding array. The server
-verifies the password, validates all rows again, and replaces holdings plus
-records import metadata in one transaction. Any invalid row rolls back the
-whole import. Existing market quotes for supported tickers remain available.
+Accepts the Edit Mode password and either a validated minimal holding array or
+canonical-audit settings. The server verifies the password, validates all rows
+again, atomically replaces holdings (and canonical settings when supplied), and
+records import metadata. Any invalid row rolls back the whole import. Existing
+market quotes for market-priced tickers remain available.
 
 ### `GET /api/market/refresh`
 
-Keeps the approved OpenAI-only sourced lookup and focused missing-key retry.
-After lookup, the server upserts only successful quotes, then returns the merged
-database snapshot. A failed key is marked as retained and continues using its
-previous persisted value. If no previous value exists, the normal no-quote
-failure remains visible.
+Fetches the four allow-listed public market keys from Google Finance (`GOOGL`,
+`USDTHB`) and official SET pages (`SCB`, `KBANK`) on every manual refresh.
+After parsing, the server upserts only successful quotes, then returns the
+merged database snapshot. A failed key is marked as retained and continues
+using its previous persisted value. `CASH` never requests a quote.
 
 ## Dashboard flow
 
@@ -116,9 +122,12 @@ failure remains visible.
 - Text columns are normalized and required.
 - Numeric columns are stored as numbers, must be finite and greater than zero,
   and use readable number formats.
+- `CASH` is valid only under `Shared`; it represents the whole THB cash balance
+  with `Units = 1`, and is neither market-priced nor dividend-eligible.
 - Export creates a fresh minimal workbook from the current database holdings.
-- Import supports the new minimal contract. The legacy workbook is used only
-  for the initial database seed and is not regenerated with derived fields.
+- Import supports the minimal contract and the canonical six-sheet audit
+  (`Summary`, `Shareholders`, `Lot Holdings`, `Dividends`, `Holdings`, and
+  `Transactions`). The minimal export is never regenerated with derived fields.
 
 ## Calculation compatibility
 
@@ -126,6 +135,12 @@ The existing dashboard presentation remains. A database adapter converts the
 minimal holdings plus settings into the existing calculation model so family
 ownership, allocation, P&L, and dividend forecast remain synchronized. Ticker
 currency/category mappings remain explicit and covered by tests.
+
+For a `current-capital` dividend forecast, the yield denominator is the total
+shared capital in the shareholder settings. It is deliberately not the shared
+market value or the sum of active holding cost bases: a retained shared `CASH`
+balance is part of portfolio value but earns no dividend and must not dilute
+the forecast yield.
 
 ## Failure behavior
 
@@ -140,9 +155,8 @@ currency/category mappings remain explicit and covered by tests.
 
 ## Security
 
-- `DATABASE_URL`, `OPENAI_API_KEY`, and `EDIT_MODE_PASSWORD` remain server-only
-  Railway variables.
-- Public refresh is intentionally allowed and may incur OpenAI API usage.
+- `DATABASE_URL` and `EDIT_MODE_PASSWORD` remain server-only Railway variables.
+- Public refresh uses free public web pages and makes no OpenAI request.
 - Import and shared holding replacement require the Edit Mode password on every
   operation; the password is not written to PostgreSQL, browser storage, URLs,
   logs, or exported workbooks.

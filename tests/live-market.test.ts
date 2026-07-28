@@ -83,13 +83,29 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
     createHoldingEdits(snapshot),
   );
 
-  assert.deepEqual(plan.symbols, ["GOOGL", "SCB", "KBANK", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["GOOGL", "KBANK", "USDTHB"]);
   assert.deepEqual(plan.stocks, [
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
-    { ticker: "SCB", marketKey: "SCB", currency: "THB" },
     { ticker: "KBANK", marketKey: "KBANK", currency: "THB" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
+});
+
+test("keeps shared cash at its audited THB value without requesting a market quote", async () => {
+  const liveMarket = await loadLiveMarketModule();
+  const snapshot = await loadSnapshot();
+  const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
+  assert.ok(cash);
+  assert.equal(cash.costBasis, 2_321_088);
+
+  const plan = liveMarket.createLiveMarketRefreshPlan(
+    snapshot,
+    createHoldingEdits(snapshot),
+  );
+
+  assert.equal(plan.unmappedTickers.CASH, undefined);
+  assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
+  assert.deepEqual(plan.symbols, ["GOOGL", "KBANK", "USDTHB"]);
 });
 
 test("applies valid live quotes only to the display scenario and refreshes USD/THB", async () => {
@@ -105,7 +121,6 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   const liveState = liveMarket.createLiveMarketState(plan, {
     quotes: {
       GOOGL: quote("GOOGL", 400, "USD"),
-      SCB: quote("SCB.BK", 150, "THB"),
       KBANK: quote("KBANK.BK", 200, "THB"),
       USDTHB: quote("USDTHB", 34, "THB"),
     },
@@ -120,7 +135,6 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   );
 
   assert.equal(liveScenario.prices.GOOGL, 400);
-  assert.equal(liveScenario.prices.SCB, 150);
   assert.equal(liveScenario.prices.KBANK, 200);
   assert.equal(liveScenario.fx, 34);
   assert.equal(auditScenario.prices.GOOGL, 350);
@@ -128,7 +142,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
 
   const result = calculateDashboard(snapshot, liveScenario);
   assert.equal(result.totals.personalMarketValue, 64 * 400 * 34);
-  assert.equal(result.totals.sharedMarketValue, 14_999 * 150 + 630 * 200);
+  assert.equal(result.totals.sharedMarketValue, 2_321_088 + 630 * 200);
 });
 
 test("retains free public-source links with the display-only market state", async () => {

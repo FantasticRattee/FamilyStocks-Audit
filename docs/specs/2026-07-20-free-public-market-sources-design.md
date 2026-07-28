@@ -12,6 +12,8 @@ behavior unchanged.
 
 - `GOOGL` and `USDTHB` use the public Google Finance quote pages.
 - `SCB` and `KBANK` use the official public SET quote pages.
+- `CASH` is an imported shared THB balance, not a market key: refresh retains
+  its audit value and never requests an external quote.
 - Yahoo Finance remains available only for the existing Edit Mode search and
   manual quote workflow. It is not a source for the public dashboard refresh.
 
@@ -28,6 +30,8 @@ an unrelated page value cannot update the shared portfolio.
 3. A failed key never overwrites its previous persisted quote. The response
    identifies it as retained and explains the source failure in the UI.
 4. The response is `no-store`; the browser receives the actual refresh result.
+5. `CASH` is excluded from the market request, price-edit workflow, and dividend
+   eligibility while remaining part of shared market value.
 
 ## UI behavior
 

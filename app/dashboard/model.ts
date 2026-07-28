@@ -463,7 +463,7 @@ const parseHistoricalDividends = (rows: Row[]): HistoricalDividend & { whtRate: 
 const parseCurrentCapitalDividend = (
   rows: Row[],
   whtRate: number,
-  costBasis: number,
+  capitalBasis: number,
 ): DividendForecast | undefined => {
   let headerRow: number;
   try {
@@ -503,12 +503,12 @@ const parseCurrentCapitalDividend = (
     });
   }
 
-  if (!lines.length || costBasis <= 0) return undefined;
+  if (!lines.length || capitalBasis <= 0) return undefined;
   return {
     whtRate,
     lines,
     basis: "current-capital",
-    costBasis,
+    costBasis: capitalBasis,
   };
 };
 
@@ -538,29 +538,33 @@ export function parseWorkbook(input: ArrayBuffer, filename: string): DashboardSn
     const holdings = parseHoldings(getRows(workbook, "Holdings"), defaultFx);
     const dividendRows = getRows(workbook, "Dividends");
     const historicalDividend = parseHistoricalDividends(dividendRows);
+    const summary = parseSummary(summaryRows);
+    const shareholders = parseShareholders(shareholderRows);
     const sharedCostBasis = sum(
       holdings
         .filter((holding) => holding.category === "shared")
         .map((holding) => holding.costBasis),
     );
+    const sharedCapital = sum(shareholders.map((shareholder) => shareholder.sharedCapital));
+    const currentCapitalBasis = sharedCapital > 0 ? sharedCapital : sharedCostBasis;
     const dividend =
       parseCurrentCapitalDividend(
         dividendRows,
         historicalDividend.whtRate,
-        sharedCostBasis,
+        currentCapitalBasis,
       ) ?? {
         whtRate: historicalDividend.whtRate,
         lines: historicalDividend.lines,
         basis: "historical-eligibility" as const,
-        costBasis: sharedCostBasis,
+        costBasis: currentCapitalBasis,
       };
 
     return {
       filename,
       asOfDate: parseAsOfDate(summaryRows),
       defaultFx,
-      summary: parseSummary(summaryRows),
-      shareholders: parseShareholders(shareholderRows),
+      summary,
+      shareholders,
       holdings,
       dividend,
       historicalDividend,

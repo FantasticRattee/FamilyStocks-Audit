@@ -980,7 +980,7 @@ export function Dashboard() {
   );
   const editableHoldings = Array.from(
     new Map(result.holdings.map((holding) => [holding.ticker, holding])).values(),
-  );
+  ).filter((holding) => holding.ticker !== "CASH");
   const shareholderRows = snapshot.shareholders.map((holder) => {
     const personalMarketValue = sum(
       result.holdings
@@ -1971,7 +1971,7 @@ export function Dashboard() {
         {activeTab === "holdings" ? (
           <section className="holdings-layout">
             {[
-              ["Shared pool · SCB + KBANK", sharedHoldings],
+              ["Shared pool · Active investments + cash", sharedHoldings],
               ["Personal positions · Owner-specific", personalHoldings],
             ].map(([title, positions]) => (
               <article className="panel" key={String(title)}>

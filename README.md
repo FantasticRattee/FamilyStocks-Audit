@@ -9,7 +9,7 @@ as a small raw-holdings import/export workbook.
 
 Railway PostgreSQL is the shared source of truth for:
 
-- current holdings;
+- current holdings, including any imported shared THB cash balance;
 - the latest successful `GOOGL`, `SCB`, `KBANK`, and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
@@ -45,12 +45,16 @@ columns in this order:
 |---|---|---:|---:|
 | SCB | Shared | 100.00 | 1000 |
 | GOOGL | Rattee | 370.00 | 50 |
+| CASH | Shared | 2321088.00 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for GOOGL and THB for SCB/KBANK.
+  currency: USD for GOOGL and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
-- Supported tickers are currently `GOOGL`, `SCB`, and `KBANK`.
+- Supported tickers are currently `GOOGL`, `SCB`, `KBANK`, and `CASH`.
+- `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
+  the full THB cash balance and `Units` is `1`; it is not a market-priced
+  security and has no dividend eligibility.
 - Current price, FX, market value, P&L, allocation, dividend forecasts, source
   URLs, and timestamps are derived by the application and are never exported
   to Excel.
@@ -78,6 +82,8 @@ allow-listed market keys from free public sources without an API key:
 - If a key has never succeeded, the embedded audit seed remains the visible
   fallback and the status line reports the failure.
 - No refresh changes entry price, units, transactions, or cost basis.
+- Imported `CASH` is retained at its audit value and is never sent to a market
+  quote provider.
 
 These are public quote pages, not licensed real-time exchange feeds. They may
 be delayed and their HTML can change. The parser only accepts the configured
@@ -220,10 +226,15 @@ PostgreSQL data, Edit Mode, and the four-column Excel contract remain unchanged.
 
 ## Accounting rules preserved
 
-- Shared pool = SCB + KBANK only.
+- Shared pool ownership applies to active shared investments and shared cash.
+  As of the 27 Jul 2026 SCB sale, the active shared assets are `KBANK` plus
+  the imported THB cash balance; historical SCB lots remain in the ledger for
+  realized-P&L traceability.
 - Personal positions do not change the shared-pool dividend forecast.
 - The April 2026 dividend remains historical; the next forecast is derived
-  from current shared capital and the stored recurring-yield assumptions.
+  from current shared capital and the stored recurring-yield assumptions. Its
+  yield denominator is shareholder shared capital, so a shared cash balance
+  increases shared value without diluting the dividend forecast.
 - Market refresh changes current valuation only, never historical entry price
   or cost basis.
 - Realized P&L remains an imported legacy audit setting and requires lot-level

@@ -31,21 +31,21 @@ const loadSourceSnapshot = async () => {
 test("imports the stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "18 Jul 2026");
-  closeTo(snapshot.summary.totalMarketValue, 3252442.942222222);
+  assert.equal(snapshot.asOfDate, "29 Jul 2026");
+  closeTo(snapshot.summary.totalMarketValue, 3195677.744);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
-  closeTo(snapshot.summary.sharedMarketValue, 2485374);
-  closeTo(snapshot.summary.totalRealizedPnl, 33871.68157610536);
+  closeTo(snapshot.summary.sharedMarketValue, 2473548);
+  closeTo(snapshot.summary.totalRealizedPnl, 313416.07157610526);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
-    ["GOOGL", "GOOGL", "KBANK", "SCB"],
+    ["CASH", "GOOGL", "GOOGL", "KBANK"],
   );
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-05-13");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-07-18");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-07-27");
   closeTo(snapshot.shareholders[0].poolPercent, 0.5797956010852086, 0.000001);
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
@@ -62,24 +62,24 @@ test("recalculates a personal US-price scenario without changing shared-pool val
   assert.equal(googleHoldings.length, 2);
   const expectedPersonalValue = 64 * 330 * 33;
   closeTo(googleHoldings[0].marketValue + googleHoldings[1].marketValue, expectedPersonalValue);
-  closeTo(result.totals.sharedMarketValue, 2485374);
+  closeTo(result.totals.sharedMarketValue, 2473548);
   closeTo(result.totals.personalMarketValue, expectedPersonalValue);
-  closeTo(result.totals.marketValue, 2485374 + expectedPersonalValue);
+  closeTo(result.totals.marketValue, 2473548 + expectedPersonalValue);
 });
 
 test("uses current shared capital—not personal capital—to split the dividend forecast", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
-  scenario.dividendDps.SCB = 10;
+  scenario.dividendDps.KBANK = 13;
 
   const result = calculateDashboard(snapshot, scenario);
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
 
-  closeTo(result.dividend.gross, 157550);
-  closeTo(result.dividend.wht, 15755);
-  closeTo(result.dividend.net, 141795);
+  closeTo(result.dividend.gross, 8190);
+  closeTo(result.dividend.wht, 819);
+  closeTo(result.dividend.net, 7371);
   assert.ok(mom);
-  closeTo(mom.net, 141795 * (1250000 / 2155932.19));
+  closeTo(mom.net, 7371 * (1250000 / 2155932.19));
 });
 
 test("rejects a file that cannot be read as the required audit workbook", () => {

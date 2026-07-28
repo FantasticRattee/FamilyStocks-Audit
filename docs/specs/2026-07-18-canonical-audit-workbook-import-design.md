@@ -21,6 +21,12 @@ four-column `Holdings` import/export workflow.
   transaction snapshot.
 - Existing live market quotes are retained. Importing an audit never fabricates
   or overwrites a live quote.
+- The canonical audit may include `CASH` under the shared account. `CASH`
+  retains its imported THB value, is not sent to a market-price source, and has
+  zero dividend eligibility.
+- When the dividend method is `current-capital`, the imported shareholder
+  shared-capital total is the forecast-yield denominator. Imported cash is part
+  of shared value but must not dilute that yield.
 - Any parse, validation, password, or database error leaves the prior shared
   PostgreSQL portfolio unchanged.
 
@@ -43,13 +49,16 @@ four-column `Holdings` import/export workflow.
   the six-sheet accounting workbook.
 - Owner/ticker/currency validation remains allow-listed through the existing
   shared-portfolio adapter.
+- `CASH` must use the `Shared` owner/account; minimal imports represent its
+  complete THB balance as `Entry Price` with `Units = 1`.
 - The UI identifies the two accepted formats so a full audit no longer appears
   as a malformed four-column upload.
 
 ## Verification
 
 - Test the supplied canonical audit workbook end-to-end through the parser and
-  confirm its 18 Jul 2026 GOOGL state is mapped to Rattee 31 shares.
+  confirm its 29 Jul 2026 post-sale state: GOOGL Mom 33, GOOGL Rattee 31,
+  KBANK Shared 630, and CASH Shared 1.
 - Test that minimal imports retain existing settings.
 - Test that canonical imports persist the supplied settings atomically with
   holdings and require the Edit Mode password.
