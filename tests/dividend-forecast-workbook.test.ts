@@ -43,9 +43,9 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   assert.equal(dividends.D35?.f, "SUM(D32:D34)");
 
   assert.equal(dividends.A37?.v, "PRIOR-YEAR RECURRING DIVIDEND ASSUMPTIONS");
-  assert.equal(normalizeFormula(dividends.B39?.f), "Holdings!C14");
+  assert.equal(normalizeFormula(dividends.B39?.f), "Holdings!C16");
   assert.equal(dividends.C39?.v, 11.28);
-  assert.equal(normalizeFormula(dividends.B40?.f), "Holdings!C15");
+  assert.equal(normalizeFormula(dividends.B40?.f), "Holdings!C17");
   assert.equal(dividends.C40?.v, 12);
   assert.match(dividends.E40?.v ?? "", /special.*excluded/i);
   assert.equal(dividends.D41?.f, "SUM(D39:D40)");

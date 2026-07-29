@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-07-21. Use with the `impact-check` skill before changing shared
+Updated: 2026-07-30. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -87,6 +87,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Workbook import: either the canonical audit sheets (`Summary`, `Shareholders`,
   `Lot Holdings`, `Dividends`, `Holdings`, `Transactions`) or exactly one
   `Holdings` sheet with `Ticker`, `Owner/Account`, `Entry Price`, `Units`.
+  Canonical `Transactions` may retain inactive historical tickers; only active
+  normalized holdings are candidates for the supported-active-ticker contract.
 - Workbook export: exactly one `Holdings` sheet and exactly `Ticker`,
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
@@ -109,8 +111,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Google Finance and SET quote pages are public pages, not licensed real-time
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
-- Only GOOGL, SCB, and KBANK holdings are accepted until ticker currency and
-  market mappings are added deliberately.
+- Active holdings currently accepted are GOOGL, SCB, KBANK, and shared CASH.
+  Historical ledger rows may include inactive tickers such as V or SPCX, but
+  they must not be promoted into active imported holdings until ticker currency
+  and market mappings are deliberately added.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost
   basis using the stored default audit FX assumption.
 - Minimal import/export does not carry transactions, realized P&L, shareholder

@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified: **29 Jul 2026**.
+> Last verified: **30 Jul 2026**.
 
 ## Start here
 
@@ -42,10 +42,11 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — Railway import pending
+## Current canonical state — full broker history reconciled; Railway import pending
 
 The canonical `Portfolio_Accounting.xlsx` and embedded fallback seed now carry
-the owner correction at audit date **29 Jul 2026**:
+the owner correction and complete available broker-history reconciliation as of
+**30 Jul 2026**. The saved market marks remain the 28 Jul refresh:
 
 | Holding | Owner/account | Units | Entry price / audit value |
 |---|---|---:|---:|
@@ -58,6 +59,12 @@ Shared capital remains THB 2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
 Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
 latest SCB sale proceeds and realized P&L remain historical ledger data;
 neither should be removed when changing the current holdings.
+
+The corrected formula-driven realized P&L is **THB367,145.98** and total P&L
+is **THB344,808.10**. The reconciliation adds closed historical META, NVDA, V
+and SPCX broker activity. V and SPCX appear as zero-quantity personal rows in
+the canonical workbook solely for realized-P&L traceability; they are not
+active holdings and must not be created by the dashboard importer.
 
 ### Accounting treatment and live-state gap
 
@@ -97,6 +104,9 @@ The workbook must keep exactly these six sheets:
   belongs to its named owner only and does not dilute the dividend forecast.
 - The current dividend forecast uses shareholder shared capital as its yield
   denominator; it does not use shared cash or market value.
+- A sale's realized P&L must use only purchase cost existing before that sale.
+  Never use a whole-ledger average that includes future buys, and never hide a
+  missing historical cost basis with `IFERROR`.
 - Start every factual accounting change from broker evidence. Create a dated
   backup before editing the canonical workbook.
 
@@ -166,7 +176,7 @@ be delayed; if a source fails, the last persisted quote is retained.
    and/or `Dividends`.
 4. Recalculate and reconcile quantity, native price, FX, fees, cost basis,
    realized P&L, and the shareholder totals. Do not use current market price
-   as a historical cost.
+   as a historical cost, or future purchases when calculating an earlier sale.
 5. Confirm the six-sheet contract remains intact and scan key formulas for
    errors.
 6. Regenerate `app/dashboard/initial-workbook.ts` whenever canonical workbook
@@ -234,8 +244,10 @@ Ticker | Owner/Account | Entry Price | Units
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
 tickers are `GOOGL`, `SCB`, `KBANK`, and `CASH`; `CASH` is only valid for
-`Shared`. Dashboard exports are intentionally minimal and must not replace the
-canonical accounting workbook.
+`Shared`. A canonical workbook may retain other tickers in its historical
+`Transactions` ledger, but they must not become active holdings unless active
+ticker support is deliberately added. Dashboard exports are intentionally
+minimal and must not replace the canonical accounting workbook.
 
 ## Common pitfalls
 
@@ -252,6 +264,8 @@ canonical accounting workbook.
 - **A total profit does not reconcile with one sale:** separate sale proceeds,
   sold cost basis, remaining assets (for example KBANK), pre-existing cash,
   and historical realized P&L before allocating anyone's share.
+- **An older sale P&L changes after a new buy:** stop and repair the historical
+  cost formula. A sale must not include future buys in its cost basis.
 
 ## Documentation map
 

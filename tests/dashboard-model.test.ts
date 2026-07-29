@@ -35,7 +35,7 @@ test("imports the stock-audit workbook using labels and preserves its key totals
   closeTo(snapshot.summary.totalMarketValue, 3206961.02125);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
   closeTo(snapshot.summary.sharedMarketValue, 2473548);
-  closeTo(snapshot.summary.totalRealizedPnl, 313505.7620173887);
+  closeTo(snapshot.summary.totalRealizedPnl, 367145.9831482768);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
     ["CASH", "GOOGL", "KBANK"],
@@ -44,7 +44,7 @@ test("imports the stock-audit workbook using labels and preserves its key totals
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
-  assert.equal(snapshot.transactions[0].date, "2025-05-13");
+  assert.equal(snapshot.transactions[0].date, "2025-02-06");
   assert.equal(snapshot.transactions.at(-1)?.date, "2026-07-27");
   closeTo(snapshot.shareholders[0].poolPercent, 0.5797956010852086, 0.000001);
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
