@@ -14,6 +14,7 @@
     "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "catalog:stocks": "node scripts/update-us-stock-symbol-catalog.mjs",
+    "sync:initial-workbook": "node scripts/sync-initial-workbook.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

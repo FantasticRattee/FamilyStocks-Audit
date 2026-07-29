@@ -32,13 +32,13 @@ test("imports the stock-audit workbook using labels and preserves its key totals
   const snapshot = await loadSourceSnapshot();
 
   assert.equal(snapshot.asOfDate, "29 Jul 2026");
-  closeTo(snapshot.summary.totalMarketValue, 3195677.744);
+  closeTo(snapshot.summary.totalMarketValue, 3206961.02125);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
   closeTo(snapshot.summary.sharedMarketValue, 2473548);
-  closeTo(snapshot.summary.totalRealizedPnl, 313416.07157610526);
+  closeTo(snapshot.summary.totalRealizedPnl, 313505.7620173887);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
-    ["CASH", "GOOGL", "GOOGL", "KBANK"],
+    ["CASH", "GOOGL", "KBANK"],
   );
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
@@ -59,9 +59,9 @@ test("recalculates a personal US-price scenario without changing shared-pool val
   const result = calculateDashboard(snapshot, scenario);
   const googleHoldings = result.holdings.filter((holding) => holding.ticker === "GOOGL");
 
-  assert.equal(googleHoldings.length, 2);
-  const expectedPersonalValue = 64 * 330 * 33;
-  closeTo(googleHoldings[0].marketValue + googleHoldings[1].marketValue, expectedPersonalValue);
+  assert.equal(googleHoldings.length, 1);
+  const expectedPersonalValue = 65 * 330 * 33;
+  closeTo(googleHoldings[0].marketValue, expectedPersonalValue);
   closeTo(result.totals.sharedMarketValue, 2473548);
   closeTo(result.totals.personalMarketValue, expectedPersonalValue);
   closeTo(result.totals.marketValue, 2473548 + expectedPersonalValue);

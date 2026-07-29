@@ -38,7 +38,7 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   assert.equal(normalizeFormula(dividends.B34?.f), "Shareholders!B6");
   assert.equal(dividends.C32?.f, "IFERROR(B32/$B$35,0)");
   assert.equal(dividends.D32?.f, "B32*$D$42");
-  assert.equal(dividends.E32?.f, "D32*$B$28");
+  assert.equal(dividends.E32?.f, "D32*$B$3");
   assert.equal(dividends.F32?.f, "D32-E32");
   assert.equal(dividends.D35?.f, "SUM(D32:D34)");
 

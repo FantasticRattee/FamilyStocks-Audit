@@ -42,15 +42,15 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current verified state — before the pending GOOGL correction
+## Current canonical state — Railway import pending
 
-The last canonical import into production was `Portfolio_Accounting.xlsx` with
-four active holdings and an audit date of **29 Jul 2026**:
+The canonical `Portfolio_Accounting.xlsx` and embedded fallback seed now carry
+the owner correction at audit date **29 Jul 2026**:
 
 | Holding | Owner/account | Units | Entry price / audit value |
 |---|---|---:|---:|
-| GOOGL | Mom | 33 | USD 361.008897 (production import value) |
-| GOOGL | Rattee | 31 | USD 355.371834 (production import value) |
+| GOOGL | Mom | 0 | Removed from the active import |
+| GOOGL | Rattee | 65 | USD 361.61 |
 | KBANK | Shared | 630 | THB 181.804905 |
 | CASH | Shared | 1 | THB 2,321,088.00 |
 
@@ -59,16 +59,19 @@ Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
 latest SCB sale proceeds and realized P&L remain historical ledger data;
 neither should be removed when changing the current holdings.
 
-### Pending, explicitly not yet applied
+### Accounting treatment and live-state gap
 
-The user has instructed the target personal position to become **Rattee: 65
-GOOGL units at USD 361.61 average entry price; Mom: 0 GOOGL units**. This has
-not yet been written to Excel, GitHub, Railway, or PostgreSQL.
+Treat the change as a current-position correction until a dated
+internal-transfer record and FX / settlement evidence are available. Do not
+invent a Mom sale or realized P&L in the transaction ledger. Personal GOOGL
+must never change shared-capital percentages, shared cash, KBANK ownership, or
+the dividend forecast.
 
-Treat it as a current-position correction until a dated internal-transfer
-record and FX / settlement evidence are available. Do not invent a Mom sale or
-realized P&L in the transaction ledger. Personal GOOGL must never change the
-shared-capital percentages, shared cash, KBANK ownership, or dividend forecast.
+The live Railway PostgreSQL portfolio remains pre-correction until the next
+authenticated canonical import. It currently has four active holdings (GOOGL
+Mom 33, GOOGL Rattee 31, KBANK Shared and CASH Shared). The required
+post-import state is three active holdings: GOOGL Rattee 65, KBANK Shared 630
+and CASH Shared 1; there must be no Mom GOOGL row.
 
 ## Canonical Excel workbook
 
@@ -174,6 +177,7 @@ be delayed; if a source fails, the last persisted quote is retained.
 From `dashboard/`:
 
 ```bash
+npm run sync:initial-workbook
 npm run typecheck
 npm run lint
 npm test

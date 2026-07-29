@@ -91,8 +91,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
     [
-      ["GOOGL", "Mom", 33],
-      ["GOOGL", "Rattee", 31],
+      ["GOOGL", "Rattee", 65],
       ["KBANK", "Shared", 630],
       ["CASH", "Shared", 1],
     ],
@@ -103,7 +102,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        977_923.64162837,
+        1_399_606.003945636,
     ) < 0.01,
   );
   assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-07-27");
