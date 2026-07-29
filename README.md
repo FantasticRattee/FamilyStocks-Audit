@@ -5,6 +5,13 @@ device loads the same holdings and the latest successfully refreshed market
 prices. The dashboard accepts the canonical six-sheet audit workbook as well
 as a small raw-holdings import/export workbook.
 
+## Project operations
+
+For the end-to-end Excel → GitHub → Railway workflow, current production
+state, import rules, deployment sequence, recovery steps, and sync safeguards,
+read [Project Operations Guide](docs/PROJECT_OPERATIONS.md) first. For
+code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
+
 ## Data ownership
 
 Railway PostgreSQL is the shared source of truth for:
