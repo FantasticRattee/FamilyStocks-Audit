@@ -105,7 +105,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        2_009_485.5106496362,
+        1_399_606.003945636,
     ) < 0.01,
   );
   assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-01");

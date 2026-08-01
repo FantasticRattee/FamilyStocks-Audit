@@ -42,7 +42,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — broker buys reconciled; Railway import pending
+## Current canonical state — broker buys and SCB-cash funding reconciled; Railway import pending
 
 The canonical `Portfolio_Accounting.xlsx` now includes the owner correction,
 the full available broker-history reconciliation, and the broker orders through
@@ -56,7 +56,7 @@ next public market refresh:
 | META | Mom | 12 | THB221,450.76 cost (USD6,600.54) |
 | META | Rattee | 30 | THB552,250.99 cost (USD16,460.34) |
 | KBANK | Shared | 630 | THB 181.804905 |
-| CASH | Shared | 1 | THB 2,321,088.00 |
+| CASH | Shared | 1 | THB 1,152,584.83 |
 
 Shared capital remains THB 2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
 Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
@@ -66,25 +66,33 @@ neither should be removed when changing the current holdings.
 The three broker fills on 31 Jul and 1 Aug total **USD26,496.22** or
 **THB888,958.78** at the evidenced FX **33.5504**. The formula-driven realized
 P&L remains **THB367,145.98** because all four ledger additions are buys. The
-exchange evidence covers THB899,999.89, leaving USD329.09 / THB11,041.11 not
-yet allocated to an owner or represented as an active cash holding. It is
-documented in the audit, but is intentionally not silently booked into the
-shared pool.
+user confirmed that the SCB gain of **THB279,544.39** was removed before these
+buys, so the post-payout cash source is **THB2,041,543.61**:
+
+```text
+THB2,321,088.00 − THB279,544.39 − THB888,958.78 = THB1,152,584.83
+```
+
+The USD329.09 / THB11,041.11 conversion residual remains in the overall
+broker cash balance. It is not silently made into a new personal cash holding
+or an unrecorded per-owner transfer.
 
 ### Accounting treatment and live-state gap
 
 Treat the earlier 65-share GOOGL ownership correction as a current-position
 correction until a dated internal-transfer record and FX / settlement evidence
 are available. Do not invent a Mom sale or realized P&L for that earlier
-transfer. The later dated broker buys are fully recorded, but the unallocated
-USD conversion residual remains outside active holdings until its owner and
-treatment are evidenced. Personal GOOGL and META must never change shared
-capital percentages, shared cash, KBANK ownership, or the dividend forecast.
+transfer. The later dated broker buys are fully recorded and their funding
+source is now explicit: they reduce Shared CASH after the confirmed SCB gain
+removal, but are **not** new external personal capital. Personal GOOGL and
+META must never change shared-capital percentages, KBANK ownership, or the
+dividend forecast. Do not invent an owner-by-owner cash settlement unless the
+user supplies a dated allocation or transfer.
 
 The live Railway PostgreSQL portfolio remains pre-correction until the next
 authenticated canonical import. The required post-import state is six active
 holdings: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, KBANK
-Shared 630 and CASH Shared 1.
+Shared 630 and CASH Shared 1 at THB1,152,584.83.
 
 ## Canonical Excel workbook
 
@@ -108,7 +116,9 @@ The workbook must keep exactly these six sheets:
   its lots and sell rows for traceability.
 - Shared capital percentages allocate shared cash and KBANK. Personal GOOGL
   and META belong to their named owners only and do not dilute the dividend
-  forecast.
+  forecast. The current four personal buys are an explicit exception in
+  *funding source* only: their purchase cost reduces Shared CASH, not their
+  owners' externally contributed capital.
 - The current dividend forecast uses shareholder shared capital as its yield
   denominator; it does not use shared cash or market value.
 - A sale's realized P&L must use only purchase cost existing before that sale.

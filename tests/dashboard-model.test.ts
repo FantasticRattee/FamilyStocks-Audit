@@ -32,9 +32,9 @@ test("imports the stock-audit workbook using labels and preserves its key totals
   const snapshot = await loadSourceSnapshot();
 
   assert.equal(snapshot.asOfDate, "1 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 4087515.1548);
+  closeTo(snapshot.summary.totalMarketValue, 2919011.985312);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
-  closeTo(snapshot.summary.sharedMarketValue, 2473548);
+  closeTo(snapshot.summary.sharedMarketValue, 1305044.830512);
   closeTo(snapshot.summary.totalRealizedPnl, 367145.9831482768);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
@@ -74,9 +74,9 @@ test("recalculates a personal US-price scenario without changing shared-pool val
     metaHoldings.reduce((total, holding) => total + holding.marketValue, 0),
     expectedMetaValue,
   );
-  closeTo(result.totals.sharedMarketValue, 2473548);
+  closeTo(result.totals.sharedMarketValue, 1305044.830512);
   closeTo(result.totals.personalMarketValue, expectedPersonalValue);
-  closeTo(result.totals.marketValue, 2473548 + expectedPersonalValue);
+  closeTo(result.totals.marketValue, 1305044.830512 + expectedPersonalValue);
 });
 
 test("uses current shared capital—not personal capital—to split the dividend forecast", async () => {
