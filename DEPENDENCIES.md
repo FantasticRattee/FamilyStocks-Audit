@@ -93,7 +93,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
-- Shared market keys: `GOOGL`, `SCB`, `KBANK`, `USDTHB`.
+- Shared market keys: `GOOGL`, `META`, `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -111,7 +111,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Google Finance and SET quote pages are public pages, not licensed real-time
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
-- Active holdings currently accepted are GOOGL, SCB, KBANK, and shared CASH.
+- Active holdings currently accepted are GOOGL, META, SCB, KBANK, and shared CASH.
   Historical ledger rows may include inactive tickers such as V or SPCX, but
   they must not be promoted into active imported holdings until ticker currency
   and market mappings are deliberately added.

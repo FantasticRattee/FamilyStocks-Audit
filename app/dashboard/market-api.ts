@@ -54,6 +54,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["GOOGL:NASDAQ"],
   },
+  META: {
+    symbol: "META",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/META:NASDAQ?hl=en",
+    title: "Google Finance · META (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["META:NASDAQ"],
+  },
   USDTHB: {
     symbol: "USDTHB",
     currency: "THB",

@@ -83,9 +83,10 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
     createHoldingEdits(snapshot),
   );
 
-  assert.deepEqual(plan.symbols, ["GOOGL", "KBANK", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["GOOGL", "META", "KBANK", "USDTHB"]);
   assert.deepEqual(plan.stocks, [
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
+    { ticker: "META", marketKey: "META", currency: "USD" },
     { ticker: "KBANK", marketKey: "KBANK", currency: "THB" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
@@ -105,7 +106,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
 
   assert.equal(plan.unmappedTickers.CASH, undefined);
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
-  assert.deepEqual(plan.symbols, ["GOOGL", "KBANK", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["GOOGL", "META", "KBANK", "USDTHB"]);
 });
 
 test("applies valid live quotes only to the display scenario and refreshes USD/THB", async () => {
@@ -113,6 +114,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   const snapshot = await loadSnapshot();
   const auditScenario = createScenario(snapshot);
   auditScenario.prices.GOOGL = 350;
+  auditScenario.prices.META = 540;
   auditScenario.fx = 33;
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -121,6 +123,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   const liveState = liveMarket.createLiveMarketState(plan, {
     quotes: {
       GOOGL: quote("GOOGL", 400, "USD"),
+      META: quote("META", 500, "USD"),
       KBANK: quote("KBANK.BK", 200, "THB"),
       USDTHB: quote("USDTHB", 34, "THB"),
     },
@@ -135,13 +138,14 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   );
 
   assert.equal(liveScenario.prices.GOOGL, 400);
+  assert.equal(liveScenario.prices.META, 500);
   assert.equal(liveScenario.prices.KBANK, 200);
   assert.equal(liveScenario.fx, 34);
   assert.equal(auditScenario.prices.GOOGL, 350);
   assert.equal(auditScenario.fx, 33);
 
   const result = calculateDashboard(snapshot, liveScenario);
-  assert.equal(result.totals.personalMarketValue, 65 * 400 * 34);
+  assert.equal(result.totals.personalMarketValue, 75 * 400 * 34 + 42 * 500 * 34);
   assert.equal(result.totals.sharedMarketValue, 2_321_088 + 630 * 200);
 });
 
@@ -157,6 +161,11 @@ test("retains free public-source links with the display-only market state", asyn
     quotes: {
       GOOGL: {
         ...quote("GOOGL", 372.49, "USD"),
+        source: "Google Finance",
+        freshness: "delayed",
+      },
+      META: {
+        ...quote("META", 548.5, "USD"),
         source: "Google Finance",
         freshness: "delayed",
       },
@@ -198,6 +207,7 @@ test("does not expose an obsolete market-refresh cooldown in display state", asy
   const state = liveMarket.createLiveMarketState(plan, {
     quotes: {
       GOOGL: quote("GOOGL", 372.49, "USD"),
+      META: quote("META", 548.5, "USD"),
       SCB: quote("SCB", 122.5, "THB"),
       KBANK: quote("KBANK", 175.5, "THB"),
       USDTHB: quote("USDTHB", 33.8, "THB"),
@@ -206,7 +216,7 @@ test("does not expose an obsolete market-refresh cooldown in display state", asy
     fetchedAt: "2026-07-15T16:00:00.000Z",
     provider: "Google Finance + SET public quotes",
     refreshedKeys: [],
-    retainedKeys: ["GOOGL", "SCB", "KBANK", "USDTHB"],
+    retainedKeys: ["GOOGL", "META", "SCB", "KBANK", "USDTHB"],
     // Legacy payloads must not cause the free public refresh to look cached.
     cooldownActive: true,
   } as unknown as BatchQuotes) as { cooldownActive?: boolean };
@@ -230,6 +240,7 @@ test("keeps the audit price and FX for failed or currency-mismatched quotes", as
       USDTHB: quote("USDTHB", -1, "THB"),
     },
     failures: {
+      META: "Google Finance is temporarily unavailable.",
       SCB: "SET public quote is temporarily unavailable.",
       KBANK: "SET public quote is temporarily unavailable.",
     },

@@ -2,7 +2,8 @@
 
 > Market-refresh details that name OpenAI were superseded on 20 Jul 2026 by
 > [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
-> The shared PostgreSQL and workbook portions remain current.
+> The shared PostgreSQL and workbook portions remain current. The supported
+> market-key list was amended on 2 Aug 2026 to add `META`.
 
 ## Goal
 
@@ -19,7 +20,7 @@ format; the minimal workbook is not a replacement for the canonical audit.
   password.
 - A refresh updates every successfully sourced quote and retains the previous
   database value for each failed quote.
-- The initial supported market keys remain `GOOGL`, `SCB`, `KBANK`, and
+- The supported market keys are `GOOGL`, `META`, `SCB`, `KBANK`, and
   `USDTHB`.
 - `CASH` is a supported shared THB holding, not a market key: it retains its
   imported audit value and is excluded from quote refresh and dividends.
@@ -60,7 +61,7 @@ persisted settings, and persisted quotes.
 
 ### `market_quotes`
 
-- `market_key` — primary key (`GOOGL`, `SCB`, `KBANK`, `USDTHB`)
+- `market_key` — primary key (`GOOGL`, `META`, `SCB`, `KBANK`, `USDTHB`)
 - `symbol`, `price`, `currency`, `exchange`, `market_state`
 - `quote_timestamp`, `source`, `freshness`
 - `sources` — JSON array of auditable public-source links

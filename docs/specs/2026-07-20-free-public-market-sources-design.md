@@ -2,6 +2,9 @@
 
 Date: 20 Jul 2026
 
+Amended: 2 Aug 2026 — add META as an active audited U.S. holding and public
+Google Finance quote key.
+
 ## Goal
 
 Remove the OpenAI Responses API from the public market-price refresh flow while
@@ -10,7 +13,7 @@ behavior unchanged.
 
 ## Approved source boundary
 
-- `GOOGL` and `USDTHB` use the public Google Finance quote pages.
+- `GOOGL`, `META`, and `USDTHB` use the public Google Finance quote pages.
 - `SCB` and `KBANK` use the official public SET quote pages.
 - `CASH` is an imported shared THB balance, not a market key: refresh retains
   its audit value and never requests an external quote.
@@ -24,7 +27,7 @@ an unrelated page value cannot update the shared portfolio.
 ## Refresh behavior
 
 1. Every click on `Refresh market prices` makes one fresh request for each of
-   the four configured keys; there is no shared cooldown and no OpenAI usage.
+   the five configured keys; there is no shared cooldown and no OpenAI usage.
 2. Each successful parsed quote is upserted into PostgreSQL with its source
    link and fetch time.
 3. A failed key never overwrites its previous persisted quote. The response

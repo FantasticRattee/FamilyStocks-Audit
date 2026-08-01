@@ -29,6 +29,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("GOOGL")) {
         return new Response(googleQuotePage("GOOGL:NASDAQ", "$355.60"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("META")) {
+        return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
       }
@@ -48,13 +51,15 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   };
   assert.deepEqual(
     calls.map((call) => call.hostname).sort(),
-    ["www.google.com", "www.google.com", "www.set.or.th", "www.set.or.th"],
+    ["www.google.com", "www.google.com", "www.google.com", "www.set.or.th", "www.set.or.th"],
   );
   assert.ok(calls.every((call) => call.hostname !== "api.openai.com"));
   assert.equal(body.provider, "Google Finance + SET public quotes");
   assert.equal(body.quotes.GOOGL?.price, 355.6);
   assert.equal(body.quotes.GOOGL?.exchange, "NASDAQ");
   assert.equal(body.quotes.GOOGL?.source, "Google Finance");
+  assert.equal(body.quotes.META?.price, 548.5);
+  assert.equal(body.quotes.META?.exchange, "NASDAQ");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
   assert.equal(body.quotes.SCB?.price, 158.5);
   assert.equal(body.quotes.SCB?.source, "SET public quote");
@@ -62,6 +67,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.deepEqual(body.failures, {});
   assert.deepEqual(body.sources?.map((source) => source.url), [
     "https://www.google.com/finance/quote/GOOGL:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/META:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
     "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",
@@ -82,7 +88,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       persisted = refresh;
       return {
         ...(refresh as object),
-        refreshedKeys: ["GOOGL", "USDTHB", "SCB", "KBANK"],
+        refreshedKeys: ["GOOGL", "META", "USDTHB", "SCB", "KBANK"],
         retainedKeys: [],
       };
     },
@@ -93,6 +99,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     async (input) => {
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$356.25"));
+      if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$549.25"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
       return new Response(setQuotePage("KBANK", 232));
@@ -106,12 +113,13 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
   assert.deepEqual(Object.keys((persisted as { quotes: object }).quotes).sort(), [
     "GOOGL",
     "KBANK",
+    "META",
     "SCB",
     "USDTHB",
   ]);
   const body = (await response.json()) as { cooldownActive?: boolean; refreshedKeys: string[] };
   assert.equal(body.cooldownActive, undefined);
-  assert.deepEqual(body.refreshedKeys, ["GOOGL", "USDTHB", "SCB", "KBANK"]);
+  assert.deepEqual(body.refreshedKeys, ["GOOGL", "META", "USDTHB", "SCB", "KBANK"]);
 });
 
 test("returns per-key failures from a public source without overwriting the other quotes", async () => {
@@ -120,6 +128,7 @@ test("returns per-key failures from a public source without overwriting the othe
     async (input) => {
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$355.60"));
+      if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.50"));
       if (url.pathname.endsWith("/SCB/price")) return new Response("source unavailable", { status: 503 });
       return new Response(setQuotePage("KBANK", 231));
@@ -132,6 +141,7 @@ test("returns per-key failures from a public source without overwriting the othe
     failures: Record<string, string>;
   };
   assert.equal(body.quotes.GOOGL?.price, 355.6);
+  assert.equal(body.quotes.META?.price, 548.5);
   assert.equal(body.quotes.KBANK?.price, 231);
   assert.match(body.failures.SCB ?? "", /SET public quote returned HTTP 503/i);
 });

@@ -91,21 +91,24 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
     [
-      ["GOOGL", "Rattee", 65],
+      ["GOOGL", "Mom", 5],
+      ["GOOGL", "Rattee", 70],
+      ["META", "Rattee", 30],
+      ["META", "Mom", 12],
       ["KBANK", "Shared", 630],
       ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "29 Jul 2026");
+  assert.equal(parsed.settings?.asOfDate, "1 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        1_399_606.003945636,
+        2_009_485.5106496362,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-07-27");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-01");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {

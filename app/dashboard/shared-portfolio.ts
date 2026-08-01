@@ -17,6 +17,7 @@ export const MINIMAL_HOLDINGS_HEADERS = [
 
 export const SUPPORTED_HOLDING_TICKERS = {
   GOOGL: { currency: "USD", marketKey: "GOOGL" },
+  META: { currency: "USD", marketKey: "META" },
   SCB: { currency: "THB", marketKey: "SCB" },
   KBANK: { currency: "THB", marketKey: "KBANK" },
   CASH: { currency: "THB", marketKey: null },
@@ -125,7 +126,7 @@ export function validateSharedHoldings(input: unknown): SharedHoldingInput[] {
     const ticker = normalizeTicker(rawTicker);
     if (!ticker) {
       throw new Error(
-        `Row ${rowNumber}: ${rawTicker || "Ticker"} is not a supported ticker. Supported tickers are GOOGL, SCB, KBANK, and CASH.`,
+        `Row ${rowNumber}: ${rawTicker || "Ticker"} is not a supported ticker. Supported tickers are GOOGL, META, SCB, KBANK, and CASH.`,
       );
     }
 

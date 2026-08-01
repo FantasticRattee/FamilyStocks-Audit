@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified: **30 Jul 2026**.
+> Last verified: **2 Aug 2026**.
 
 ## Start here
 
@@ -42,16 +42,19 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — full broker history reconciled; Railway import pending
+## Current canonical state — broker buys reconciled; Railway import pending
 
-The canonical `Portfolio_Accounting.xlsx` and embedded fallback seed now carry
-the owner correction and complete available broker-history reconciliation as of
-**30 Jul 2026**. The saved market marks remain the 28 Jul refresh:
+The canonical `Portfolio_Accounting.xlsx` now includes the owner correction,
+the full available broker-history reconciliation, and the broker orders through
+**1 Aug 2026**. The initial audit marks are deliberately retained until the
+next public market refresh:
 
 | Holding | Owner/account | Units | Entry price / audit value |
 |---|---|---:|---:|
-| GOOGL | Mom | 0 | Removed from the active import |
-| GOOGL | Rattee | 65 | USD 361.61 |
+| GOOGL | Mom | 5 | THB57,628.52 cost (USD1,717.67 / five-share allocation) |
+| GOOGL | Rattee | 70 | THB851,302.33 cost (65 prior shares + five-share allocation) |
+| META | Mom | 12 | THB221,450.76 cost (USD6,600.54) |
+| META | Rattee | 30 | THB552,250.99 cost (USD16,460.34) |
 | KBANK | Shared | 630 | THB 181.804905 |
 | CASH | Shared | 1 | THB 2,321,088.00 |
 
@@ -60,25 +63,28 @@ Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
 latest SCB sale proceeds and realized P&L remain historical ledger data;
 neither should be removed when changing the current holdings.
 
-The corrected formula-driven realized P&L is **THB367,145.98** and total P&L
-is **THB344,808.10**. The reconciliation adds closed historical META, NVDA, V
-and SPCX broker activity. V and SPCX appear as zero-quantity personal rows in
-the canonical workbook solely for realized-P&L traceability; they are not
-active holdings and must not be created by the dashboard importer.
+The three broker fills on 31 Jul and 1 Aug total **USD26,496.22** or
+**THB888,958.78** at the evidenced FX **33.5504**. The formula-driven realized
+P&L remains **THB367,145.98** because all four ledger additions are buys. The
+exchange evidence covers THB899,999.89, leaving USD329.09 / THB11,041.11 not
+yet allocated to an owner or represented as an active cash holding. It is
+documented in the audit, but is intentionally not silently booked into the
+shared pool.
 
 ### Accounting treatment and live-state gap
 
-Treat the change as a current-position correction until a dated
-internal-transfer record and FX / settlement evidence are available. Do not
-invent a Mom sale or realized P&L in the transaction ledger. Personal GOOGL
-must never change shared-capital percentages, shared cash, KBANK ownership, or
-the dividend forecast.
+Treat the earlier 65-share GOOGL ownership correction as a current-position
+correction until a dated internal-transfer record and FX / settlement evidence
+are available. Do not invent a Mom sale or realized P&L for that earlier
+transfer. The later dated broker buys are fully recorded, but the unallocated
+USD conversion residual remains outside active holdings until its owner and
+treatment are evidenced. Personal GOOGL and META must never change shared
+capital percentages, shared cash, KBANK ownership, or the dividend forecast.
 
 The live Railway PostgreSQL portfolio remains pre-correction until the next
-authenticated canonical import. It currently has four active holdings (GOOGL
-Mom 33, GOOGL Rattee 31, KBANK Shared and CASH Shared). The required
-post-import state is three active holdings: GOOGL Rattee 65, KBANK Shared 630
-and CASH Shared 1; there must be no Mom GOOGL row.
+authenticated canonical import. The required post-import state is six active
+holdings: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, KBANK
+Shared 630 and CASH Shared 1.
 
 ## Canonical Excel workbook
 
@@ -101,7 +107,8 @@ The workbook must keep exactly these six sheets:
 - SCB is a historical zero-quantity holding after the 27 Jul 2026 sale; retain
   its lots and sell rows for traceability.
 - Shared capital percentages allocate shared cash and KBANK. Personal GOOGL
-  belongs to its named owner only and does not dilute the dividend forecast.
+  and META belong to their named owners only and do not dilute the dividend
+  forecast.
 - The current dividend forecast uses shareholder shared capital as its yield
   denominator; it does not use shared cash or market value.
 - A sale's realized P&L must use only purchase cost existing before that sale.
@@ -157,7 +164,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Authenticated, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh GOOGL/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh GOOGL/META/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `POST /api/edit-auth` | Validate Edit Mode password without creating a browser session. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
@@ -243,7 +250,7 @@ Ticker | Owner/Account | Entry Price | Units
 ```
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
-tickers are `GOOGL`, `SCB`, `KBANK`, and `CASH`; `CASH` is only valid for
+tickers are `GOOGL`, `META`, `SCB`, `KBANK`, and `CASH`; `CASH` is only valid for
 `Shared`. A canonical workbook may retain other tickers in its historical
 `Transactions` ledger, but they must not become active holdings unless active
 ticker support is deliberately added. Dashboard exports are intentionally

@@ -17,7 +17,7 @@ code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
 Railway PostgreSQL is the shared source of truth for:
 
 - current holdings, including any imported shared THB cash balance;
-- the latest successful `GOOGL`, `SCB`, `KBANK`, and `USDTHB` quotes;
+- the latest successful `GOOGL`, `META`, `SCB`, `KBANK`, and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
 - import metadata.
@@ -55,10 +55,10 @@ columns in this order:
 | CASH | Shared | 2321088.00 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for GOOGL and THB for SCB/KBANK/CASH.
+  currency: USD for GOOGL/META and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
-- Supported tickers are currently `GOOGL`, `SCB`, `KBANK`, and `CASH`.
+- Supported tickers are currently `GOOGL`, `META`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.

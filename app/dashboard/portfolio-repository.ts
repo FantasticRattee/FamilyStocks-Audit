@@ -2,7 +2,7 @@ import type { MarketQuote } from "./market-data";
 
 export type MarketQuoteSnapshot = MarketQuote;
 
-export const SHARED_MARKET_KEYS = ["GOOGL", "SCB", "KBANK", "USDTHB"] as const;
+export const SHARED_MARKET_KEYS = ["GOOGL", "META", "SCB", "KBANK", "USDTHB"] as const;
 
 export type SharedMarketKey = (typeof SHARED_MARKET_KEYS)[number];
 

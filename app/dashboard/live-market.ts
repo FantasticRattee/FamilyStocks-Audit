@@ -10,6 +10,7 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   { marketKey: string; currency: "THB" | "USD" }
 > = {
   GOOGL: { marketKey: "GOOGL", currency: "USD" },
+  META: { marketKey: "META", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };
