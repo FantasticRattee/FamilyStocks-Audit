@@ -45,7 +45,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; authenticated production import |
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
-| Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Four fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
+| Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Eight fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
 | Historical Analyzer metric definitions, source parsing, or snapshot retention | `stock-analyzer.ts`, `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`, `StockAnalyzerDashboard.tsx`, PostgreSQL repository, API/metric tests, README | 15-year history; adjusted averages; no look-ahead CAGR; negative P/E = N/M; failed provider refresh retains the last snapshot |
 | Historical Analyzer ticker/company hints or catalog refresh | `us-stock-symbol-search.ts`, `us-stock-symbol-catalog.generated.ts`, `scripts/update-us-stock-symbol-catalog.mjs`, `StockAnalyzerDashboard.tsx`, `globals.css`, symbol/UI tests, Analyzer spec, README | `AMA` resolves AMZN/Amazon; `A` includes AAPL/AMZN/ARM; blank input has no default; keyboard/mouse selection works at mobile width; no network, key, or database request while typing |
 | Historical Analyzer chart axes, EOD range, or point inspection | `stock-chart.ts`, `stock-chart-range.ts`, `StockAnalyzerDashboard.tsx`, `globals.css`, chart/UI tests, Analyzer spec, README | X = chronological date/month/year; visible Y = price or P/E on the right; `1M`/`6M`/`YTD`/year ranges use EOD only; hover/tap shows sampled date/value plus price tag; no provider, database, or Excel request |
@@ -93,7 +93,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
-- Shared market keys: `GOOGL`, `META`, `SCB`, `KBANK`, `USDTHB`.
+- Shared market keys: `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SCB`, `KBANK`,
+  `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -111,10 +112,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Google Finance and SET quote pages are public pages, not licensed real-time
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
-- Active holdings currently accepted are GOOGL, META, SCB, KBANK, and shared CASH.
-  Historical ledger rows may include inactive tickers such as V or SPCX, but
-  they must not be promoted into active imported holdings until ticker currency
-  and market mappings are deliberately added.
+- Active holdings currently accepted are GOOGL, META, AAPL, NVDA, MU, SCB,
+  KBANK, and shared CASH. Historical ledger rows may include inactive tickers
+  such as V or SPCX, but they must not be promoted into active imported
+  holdings until ticker currency and market mappings are deliberately added.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost
   basis using the stored default audit FX assumption.
 - Minimal import/export does not carry transactions, realized P&L, shareholder

@@ -32,6 +32,15 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("META")) {
         return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("AAPL")) {
+        return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
+      }
+      if (url.hostname === "www.google.com" && url.pathname.includes("NVDA")) {
+        return new Response(googleQuotePage("NVDA:NASDAQ", "$206.73"));
+      }
+      if (url.hostname === "www.google.com" && url.pathname.includes("MU")) {
+        return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
       }
@@ -51,7 +60,16 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   };
   assert.deepEqual(
     calls.map((call) => call.hostname).sort(),
-    ["www.google.com", "www.google.com", "www.google.com", "www.set.or.th", "www.set.or.th"],
+    [
+      "www.google.com",
+      "www.google.com",
+      "www.google.com",
+      "www.google.com",
+      "www.google.com",
+      "www.google.com",
+      "www.set.or.th",
+      "www.set.or.th",
+    ],
   );
   assert.ok(calls.every((call) => call.hostname !== "api.openai.com"));
   assert.equal(body.provider, "Google Finance + SET public quotes");
@@ -60,6 +78,12 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.GOOGL?.source, "Google Finance");
   assert.equal(body.quotes.META?.price, 548.5);
   assert.equal(body.quotes.META?.exchange, "NASDAQ");
+  assert.equal(body.quotes.AAPL?.price, 305.64);
+  assert.equal(body.quotes.AAPL?.exchange, "NASDAQ");
+  assert.equal(body.quotes.NVDA?.price, 206.73);
+  assert.equal(body.quotes.NVDA?.exchange, "NASDAQ");
+  assert.equal(body.quotes.MU?.price, 812);
+  assert.equal(body.quotes.MU?.exchange, "NASDAQ");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
   assert.equal(body.quotes.SCB?.price, 158.5);
   assert.equal(body.quotes.SCB?.source, "SET public quote");
@@ -68,6 +92,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.deepEqual(body.sources?.map((source) => source.url), [
     "https://www.google.com/finance/quote/GOOGL:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/META:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/AAPL:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/NVDA:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/MU:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
     "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",
@@ -88,7 +115,16 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       persisted = refresh;
       return {
         ...(refresh as object),
-        refreshedKeys: ["GOOGL", "META", "USDTHB", "SCB", "KBANK"],
+        refreshedKeys: [
+          "GOOGL",
+          "META",
+          "AAPL",
+          "NVDA",
+          "MU",
+          "USDTHB",
+          "SCB",
+          "KBANK",
+        ],
         retainedKeys: [],
       };
     },
@@ -100,6 +136,9 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$356.25"));
       if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$549.25"));
+      if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.75"));
+      if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$207.25"));
+      if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$813.25"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
       return new Response(setQuotePage("KBANK", 232));
@@ -111,15 +150,27 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
   assert.equal(loadCalls, 0);
   assert.equal(persistCalls, 1);
   assert.deepEqual(Object.keys((persisted as { quotes: object }).quotes).sort(), [
+    "AAPL",
     "GOOGL",
     "KBANK",
     "META",
+    "MU",
+    "NVDA",
     "SCB",
     "USDTHB",
   ]);
   const body = (await response.json()) as { cooldownActive?: boolean; refreshedKeys: string[] };
   assert.equal(body.cooldownActive, undefined);
-  assert.deepEqual(body.refreshedKeys, ["GOOGL", "META", "USDTHB", "SCB", "KBANK"]);
+  assert.deepEqual(body.refreshedKeys, [
+    "GOOGL",
+    "META",
+    "AAPL",
+    "NVDA",
+    "MU",
+    "USDTHB",
+    "SCB",
+    "KBANK",
+  ]);
 });
 
 test("returns per-key failures from a public source without overwriting the other quotes", async () => {
@@ -129,6 +180,9 @@ test("returns per-key failures from a public source without overwriting the othe
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$355.60"));
       if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
+      if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
+      if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$206.73"));
+      if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.50"));
       if (url.pathname.endsWith("/SCB/price")) return new Response("source unavailable", { status: 503 });
       return new Response(setQuotePage("KBANK", 231));

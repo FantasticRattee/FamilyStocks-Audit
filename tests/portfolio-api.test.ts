@@ -246,6 +246,9 @@ test("partial refresh updates successes and explicitly retains prior database qu
   const stored = {
     GOOGL: oldQuote("GOOGL", 370, "USD"),
     META: oldQuote("META", 550, "USD"),
+    AAPL: oldQuote("AAPL", 305, "USD"),
+    NVDA: oldQuote("NVDA", 206, "USD"),
+    MU: oldQuote("MU", 812, "USD"),
     SCB: oldQuote("SCB", 156, "THB"),
     KBANK: oldQuote("KBANK", 231, "THB"),
     USDTHB: oldQuote("USDTHB", 33.3, "THB"),
@@ -256,6 +259,9 @@ test("partial refresh updates successes and explicitly retains prior database qu
     quotes: { GOOGL: nextGoogl },
     failures: {
       META: "No new quote",
+      AAPL: "No new quote",
+      NVDA: "No new quote",
+      MU: "No new quote",
       SCB: "No new quote",
       KBANK: "No new quote",
       USDTHB: "No new quote",
@@ -264,11 +270,22 @@ test("partial refresh updates successes and explicitly retains prior database qu
 
   assert.equal(merged.quotes.GOOGL.price, 372.49);
   assert.equal(merged.quotes.META.price, 550);
+  assert.equal(merged.quotes.AAPL.price, 305);
+  assert.equal(merged.quotes.NVDA.price, 206);
+  assert.equal(merged.quotes.MU.price, 812);
   assert.equal(merged.quotes.SCB.price, 156);
   assert.equal(merged.quotes.KBANK.price, 231);
   assert.equal(merged.quotes.USDTHB.price, 33.3);
   assert.deepEqual(merged.refreshedKeys, ["GOOGL"]);
-  assert.deepEqual(merged.retainedKeys, ["META", "SCB", "KBANK", "USDTHB"]);
+  assert.deepEqual(merged.retainedKeys, [
+    "META",
+    "AAPL",
+    "NVDA",
+    "MU",
+    "SCB",
+    "KBANK",
+    "USDTHB",
+  ]);
   assert.deepEqual(merged.failures, {});
 });
 

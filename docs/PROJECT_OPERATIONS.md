@@ -174,7 +174,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Authenticated, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh GOOGL/META/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh GOOGL/META/AAPL/NVDA/MU/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `POST /api/edit-auth` | Validate Edit Mode password without creating a browser session. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
@@ -229,9 +229,10 @@ update the shared portfolio rows in PostgreSQL.
    intent is explicitly holdings-only.
 4. Confirm the import metadata, audit date, owner/account, ticker, units, and
    cash value are correct.
-5. Click `Refresh market prices` after the import. Confirm GOOGL, USDTHB, SCB
-   and KBANK source links/timestamps appear; CASH is retained at its imported
-   amount.
+5. Click `Refresh market prices` after the import. Confirm every active
+   market-priced ticker has a source link/timestamp (GOOGL, META, AAPL, NVDA,
+   MU use Google Finance; SCB and KBANK use SET); CASH is retained at its
+   imported amount.
 6. Verify `/api/portfolio` and the visible dashboard agree. Check a second
    device/browser if the goal is to confirm shared persistence.
 
@@ -260,11 +261,12 @@ Ticker | Owner/Account | Entry Price | Units
 ```
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
-tickers are `GOOGL`, `META`, `SCB`, `KBANK`, and `CASH`; `CASH` is only valid for
-`Shared`. A canonical workbook may retain other tickers in its historical
-`Transactions` ledger, but they must not become active holdings unless active
-ticker support is deliberately added. Dashboard exports are intentionally
-minimal and must not replace the canonical accounting workbook.
+tickers are `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SCB`, `KBANK`, and `CASH`;
+`CASH` is only valid for `Shared`. A canonical workbook may retain other
+tickers in its historical `Transactions` ledger, but they must not become
+active holdings unless active ticker support is deliberately added. Dashboard
+exports are intentionally minimal and must not replace the canonical accounting
+workbook.
 
 ## Common pitfalls
 
@@ -272,8 +274,8 @@ minimal and must not replace the canonical accounting workbook.
   but the canonical workbook was not imported into Railway PostgreSQL.
 - **Import says “exactly one sheet named Holdings”:** a minimal import was
   selected but a six-sheet canonical workbook was expected, or vice versa.
-- **Import rejects `CASH`:** production code is stale; deploy the current
-  supported-ticker code before retrying.
+- **Import rejects a supported ticker:** production code is stale; deploy the
+  current supported-ticker code before retrying.
 - **Market price looks old:** market refresh is manual and public sources can
   be delayed; refresh and inspect source links before changing cost basis.
 - **A personal position changes pool numbers:** stop. Personal positions must

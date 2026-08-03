@@ -92,6 +92,43 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
   assert.deepEqual(plan.unmappedTickers, {});
 });
 
+test("maps approved additional US holdings to Google Finance refresh keys", async () => {
+  const liveMarket = await loadLiveMarketModule();
+  const snapshot = await loadSnapshot();
+  const usdHolding = snapshot.holdings.find(
+    (holding) => holding.ticker === "GOOGL" && holding.currency === "USD",
+  );
+  assert.ok(usdHolding);
+  const expandedSnapshot: DashboardSnapshot = {
+    ...snapshot,
+    holdings: [
+      ...snapshot.holdings,
+      ...["AAPL", "NVDA", "MU"].map((ticker) => ({ ...usdHolding, ticker })),
+    ],
+  };
+
+  const plan = liveMarket.createLiveMarketRefreshPlan(
+    expandedSnapshot,
+    createHoldingEdits(expandedSnapshot),
+  );
+
+  assert.deepEqual(plan.symbols, [
+    "GOOGL",
+    "META",
+    "KBANK",
+    "AAPL",
+    "NVDA",
+    "MU",
+    "USDTHB",
+  ]);
+  assert.deepEqual(plan.stocks.slice(-3), [
+    { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
+    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
+    { ticker: "MU", marketKey: "MU", currency: "USD" },
+  ]);
+  assert.deepEqual(plan.unmappedTickers, {});
+});
+
 test("keeps shared cash at its audited THB value without requesting a market quote", async () => {
   const liveMarket = await loadLiveMarketModule();
   const snapshot = await loadSnapshot();

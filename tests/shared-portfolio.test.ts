@@ -135,7 +135,7 @@ test("uses exactly the approved four-column raw holdings contract", () => {
   assert.equal(parsed.filename, "holdings.xlsx");
 });
 
-test("rejects derived columns, unsupported tickers, and invalid numeric inputs", () => {
+test("accepts approved active US tickers and rejects unsupported tickers or invalid numeric inputs", () => {
   assert.throws(
     () =>
       parseMinimalHoldingsWorkbook(
@@ -148,12 +148,25 @@ test("rejects derived columns, unsupported tickers, and invalid numeric inputs",
     /exactly|current price|header/i,
   );
 
+  assert.deepEqual(
+    validateSharedHoldings([
+      { ticker: " aapl ", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
+      { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
+      { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
+    ]),
+    [
+      { ticker: "AAPL", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
+      { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
+      { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
+    ],
+  );
+
   assert.throws(
     () =>
       validateSharedHoldings([
-        { ticker: "AAPL", ownerAccount: "Rattee", entryPrice: 200, units: 1 },
+        { ticker: "AMZN", ownerAccount: "Rattee", entryPrice: 200, units: 1 },
       ]),
-    /row 2.*AAPL.*supported/i,
+    /row 2.*AMZN.*supported/i,
   );
   assert.throws(
     () =>

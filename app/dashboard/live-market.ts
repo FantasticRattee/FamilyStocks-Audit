@@ -11,6 +11,9 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
 > = {
   GOOGL: { marketKey: "GOOGL", currency: "USD" },
   META: { marketKey: "META", currency: "USD" },
+  AAPL: { marketKey: "AAPL", currency: "USD" },
+  NVDA: { marketKey: "NVDA", currency: "USD" },
+  MU: { marketKey: "MU", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };
