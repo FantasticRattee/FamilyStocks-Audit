@@ -14,7 +14,7 @@ if (!fs.existsSync(workbookPath)) {
 const base64 = fs.readFileSync(workbookPath).toString("base64");
 const chunks = base64.match(/.{1,120}/g) ?? [];
 const generated = [
-  "// Extracted from Portfolio_Accounting.xlsx on 29 Jul 2026.",
+  "// Generated from the canonical Portfolio_Accounting.xlsx. Do not edit manually.",
   "// Fallback only: live dashboard data is loaded from the shared PostgreSQL portfolio.",
   "export const INITIAL_WORKBOOK_BASE64 = [",
   ...chunks.map((chunk) => `  ${JSON.stringify(chunk)},`),

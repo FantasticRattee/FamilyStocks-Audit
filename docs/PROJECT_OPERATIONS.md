@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified: **2 Aug 2026**.
+> Last verified: **3 Aug 2026** for the canonical workbook; Railway import is pending.
 
 ## Start here
 
@@ -42,12 +42,12 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — broker buys and SCB-cash funding reconciled; Railway import pending
+## Current canonical state — 3 Aug workbook reconciled; Railway import pending
 
-The canonical `Portfolio_Accounting.xlsx` now includes the owner correction,
-the full available broker-history reconciliation, and the broker orders through
-**1 Aug 2026**. The initial audit marks are deliberately retained until the
-next public market refresh:
+The canonical `Portfolio_Accounting.xlsx` and embedded seed include the owner
+correction, the available broker-history reconciliation, and the completed
+orders through **3 Aug 2026**. A public market refresh may replace the saved
+audit marks after canonical import, but must not change units or cost basis.
 
 | Holding | Owner/account | Units | Entry price / audit value |
 |---|---|---:|---:|
@@ -55,44 +55,45 @@ next public market refresh:
 | GOOGL | Rattee | 70 | THB851,302.33 cost (65 prior shares + five-share allocation) |
 | META | Mom | 12 | THB221,450.76 cost (USD6,600.54) |
 | META | Rattee | 30 | THB552,250.99 cost (USD16,460.34) |
-| KBANK | Shared | 630 | THB 181.804905 |
-| CASH | Shared | 1 | THB 1,152,584.83 |
+| AAPL | Mom | 35 | THB355,828.41 cost; saved mark THB354,125.17 |
+| MU | Mom | 4 | THB108,037.32 cost; saved mark THB108,240.44 |
+| NVDA | Mom | 45 | THB309,610.70 cost; saved mark THB309,731.08 |
+| KBANK | Shared | 630 | THB181.804905 average cost; saved mark THB242.00 |
+| CASH | Shared | 1 | THB95,810.50 confirmed whole-portfolio broker snapshot |
 
-Shared capital remains THB 2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
+Shared capital remains THB2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
 Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
-latest SCB sale proceeds and realized P&L remain historical ledger data;
-neither should be removed when changing the current holdings.
+canonical total market value is THB2,634,334.35, unrealized P&L is
+-THB32,122.27, realized P&L is THB366,562.41, and total P&L is
+THB334,440.14.
 
-The three broker fills on 31 Jul and 1 Aug total **USD26,496.22** or
-**THB888,958.78** at the evidenced FX **33.5504**. The formula-driven realized
-P&L remains **THB367,145.98** because all four ledger additions are buys. The
-user confirmed that the SCB gain of **THB279,544.39** was removed before these
-buys, so the post-payout cash source is **THB2,041,543.61**:
-
-```text
-THB2,321,088.00 − THB279,544.39 − THB888,958.78 = THB1,152,584.83
-```
-
-The USD329.09 / THB11,041.11 conversion residual remains in the overall
-broker cash balance. It is not silently made into a new personal cash holding
-or an unrecorded per-owner transfer.
+The 3 Aug Mom orders are AAPL buy 50 / sell 15, MU buy 10 / sell 6, and NVDA
+buy 35 plus buy 10. They use the user-approved USD/THB reference 33.254 and
+leave AAPL 35, MU 4, and NVDA 45. Time-bounded formulas record AAPL realized
+P&L of -THB808.77 and MU realized P&L of +THB225.20; no future buy is included
+in a sold cost.
 
 ### Accounting treatment and live-state gap
 
 Treat the earlier 65-share GOOGL ownership correction as a current-position
 correction until a dated internal-transfer record and FX / settlement evidence
 are available. Do not invent a Mom sale or realized P&L for that earlier
-transfer. The later dated broker buys are fully recorded and their funding
-source is now explicit: they reduce Shared CASH after the confirmed SCB gain
-removal, but are **not** new external personal capital. Personal GOOGL and
-META must never change shared-capital percentages, KBANK ownership, or the
-dividend forecast. Do not invent an owner-by-owner cash settlement unless the
-user supplies a dated allocation or transfer.
+transfer. The dated U.S. buys reduce Shared CASH after the confirmed SCB gain
+removal, but are **not** new external personal capital. GOOGL, META, AAPL, MU,
+and NVDA are personal positions and must never change shared-capital
+percentages, KBANK ownership, or the dividend forecast.
 
-The live Railway PostgreSQL portfolio remains pre-correction until the next
-authenticated canonical import. The required post-import state is six active
-holdings: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, KBANK
-Shared 630 and CASH Shared 1 at THB1,152,584.83.
+The 3 Aug six-order net cash flow is THB774,060.01. It would leave a ledger
+residual of THB378,524.82, whereas the user-confirmed actual broker cash
+snapshot is THB95,810.50. The THB282,714.32 difference is intentionally an
+unresolved reconciliation item: do not turn it into profit, new capital, an
+owner allocation, or a synthetic transaction without broker evidence.
+
+The live Railway PostgreSQL portfolio remains pre-import until the next
+authenticated canonical import. The required post-import state is nine active
+holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, AAPL
+Mom 35, MU Mom 4, NVDA Mom 45, KBANK Shared 630, and CASH Shared 1 at
+THB95,810.50.
 
 ## Canonical Excel workbook
 
@@ -111,14 +112,14 @@ The workbook must keep exactly these six sheets:
 ### Accounting rules that protect the audit
 
 - `CASH` is a Shared-only THB row: `Units = 1`, and entry price equals the
-  full THB account balance. It has no quote or dividend eligibility.
+  confirmed whole-portfolio broker cash snapshot. It has no quote or dividend
+  eligibility, and is not a synthetic balancing transaction.
 - SCB is a historical zero-quantity holding after the 27 Jul 2026 sale; retain
   its lots and sell rows for traceability.
-- Shared capital percentages allocate shared cash and KBANK. Personal GOOGL
-  and META belong to their named owners only and do not dilute the dividend
-  forecast. The current four personal buys are an explicit exception in
-  *funding source* only: their purchase cost reduces Shared CASH, not their
-  owners' externally contributed capital.
+- Shared capital percentages allocate shared cash and KBANK. Personal GOOGL,
+  META, AAPL, MU, and NVDA belong to their named owners only and do not dilute
+  the dividend forecast. Their purchase cost reduces Shared CASH as a funding
+  classification only; it is not their owners' externally contributed capital.
 - The current dividend forecast uses shareholder shared capital as its yield
   denominator; it does not use shared cash or market value.
 - A sale's realized P&L must use only purchase cost existing before that sale.

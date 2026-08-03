@@ -31,21 +31,21 @@ const loadSourceSnapshot = async () => {
 test("imports the stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "1 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 2919011.985312);
+  assert.equal(snapshot.asOfDate, "3 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 2634334.34744);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
-  closeTo(snapshot.summary.sharedMarketValue, 1305044.830512);
-  closeTo(snapshot.summary.totalRealizedPnl, 367145.9831482768);
+  closeTo(snapshot.summary.sharedMarketValue, 248270.5);
+  closeTo(snapshot.summary.totalRealizedPnl, 366562.4087022768);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
-    ["CASH", "GOOGL", "GOOGL", "KBANK", "META", "META"],
+    ["AAPL", "CASH", "GOOGL", "GOOGL", "KBANK", "META", "META", "MU", "NVDA"],
   );
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-01");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-03");
   closeTo(snapshot.shareholders[0].poolPercent, 0.5797956010852086, 0.000001);
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
@@ -65,7 +65,19 @@ test("recalculates a personal US-price scenario without changing shared-pool val
   assert.equal(metaHoldings.length, 2);
   const expectedGooglValue = 75 * 330 * 33;
   const expectedMetaValue = 42 * 540 * 33;
-  const expectedPersonalValue = expectedGooglValue + expectedMetaValue;
+  const expectedOtherPersonalValue = snapshot.holdings
+    .filter(
+      (holding) =>
+        holding.category === "personal" &&
+        holding.ticker !== "GOOGL" &&
+        holding.ticker !== "META",
+    )
+    .reduce(
+      (total, holding) =>
+        total + holding.quantity * (scenario.prices[holding.ticker] ?? 0) * scenario.fx,
+      0,
+    );
+  const expectedPersonalValue = expectedGooglValue + expectedMetaValue + expectedOtherPersonalValue;
   closeTo(
     googleHoldings.reduce((total, holding) => total + holding.marketValue, 0),
     expectedGooglValue,
@@ -74,9 +86,9 @@ test("recalculates a personal US-price scenario without changing shared-pool val
     metaHoldings.reduce((total, holding) => total + holding.marketValue, 0),
     expectedMetaValue,
   );
-  closeTo(result.totals.sharedMarketValue, 1305044.830512);
+  closeTo(result.totals.sharedMarketValue, 248270.5);
   closeTo(result.totals.personalMarketValue, expectedPersonalValue);
-  closeTo(result.totals.marketValue, 1305044.830512 + expectedPersonalValue);
+  closeTo(result.totals.marketValue, 248270.5 + expectedPersonalValue);
 });
 
 test("uses current shared capital—not personal capital—to split the dividend forecast", async () => {
