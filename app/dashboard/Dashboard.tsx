@@ -1578,6 +1578,27 @@ export function Dashboard() {
           ))}
         </nav>
 
+        <section
+          className="portfolio-context-strip"
+          aria-label="Portfolio reconciliation summary"
+        >
+          <div>
+            <span>Portfolio current value</span>
+            <strong>{formatThb(result.totals.marketValue)}</strong>
+            <small>All shared + owner-specific assets</small>
+          </div>
+          <div>
+            <span>Shared capital · fixed</span>
+            <strong>{formatThb(snapshot.summary.sharedCapital)}</strong>
+            <small>Contributed capital; not market value</small>
+          </div>
+          <div>
+            <span>Current shared assets</span>
+            <strong>{formatThb(result.totals.sharedMarketValue)}</strong>
+            <small>Shared positions + cash at current value</small>
+          </div>
+        </section>
+
         {activeTab === "overview" ? (
           <>
             <section className="wealth-hero">
@@ -1630,10 +1651,12 @@ export function Dashboard() {
                 action={(
                   <span
                     className="shared-pool-badge minimal"
-                    aria-label={`Shared pool ${formatThb(snapshot.summary.sharedCapital)}`}
+                    aria-label={`Shared capital fixed ${formatThb(snapshot.summary.sharedCapital)}; current shared assets ${formatThb(result.totals.sharedMarketValue)}`}
                   >
-                    <small>SHARED POOL</small>
+                    <small>SHARED CAPITAL · FIXED</small>
                     <strong>{formatThb(snapshot.summary.sharedCapital)}</strong>
+                    <span>Current shared assets</span>
+                    <b>{formatThb(result.totals.sharedMarketValue)}</b>
                   </span>
                 )}
               />
@@ -1798,7 +1821,7 @@ export function Dashboard() {
                 <thead>
                   <tr>
                     <th>Shareholder</th>
-                    <th>Shared Capital</th>
+                    <th>Shared Capital · Fixed</th>
                     <th>% Pool</th>
                     <th>Personal</th>
                     <th>Total Invested</th>
@@ -1835,7 +1858,7 @@ export function Dashboard() {
         {activeTab === "holdings" ? (
           <section className="holdings-layout">
             {[
-              ["Shared pool · Active investments + cash", sharedHoldings],
+              ["Current shared assets · Active investments + cash", sharedHoldings],
               ["Personal positions · Owner-specific", personalHoldings],
             ].map(([title, positions]) => (
               <article className="panel" key={String(title)}>

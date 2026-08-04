@@ -130,6 +130,28 @@ test("server-renders the approved Family Wealth graph-first overview", async () 
   assert.doesNotMatch(html, /portfolio value history|historical performance chart/i);
 });
 
+test("shows one reconciled portfolio context across every dashboard tab", async () => {
+  const response = await render();
+  assert.equal(response.status, 200);
+
+  const [html, dashboard] = await Promise.all([
+    response.text(),
+    readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(html, /aria-label="Portfolio reconciliation summary"/i);
+  assert.match(html, /Portfolio current value/i);
+  assert.match(html, /Shared capital · fixed/i);
+  assert.match(html, /Current shared assets/i);
+  assert.match(
+    dashboard,
+    /<\/nav>[\s\S]*?className="portfolio-context-strip"[\s\S]*?formatThb\(result\.totals\.marketValue\)[\s\S]*?formatThb\(snapshot\.summary\.sharedCapital\)[\s\S]*?formatThb\(result\.totals\.sharedMarketValue\)/,
+  );
+  assert.match(dashboard, /<small>SHARED CAPITAL · FIXED<\/small>/);
+  assert.match(dashboard, /<span>Current shared assets<\/span>/);
+  assert.doesNotMatch(dashboard, /<small>SHARED POOL<\/small>/);
+});
+
 test("renders the transaction ledger newest date first without mutating audit rows", async () => {
   const dashboard = await readFile(
     new URL("../app/dashboard/Dashboard.tsx", import.meta.url),

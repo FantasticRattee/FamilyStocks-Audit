@@ -443,7 +443,7 @@ select:focus-visible {
   display: flex;
   gap: 7px;
   overflow-x: auto;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   padding-bottom: 2px;
   scrollbar-width: none;
   scroll-padding-inline: 2px;
@@ -475,6 +475,53 @@ select:focus-visible {
   border-color: #b9d2c3;
   background: #e8f1e5;
   color: var(--teal-deep);
+}
+
+.portfolio-context-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  margin-bottom: 24px;
+  border: 1px solid #d8dfd2;
+  border-radius: 17px;
+  background: rgba(255, 252, 242, 0.78);
+  box-shadow: 0 8px 24px rgba(55, 80, 61, 0.06);
+}
+
+.portfolio-context-strip > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding: 13px 16px;
+}
+
+.portfolio-context-strip > div + div {
+  border-left: 1px solid #dde2d8;
+}
+
+.portfolio-context-strip span {
+  color: #657868;
+  font-size: 0.67rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.portfolio-context-strip strong {
+  overflow: hidden;
+  color: var(--navy);
+  font-size: clamp(0.92rem, 1.5vw, 1.1rem);
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-context-strip small {
+  overflow: hidden;
+  color: #819087;
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hero-grid {
@@ -971,6 +1018,21 @@ select:focus-visible {
 
 .shared-pool-badge.minimal strong {
   color: var(--navy);
+}
+
+.shared-pool-badge.minimal span {
+  margin-top: 3px;
+  color: #7b8875;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shared-pool-badge.minimal b {
+  color: #52705a;
+  font-size: 0.84rem;
+  letter-spacing: -0.015em;
 }
 
 .ownership-legend {
@@ -2831,6 +2893,19 @@ td strong {
 
   .metric-grid {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-context-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-context-strip > div + div {
+    border-top: 1px solid #dde2d8;
+    border-left: 0;
+  }
+
+  .portfolio-context-strip small {
+    white-space: normal;
   }
 
   .panel,
