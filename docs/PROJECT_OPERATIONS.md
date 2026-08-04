@@ -2,10 +2,11 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified locally: **4 Aug 2026**. The canonical workbook and embedded
-> seed include the 4 Aug owner allocation and Mom AAPL/META rebalance.
-> Production is current only after
-> the canonical import and `/api/portfolio` verification described below.
+> Last verified end to end: **5 Aug 2026, 00:02 ICT**. The canonical workbook,
+> embedded seed and Railway PostgreSQL include the 4 Aug owner allocation and
+> Mom AAPL/META rebalance. GitHub commit `0d83a43`, the canonical import,
+> public-market refresh, `/api/portfolio` and all five dashboard tabs were
+> verified together.
 
 ## Start here
 
@@ -109,13 +110,16 @@ snapshot forward gives THB93,086.66. The THB13,352.60 pre-existing difference is
 an unresolved reconciliation item: do not turn it into profit, new capital,
 an owner allocation, or a synthetic transaction without broker evidence.
 
-The next canonical production import must contain 12 active holding rows:
+The verified canonical production import contains 12 active holding rows:
 GOOGL Mom 5, GOOGL Rattee 70, META Mom 20, META Rattee 30, AAPL Mom 6, AAPL
 Ryu 14, MU Mom 13, MU Ryu 1, NVDA Mom 27, NVDA Ryu 18, KBANK Shared 630, and
-CASH Shared 1 at THB93,086.66. It must also contain 74 transaction rows,
+CASH Shared 1 at THB93,086.66. It also contains 74 transaction rows,
 including the three zero-cash `TRANSFER` rows and the three new completed Mom
-broker rows. Repeat the canonical import, public-market refresh,
-`/api/portfolio`, and all-five-tab checks before marking production synchronized.
+broker rows. Import hash
+`9eb44eb2bedb1833eba1302b3ecb86aff681c256d9092f8c3ddb7708e36f1e0f` and
+the 5 Aug 2026 public-price refresh were verified through `/api/portfolio`.
+Repeat the canonical import, public-market refresh, API check and all-five-tab
+check after every future accounting update.
 
 ## Canonical Excel workbook
 
