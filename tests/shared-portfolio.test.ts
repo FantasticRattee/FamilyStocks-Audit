@@ -94,8 +94,8 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["GOOGL", "Mom", 5],
       ["GOOGL", "Rattee", 70],
       ["META", "Rattee", 30],
-      ["META", "Mom", 12],
-      ["AAPL", "Mom", 21],
+      ["META", "Mom", 20],
+      ["AAPL", "Mom", 6],
       ["MU", "Mom", 13],
       ["NVDA", "Mom", 27],
       ["AAPL", "Ryu", 14],
@@ -115,7 +115,9 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
     ) < 0.01,
   );
   assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-04");
-  assert.equal(parsed.settings?.transactions.at(-1)?.side, "TRANSFER");
+  assert.equal(parsed.settings?.transactions.at(-1)?.side, "BUY");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "META");
+  assert.equal(parsed.settings?.transactions.at(-1)?.account, "Personal-US (Mom)");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {

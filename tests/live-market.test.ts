@@ -145,7 +145,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 95_810.5) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 93_086.66486) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -213,7 +213,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
     );
   assert.equal(result.totals.personalMarketValue, expectedPersonalMarketValue);
   assert.ok(
-    Math.abs(result.totals.sharedMarketValue - (95_810.5 + 630 * 200)) <
+    Math.abs(result.totals.sharedMarketValue - (93_086.66486 + 630 * 200)) <
       0.000001,
   );
 });

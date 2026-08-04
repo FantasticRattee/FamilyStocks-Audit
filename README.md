@@ -55,7 +55,7 @@ columns in this order:
 |---|---|---:|---:|
 | SCB | Shared | 100.00 | 1000 |
 | GOOGL | Rattee | 370.00 | 50 |
-| CASH | Shared | 95810.50 | 1 |
+| CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
   currency: USD for GOOGL/META/AAPL/NVDA/MU and THB for SCB/KBANK/CASH.
