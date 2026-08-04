@@ -1804,39 +1804,67 @@ export function Dashboard() {
               eyebrow="OWNERSHIP"
               title="เงินลงทุนและมูลค่าโดยประมาณต่อคน"
             />
-            <div className="table-wrap">
-              <table>
+            <div className="table-wrap ownership-matrix-wrap">
+              <table className="ownership-matrix">
                 <thead>
                   <tr>
-                    <th>Shareholder</th>
-                    <th>Shared Capital · Fixed</th>
-                    <th>% Pool</th>
-                    <th>Free Cash %</th>
-                    <th>External Personal Capital</th>
-                    <th>Owner-specific Holdings</th>
-                    <th>Total Invested</th>
-                    <th>Est. Current Equity</th>
-                    <th>P&amp;L vs Invested</th>
+                    <th scope="col">Metric</th>
+                    {shareholderRows.map((holder) => (
+                      <th scope="col" key={holder.owner}>{holder.owner}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {shareholderRows.map((holder) => (
-                    <tr key={holder.owner}>
-                      <td>
-                        <strong>{holder.owner}</strong>
-                      </td>
-                      <td>{formatThb(holder.sharedCapital)}</td>
-                      <td>{formatPct(holder.poolPercent)}</td>
-                      <td>{formatPct(holder.cashPercent ?? holder.poolPercent)}</td>
-                      <td>{formatThb(holder.personalCapital)}</td>
-                      <td>{formatThb(holder.personalMarketValue)}</td>
-                      <td>{formatThb(holder.totalInvested)}</td>
-                      <td>{formatThb(holder.estimatedEquity)}</td>
-                      <td className={pnlClass(holder.equityPnl)}>
+                  <tr>
+                    <th scope="row">Shared Capital · Fixed</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatThb(holder.sharedCapital)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">% Pool</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatPct(holder.poolPercent)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Free Cash %</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatPct(holder.cashPercent ?? holder.poolPercent)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">External Personal Capital</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatThb(holder.personalCapital)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Owner-specific Holdings</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatThb(holder.personalMarketValue)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Total Invested</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatThb(holder.totalInvested)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">Est. Current Equity</th>
+                    {shareholderRows.map((holder) => (
+                      <td key={holder.owner}>{formatThb(holder.estimatedEquity)}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th scope="row">P&amp;L vs Invested</th>
+                    {shareholderRows.map((holder) => (
+                      <td className={pnlClass(holder.equityPnl)} key={holder.owner}>
                         {formatThb(holder.equityPnl)}
                       </td>
-                    </tr>
-                  ))}
+                    ))}
+                  </tr>
                 </tbody>
               </table>
             </div>

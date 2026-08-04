@@ -180,6 +180,35 @@ test("explains the equal free-cash allocation consistently across all audit view
   assert.match(dashboard, /<option value="TRANSFER">TRANSFER<\/option>/);
 });
 
+test("renders shareholder metrics as rows and owners as columns", async () => {
+  const dashboard = await readFile(
+    new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+  const shareholderView =
+    dashboard.match(/activeTab === "shareholders"[\s\S]*?activeTab === "holdings"/)?.[0] ?? "";
+
+  assert.match(shareholderView, /<table className="ownership-matrix">/);
+  assert.match(shareholderView, /<th scope="col">Metric<\/th>/);
+  assert.match(
+    shareholderView,
+    /shareholderRows\.map\(\(holder\) => \([\s\S]*?<th scope="col" key=\{holder\.owner\}>\{holder\.owner\}<\/th>/,
+  );
+  assert.match(shareholderView, /<th scope="row">Shared Capital · Fixed<\/th>/);
+  assert.match(shareholderView, /<th scope="row">P&amp;L vs Invested<\/th>/);
+  assert.doesNotMatch(shareholderView, /<th>Shareholder<\/th>/);
+});
+
+test("keeps the transposed shareholder matrix compact at phone widths", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.ownership-matrix\s*\{[\s\S]*?min-width:\s*560px;/);
+  assert.match(
+    styles,
+    /@media \(max-width: 520px\)[\s\S]*?\.ownership-matrix\s*\{[\s\S]*?min-width:\s*0;/,
+  );
+});
+
 test("renders the approved family portrait hero with one image-derived theme", async () => {
   const response = await render();
   assert.equal(response.status, 200);
