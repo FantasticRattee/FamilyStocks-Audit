@@ -76,7 +76,6 @@ test("GET /api/portfolio atomically loads or seeds shared state", async () => {
   const repository = new FakeRepository();
   const response = await handlePortfolioApiRequest(
     new Request("https://dashboard.local/api/portfolio"),
-    { EDIT_MODE_PASSWORD: "test-edit-password" },
     repository,
     state(),
   );
@@ -89,7 +88,7 @@ test("GET /api/portfolio atomically loads or seeds shared state", async () => {
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
-test("POST /api/portfolio/import rejects a wrong password without replacing holdings", async () => {
+test("POST /api/portfolio/import accepts a passwordless import and replaces holdings", async () => {
   const repository = new FakeRepository();
   repository.current = state();
   const response = await handlePortfolioApiRequest(
@@ -97,22 +96,22 @@ test("POST /api/portfolio/import rejects a wrong password without replacing hold
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        password: "wrong",
         filename: "new.xlsx",
         holdings: [
           { ticker: "KBANK", ownerAccount: "Shared", entryPrice: 181.8, units: 630 },
         ],
       }),
     }),
-    { EDIT_MODE_PASSWORD: "test-edit-password" },
     repository,
     state(),
   );
 
   assert.ok(response);
-  assert.equal(response.status, 401);
-  assert.equal(repository.replaceCalls, 0);
-  assert.deepEqual(repository.current?.holdings, [seedHolding]);
+  assert.equal(response.status, 200);
+  assert.equal(repository.replaceCalls, 1);
+  assert.deepEqual(repository.current?.holdings, [
+    { ticker: "KBANK", ownerAccount: "Shared", entryPrice: 181.8, units: 630 },
+  ]);
 });
 
 test("POST /api/portfolio/import validates and transactionally replaces shared holdings", async () => {
@@ -126,12 +125,10 @@ test("POST /api/portfolio/import validates and transactionally replaces shared h
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        password: "test-edit-password",
         filename: "new.xlsx",
         holdings: replacement,
       }),
     }),
-    { EDIT_MODE_PASSWORD: "test-edit-password" },
     repository,
     state(),
   );
@@ -188,13 +185,11 @@ test("POST canonical audit import atomically replaces holdings and audit setting
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        password: "test-edit-password",
         filename: "Portfolio_Accounting.xlsx",
         holdings: replacement,
         settings: auditSettings,
       }),
     }),
-    { EDIT_MODE_PASSWORD: "test-edit-password" },
     repository,
     state(),
   );
@@ -216,13 +211,11 @@ test("POST canonical audit import rejects malformed settings without changing sh
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        password: "test-edit-password",
         filename: "Portfolio_Accounting.xlsx",
         holdings: [seedHolding],
         settings: { ...settings, defaultFx: 0 },
       }),
     }),
-    { EDIT_MODE_PASSWORD: "test-edit-password" },
     repository,
     state(),
   );

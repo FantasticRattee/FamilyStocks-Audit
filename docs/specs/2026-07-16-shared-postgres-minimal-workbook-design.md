@@ -4,6 +4,11 @@
 > [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
 > The shared PostgreSQL and workbook portions remain current. The supported
 > market-key list was amended on 2 Aug 2026 to add `META`.
+>
+> **Access-control update (4 Aug 2026):** the owner approved passwordless Edit
+> Mode and workbook import. The implementation no longer reads
+> `EDIT_MODE_PASSWORD`; current operational behavior is documented in
+> [`PROJECT_OPERATIONS.md`](../PROJECT_OPERATIONS.md).
 
 ## Goal
 

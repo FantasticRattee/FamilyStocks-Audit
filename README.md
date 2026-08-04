@@ -38,7 +38,7 @@ contains these sheets:
 `Summary`, `Shareholders`, `Lot Holdings`, `Dividends`, `Holdings`, and
 `Transactions`.
 
-The browser parses the audit first, then the authenticated server validates and
+The browser parses the audit first, then the server validates and
 atomically replaces both current holdings and portfolio settings in PostgreSQL.
 This carries forward the audit date, default FX, realized-P&L figure,
 shareholder ownership, dividend settings, historical dividend record, and
@@ -70,8 +70,8 @@ columns in this order:
 
 Minimal import replaces shared holdings transactionally and preserves existing
 portfolio settings. Canonical audit import replaces holdings and settings in
-the same transaction. Both require the Edit Mode password every time, and any
-invalid input or incorrect password leaves the existing portfolio unchanged.
+the same transaction. Invalid workbook data leaves the existing portfolio
+unchanged.
 Export creates a fresh minimal `Portfolio_Holdings_YYYY-MM-DD.xlsx`; it never
 overwrites the canonical audit workbook.
 
@@ -140,12 +140,13 @@ Historical Forward P/E is deliberately not estimated from today's consensus:
 it needs a licensed point-in-time estimates provider to avoid look-ahead bias.
 If a provider fails, the last saved snapshot is retained.
 
-## Edit Mode
+## Edit Mode and import access
 
-The dashboard is public, but opening Edit Mode and importing a workbook require
-`EDIT_MODE_PASSWORD`. The Worker checks it server-side. The password is never
-stored in PostgreSQL, browser storage, a cookie, a URL, or an exported workbook.
-Closing Edit Mode relocks it.
+At the owner's request, Edit Mode and workbook import are intentionally
+passwordless. Anyone who can open the production URL can change a dashboard
+scenario, export a minimal workbook, or import validated holdings. Do not
+share the production URL outside the family until an access-control mechanism
+is reintroduced.
 
 ## Run locally
 
@@ -153,7 +154,6 @@ Create an ignored `.dev.vars` from `.dev.vars.example` and set:
 
 ```text
 DATABASE_URL=postgresql://...
-EDIT_MODE_PASSWORD=...
 TIINGO_API_KEY=...
 # Optional, for current Forward P/E only
 FMP_API_KEY=...
@@ -189,7 +189,6 @@ Add a PostgreSQL service to the same Railway project. In the
 
 ```text
 DATABASE_URL=${{Postgres.DATABASE_URL}}
-EDIT_MODE_PASSWORD=<production password>
 TIINGO_API_KEY=<server-only Tiingo key>
 FMP_API_KEY=<optional server-only FMP key>
 ```
@@ -207,16 +206,14 @@ public source pages again.
 
 - `GET /api/portfolio` loads or atomically seeds shared holdings, settings,
   persisted quotes, and latest import metadata.
-- `POST /api/portfolio/import` verifies the Edit Mode password, validates every
-  raw holding, and replaces holdings in one transaction.
+- `POST /api/portfolio/import` validates every raw holding and replaces
+  holdings in one transaction.
 - `GET /api/market/refresh` fetches Google Finance and SET public quote pages,
   upserts successful quotes, and returns the merged persisted snapshot.
 - `GET /api/analyzer?symbol=GOOGL` returns the latest historical-analysis
   snapshot for a safe U.S. ticker.
 - `POST /api/analyzer/refresh` fetches and persists one fresh Tiingo-backed
   snapshot. It never overwrites a prior snapshot after a provider failure.
-- `POST /api/edit-auth` verifies the Edit Mode password without creating a
-  session.
 
 Secrets are read only by `worker/index.ts` from Worker bindings or Railway's
 Node runtime environment and are never bundled into browser JavaScript.
@@ -232,7 +229,8 @@ clickable visual fallback preserves the data interaction.
 The approved **Ghibli Countryside Ledger** presentation uses warm paper,
 forest green, watercolor sky, sunlight accents, and rough painted-clay R3F
 materials. It is a visual layer only: portfolio math, persisted quotes,
-PostgreSQL data, Edit Mode, and the four-column Excel contract remain unchanged.
+PostgreSQL data, passwordless Edit Mode, and the four-column Excel contract
+remain unchanged.
 
 ## Accounting rules preserved
 
@@ -258,6 +256,7 @@ npm run lint
 npm test
 ```
 
-The unit suite covers the four-column workbook contract, shared import auth,
+The unit suite covers the four-column workbook contract, passwordless shared
+import,
 database quote retention semantics, and market validation. `npm test` also
 builds the production app and runs rendered-runtime checks.

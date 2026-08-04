@@ -1,5 +1,9 @@
 # Canonical Audit Workbook Import Design
 
+> **Access-control update (4 Aug 2026):** canonical and minimal imports remain
+> atomically validated, but no longer require an Edit Mode password. See
+> [`PROJECT_OPERATIONS.md`](../PROJECT_OPERATIONS.md) for the active runbook.
+
 ## Goal
 
 Let the dashboard import the canonical six-sheet

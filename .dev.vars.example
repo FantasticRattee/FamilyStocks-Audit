@@ -1,4 +1,3 @@
-EDIT_MODE_PASSWORD=replace-with-a-strong-password
 # Shared portfolio and persisted market quotes. Railway supplies this from its PostgreSQL service.
 DATABASE_URL=postgresql://user:password@host:5432/database
 # Public market refresh uses Google Finance and SET quote pages; no market API key is required.

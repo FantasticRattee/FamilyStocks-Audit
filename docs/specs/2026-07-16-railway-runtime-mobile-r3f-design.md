@@ -4,6 +4,10 @@
 > on 20 Jul 2026 by
 > [`2026-07-20-free-public-market-sources-design.md`](./2026-07-20-free-public-market-sources-design.md).
 > The Railway/mobile/R3F portions remain historical design context.
+>
+> **Access-control update (4 Aug 2026):** this record's password verification
+> route and `EDIT_MODE_PASSWORD` details are superseded. Production Edit Mode
+> and workbook import are passwordless by owner-approved design.
 
 **Status:** implemented and regression-verified<br>
 **Date:** 16 Jul 2026<br>

@@ -12,10 +12,10 @@
 | What broker evidence supports it? | `../Transactions/` |
 | What code is deployed? | This `dashboard/` Git repository, branch `main` |
 | Where does the live dashboard read/write? | Railway PostgreSQL, through the production service |
-| How do I safely update the live holdings? | Update the canonical workbook, push code/seed if needed, then import the canonical workbook in Edit Mode |
+| How do I safely update the live holdings? | Update the canonical workbook, push code/seed if needed, then import the canonical workbook directly |
 
 The accounting workbook is the **canonical audit record**. Railway PostgreSQL
-is the **live shared dashboard record after an authenticated import**. GitHub
+is the **live shared dashboard record after a canonical import**. GitHub
 contains the dashboard implementation and its embedded fallback seed; a Git
 push alone does not replace the production portfolio database.
 
@@ -27,7 +27,7 @@ flowchart LR
     X --> S[initial-workbook.ts\nembedded fallback seed]
     S --> G[GitHub main\ndashboard source]
     G --> R[Railway app deployment]
-    X -->|Edit Mode canonical import| P[Railway PostgreSQL\nlive holdings + settings]
+    X -->|Canonical import| P[Railway PostgreSQL\nlive holdings + settings]
     Q[Google Finance + SET public pages] -->|Refresh market prices| P
     P --> W[Production dashboard\nfamilystocks-audit-production.up.railway.app]
 ```
@@ -90,7 +90,7 @@ unresolved reconciliation item: do not turn it into profit, new capital, an
 owner allocation, or a synthetic transaction without broker evidence.
 
 The live Railway PostgreSQL portfolio remains pre-import until the next
-authenticated canonical import. The required post-import state is nine active
+canonical import. The required post-import state is nine active
 holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, AAPL
 Mom 35, MU Mom 4, NVDA Mom 45, KBANK Shared 630, and CASH Shared 1 at
 THB95,810.50.
@@ -142,7 +142,7 @@ Important source files:
 | Workbook parsing/calculation | `app/dashboard/model.ts` |
 | Canonical/shared import contract | `app/dashboard/shared-portfolio.ts` |
 | PostgreSQL persistence | `app/dashboard/postgres-portfolio-repository.ts` |
-| Import/auth routes | `app/dashboard/portfolio-api.ts`, `app/dashboard/edit-auth.ts` |
+| Import route | `app/dashboard/portfolio-api.ts` |
 | Public market refresh | `app/dashboard/market-api.ts`, `app/dashboard/live-market.ts` |
 | Server runtime adapter | `worker/index.ts` |
 | Embedded fallback workbook | `app/dashboard/initial-workbook.ts` |
@@ -161,7 +161,6 @@ variables such as:
 
 ```text
 DATABASE_URL=${{Postgres.DATABASE_URL}}
-EDIT_MODE_PASSWORD=<secret>
 TIINGO_API_KEY=<only needed for a new Analyzer refresh>
 FMP_API_KEY=<optional; current Forward P/E only>
 ```
@@ -174,9 +173,8 @@ and redeploy; do not place it in source control.
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
-| `POST /api/portfolio/import` | Authenticated, transactional import of canonical audit or minimal holdings workbook. |
+| `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
 | `GET /api/market/refresh` | Refresh GOOGL/META/AAPL/NVDA/MU/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
-| `POST /api/edit-auth` | Validate Edit Mode password without creating a browser session. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry
@@ -223,18 +221,16 @@ update the shared portfolio rows in PostgreSQL.
 
 1. Wait for the Railway deployment triggered by the GitHub push to become
    active.
-2. Open the production dashboard and enter Edit Mode with the server-side
-   password.
-3. Import the **canonical six-sheet** `Portfolio_Accounting.xlsx` for a full
+2. Import the **canonical six-sheet** `Portfolio_Accounting.xlsx` for a full
    audit/settings replacement. Use the one-sheet minimal format only when the
    intent is explicitly holdings-only.
-4. Confirm the import metadata, audit date, owner/account, ticker, units, and
+3. Confirm the import metadata, audit date, owner/account, ticker, units, and
    cash value are correct.
-5. Click `Refresh market prices` after the import. Confirm every active
+4. Click `Refresh market prices` after the import. Confirm every active
    market-priced ticker has a source link/timestamp (GOOGL, META, AAPL, NVDA,
    MU use Google Finance; SCB and KBANK use SET); CASH is retained at its
    imported amount.
-6. Verify `/api/portfolio` and the visible dashboard agree. Check a second
+5. Verify `/api/portfolio` and the visible dashboard agree. Check a second
    device/browser if the goal is to confirm shared persistence.
 
 ### D. Recover from a bad import
@@ -248,7 +244,7 @@ update the shared portfolio rows in PostgreSQL.
 
 ## Import/export rules
 
-The authenticated importer accepts one of two formats:
+The passwordless importer accepts one of two formats:
 
 | Format | Use it for | Effect |
 |---|---|---|

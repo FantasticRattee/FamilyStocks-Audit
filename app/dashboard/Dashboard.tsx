@@ -11,7 +11,6 @@ import {
   type ChangeEvent,
   type CSSProperties,
   type DragEvent,
-  type FormEvent,
   useEffect,
   useMemo,
   useRef,
@@ -90,7 +89,6 @@ const MARKET_REFRESH_SOURCES =
 
 type Tab = (typeof TABS)[number][0];
 type SourceMode = "embedded" | "shared";
-type EditPasswordPurpose = "edit" | "import";
 type HoldingMarketUi = {
   candidates?: YahooSearchCandidate[];
   isSearching?: boolean;
@@ -817,10 +815,6 @@ function PortfolioComposition3D({
 
 export function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importPasswordRef = useRef("");
-  const pendingImportFileRef = useRef<File | null>(null);
-  const editModeButtonRef = useRef<HTMLButtonElement>(null);
-  const editPasswordInputRef = useRef<HTMLInputElement>(null);
   const refreshRequestIdRef = useRef(0);
   const workbookRequestIdRef = useRef(0);
   const [snapshot, setSnapshot] = useState<DashboardSnapshot>(INITIAL_SNAPSHOT);
@@ -830,13 +824,6 @@ export function Dashboard() {
   const [sourceMode, setSourceMode] = useState<SourceMode>("embedded");
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showScenario, setShowScenario] = useState(false);
-  const [showEditPasswordDialog, setShowEditPasswordDialog] = useState(false);
-  const [editPasswordPurpose, setEditPasswordPurpose] =
-    useState<EditPasswordPurpose>("edit");
-  const [editPassword, setEditPassword] = useState("");
-  const [editPasswordError, setEditPasswordError] = useState("");
-  const [editPasswordPromptVersion, setEditPasswordPromptVersion] = useState(0);
-  const [isVerifyingEditPassword, setIsVerifyingEditPassword] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [importError, setImportError] = useState("");
   const [importNotice, setImportNotice] = useState("");
@@ -931,22 +918,6 @@ export function Dashboard() {
       isActive = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!showEditPasswordDialog) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() => {
-      if (editPasswordInputRef.current) {
-        editPasswordInputRef.current.value = "";
-        editPasswordInputRef.current.focus();
-      }
-    });
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [showEditPasswordDialog]);
 
   const importedScenario = useMemo(() => createScenario(snapshot), [snapshot]);
   const liveScenario = useMemo(
@@ -1131,7 +1102,7 @@ export function Dashboard() {
     })
     .sort((left, right) => right.date.localeCompare(left.date));
 
-  const applyWorkbook = async (file: File, password: string) => {
+  const applyWorkbook = async (file: File) => {
     const requestId = ++workbookRequestIdRef.current;
     setImportError("");
     setImportNotice("");
@@ -1145,7 +1116,6 @@ export function Dashboard() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          password,
           filename: parsed.filename,
           holdings: parsed.holdings,
           settings: parsed.settings,
@@ -1199,9 +1169,6 @@ export function Dashboard() {
       setSourceMode("shared");
       setActiveTab("overview");
       setShowScenario(false);
-      setShowEditPasswordDialog(false);
-      setEditPassword("");
-      setEditPasswordError("");
       setImportNotice(
         parsed.source === "audit"
           ? "Import audit เต็มสำเร็จแล้ว: Holdings, ownership, dividend และ transactions ถูกบันทึกในฐานข้อมูลร่วม"
@@ -1213,20 +1180,12 @@ export function Dashboard() {
           ? `Import ไม่สำเร็จ: ${error.message}`
           : "Import ไม่สำเร็จ โปรดลองอีกครั้ง",
       );
-    } finally {
-      importPasswordRef.current = "";
-      pendingImportFileRef.current = null;
     }
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    const password = importPasswordRef.current;
-    if (file && password) {
-      await applyWorkbook(file, password);
-    } else if (file) {
-      setImportError("กรุณายืนยันรหัสผ่านก่อน Import Excel");
-    }
+    if (file) await applyWorkbook(file);
     event.target.value = "";
   };
 
@@ -1234,7 +1193,7 @@ export function Dashboard() {
     event.preventDefault();
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
-    if (file) requestImportWorkbook(file);
+    if (file) void applyWorkbook(file);
   };
 
   const updatePrice = (ticker: string, rawValue: string) => {
@@ -1468,101 +1427,12 @@ export function Dashboard() {
     setExportNotice("");
   };
 
-  const closeEditPasswordDialog = () => {
-    if (isVerifyingEditPassword) return;
-    setShowEditPasswordDialog(false);
-    setEditPassword("");
-    setEditPasswordError("");
-    importPasswordRef.current = "";
-    pendingImportFileRef.current = null;
-    window.requestAnimationFrame(() => editModeButtonRef.current?.focus());
-  };
-
   const requestEditMode = () => {
-    if (showScenario) {
-      setShowScenario(false);
-      setEditPassword("");
-      setEditPasswordError("");
-      return;
-    }
-    setEditPasswordPurpose("edit");
-    setEditPassword("");
-    setEditPasswordError("");
-    setEditPasswordPromptVersion((current) => current + 1);
-    setShowEditPasswordDialog(true);
+    setShowScenario((current) => !current);
   };
 
-  const requestImportWorkbook = (file: File | null = null) => {
-    pendingImportFileRef.current = file;
-    importPasswordRef.current = "";
-    setEditPasswordPurpose("import");
-    setEditPassword("");
-    setEditPasswordError("");
-    setEditPasswordPromptVersion((current) => current + 1);
-    setShowEditPasswordDialog(true);
-  };
-
-  const verifyEditPassword = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!editPassword) {
-      setEditPasswordError("กรุณาใส่รหัสผ่าน Edit Mode");
-      editPasswordInputRef.current?.focus();
-      return;
-    }
-
-    setIsVerifyingEditPassword(true);
-    setEditPasswordError("");
-    try {
-      const response = await fetch("/api/edit-auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password: editPassword }),
-      });
-      const body = (await response.json().catch(() => ({}))) as {
-        authenticated?: boolean;
-      };
-
-      if (!response.ok || body.authenticated !== true) {
-        setEditPassword("");
-        setEditPasswordError(
-          response.status === 401
-            ? "รหัสผ่านไม่ถูกต้อง"
-            : response.status === 503
-              ? "ระบบตรวจสอบรหัสผ่านยังไม่พร้อม"
-              : "ตรวจสอบรหัสผ่านไม่ได้ โปรดลองอีกครั้ง",
-        );
-        window.requestAnimationFrame(() => editPasswordInputRef.current?.focus());
-        return;
-      }
-
-      const verifiedPassword = editPassword;
-      setEditPassword("");
-      setEditPasswordError("");
-      setShowEditPasswordDialog(false);
-      if (editPasswordPurpose === "import") {
-        importPasswordRef.current = verifiedPassword;
-        const pendingFile = pendingImportFileRef.current;
-        if (pendingFile) {
-          void applyWorkbook(pendingFile, verifiedPassword);
-        } else {
-          window.requestAnimationFrame(() => fileInputRef.current?.click());
-        }
-        window.setTimeout(() => {
-          if (importPasswordRef.current === verifiedPassword) {
-            importPasswordRef.current = "";
-          }
-        }, 120_000);
-      } else {
-        setShowScenario(true);
-        window.requestAnimationFrame(() => editModeButtonRef.current?.focus());
-      }
-    } catch {
-      setEditPassword("");
-      setEditPasswordError("เชื่อมต่อระบบตรวจสอบรหัสผ่านไม่ได้ โปรดลองอีกครั้ง");
-      window.requestAnimationFrame(() => editPasswordInputRef.current?.focus());
-    } finally {
-      setIsVerifyingEditPassword(false);
-    }
+  const requestImportWorkbook = () => {
+    fileInputRef.current?.click();
   };
 
   const exportWorkbook = () => {
@@ -2221,7 +2091,6 @@ export function Dashboard() {
                 </>
               ) : null}
               <button
-                ref={editModeButtonRef}
                 className="button button-primary"
                 type="button"
                 onClick={requestEditMode}
@@ -2403,102 +2272,6 @@ export function Dashboard() {
             </>
           ) : null}
         </section>
-
-        {showEditPasswordDialog ? (
-          <div
-            className="edit-password-backdrop"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) closeEditPasswordDialog();
-            }}
-          >
-            <section
-              className="edit-password-dialog"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="edit-password-title"
-              aria-describedby="edit-password-description"
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  closeEditPasswordDialog();
-                }
-              }}
-            >
-              <div className="edit-password-heading">
-                <span className="edit-password-lock" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M7.5 10V7.7a4.5 4.5 0 0 1 9 0V10m-10 0h11a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 17.5 20h-11A1.5 1.5 0 0 1 5 18.5v-7A1.5 1.5 0 0 1 6.5 10Z" />
-                  </svg>
-                </span>
-                <div>
-                  <p className="eyebrow">PRIVATE CONTROL</p>
-                  <h2 id="edit-password-title">
-                    {editPasswordPurpose === "import"
-                      ? "Authorize Shared Import"
-                      : "Unlock Edit Mode"}
-                  </h2>
-                </div>
-              </div>
-              <p id="edit-password-description" className="edit-password-description">
-                {editPasswordPurpose === "import"
-                  ? "ใส่รหัสผ่านเพื่อ import audit เต็ม หรือแทนที่ Holdings ในฐานข้อมูลร่วม ระบบจะตรวจสอบข้อมูลอีกครั้งบน server"
-                  : "ใส่รหัสผ่านเพื่อแก้ dashboard scenario และ export Excel ระบบจะถามใหม่ทุกครั้งหลังปิด Edit Mode"}
-              </p>
-              <form className="edit-password-form" onSubmit={verifyEditPassword}>
-                <label htmlFor="edit-password">Edit Mode password</label>
-                <input
-                  key={editPasswordPromptVersion}
-                  ref={editPasswordInputRef}
-                  id="edit-password"
-                  name={`edit-mode-password-${editPasswordPromptVersion}`}
-                  type="password"
-                  autoComplete="one-time-code"
-                  data-1p-ignore="true"
-                  data-lpignore="true"
-                  spellCheck={false}
-                  value={editPassword}
-                  disabled={isVerifyingEditPassword}
-                  aria-invalid={Boolean(editPasswordError)}
-                  aria-errormessage={editPasswordError ? "edit-password-error" : undefined}
-                  onChange={(event) => {
-                    setEditPassword(event.target.value);
-                    if (editPasswordError) setEditPasswordError("");
-                  }}
-                />
-                <div className="edit-password-message" aria-live="polite">
-                  {editPasswordError ? (
-                    <p id="edit-password-error" role="alert">
-                      {editPasswordError}
-                    </p>
-                  ) : (
-                    <p>รหัสจะถูกส่งไปตรวจสอบกับ Worker และไม่ถูกบันทึกใน browser</p>
-                  )}
-                </div>
-                <div className="edit-password-actions">
-                  <button
-                    className="button button-ghost"
-                    type="button"
-                    disabled={isVerifyingEditPassword}
-                    onClick={closeEditPasswordDialog}
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    className="button button-primary"
-                    type="submit"
-                    disabled={isVerifyingEditPassword}
-                  >
-                    {isVerifyingEditPassword
-                      ? "กำลังตรวจสอบ..."
-                      : editPasswordPurpose === "import"
-                        ? "Continue to Import"
-                        : "Unlock Edit Mode"}
-                  </button>
-                </div>
-              </form>
-            </section>
-          </div>
-        ) : null}
 
         <footer className="dashboard-footer">
           <span>Shared source of truth: Railway PostgreSQL</span>

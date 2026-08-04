@@ -26,15 +26,6 @@ async function requestWorker(path = "/", init = {}, env = {}) {
   );
 }
 
-async function requestWorkerWithoutEnv(path, init = {}) {
-  const worker = await loadWorker();
-  return worker.fetch(
-    new Request(`http://localhost${path}`, init),
-    undefined,
-    { waitUntil() {}, passThroughOnException() {} },
-  );
-}
-
 async function render() {
   return requestWorker("/", { headers: { accept: "text/html" } });
 }
@@ -187,7 +178,6 @@ test("applies the approved Ghibli Countryside Ledger theme across the full dashb
   assert.match(styles, /--paper-wash:\s*#f7efdc/i);
   assert.match(styles, /--forest-canopy:\s*#294c38/i);
   assert.match(styles, /\.ghibli-countryside-ledger\s+\.panel::before/i);
-  assert.match(styles, /\.ghibli-countryside-ledger\s+\.edit-password-dialog/i);
   assert.match(styles, /\.ghibli-countryside-ledger\s+\.table-wrap/i);
   assert.match(styles, /\.ghibli-countryside-ledger\s+\.allocation-fallback-ring/i);
   assert.match(dashboard, /PAINTED_CLAY_MATERIAL/);
@@ -343,69 +333,6 @@ test("keeps P&L depth while family and dividend bars stay straight and calm", as
   assert.match(styles, /\.shared-pool-badge\.minimal/);
 });
 
-test("verifies the Edit Mode password on the Worker without persisting a session", async () => {
-  const env = { EDIT_MODE_PASSWORD: "test-only-password" };
-  const wrong = await requestWorker(
-    "/api/edit-auth",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password: "wrong-password" }),
-    },
-    env,
-  );
-  assert.equal(wrong.status, 401);
-  assert.equal(wrong.headers.get("cache-control"), "no-store");
-  assert.doesNotMatch(await wrong.text(), /test-only-password|wrong-password/);
-
-  const correct = await requestWorker(
-    "/api/edit-auth",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password: "test-only-password" }),
-    },
-    env,
-  );
-  assert.equal(correct.status, 200);
-  assert.deepEqual(await correct.json(), { authenticated: true });
-  assert.equal(correct.headers.get("set-cookie"), null);
-
-  const unavailable = await requestWorker("/api/edit-auth", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ password: "anything" }),
-  });
-  assert.equal(unavailable.status, 503);
-
-  const unsupported = await requestWorker("/api/edit-auth", {}, env);
-  assert.equal(unsupported.status, 405);
-});
-
-test("reads the Railway password from Node env when Worker env is absent", async () => {
-  const previousPassword = process.env.EDIT_MODE_PASSWORD;
-  process.env.EDIT_MODE_PASSWORD = "railway-test-password";
-  try {
-    const wrong = await requestWorkerWithoutEnv("/api/edit-auth", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password: "wrong-password" }),
-    });
-    assert.equal(wrong.status, 401);
-
-    const correct = await requestWorkerWithoutEnv("/api/edit-auth", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password: "railway-test-password" }),
-    });
-    assert.equal(correct.status, 200);
-    assert.deepEqual(await correct.json(), { authenticated: true });
-  } finally {
-    if (previousPassword === undefined) delete process.env.EDIT_MODE_PASSWORD;
-    else process.env.EDIT_MODE_PASSWORD = previousPassword;
-  }
-});
-
 test("requires Railway PostgreSQL before a market refresh can mutate shared state", async () => {
   const previousDatabaseUrl = process.env.DATABASE_URL;
   const originalFetch = globalThis.fetch;
@@ -415,7 +342,7 @@ test("requires Railway PostgreSQL before a market refresh can mutate shared stat
   };
 
   try {
-    const response = await requestWorkerWithoutEnv("/api/market/refresh");
+    const response = await requestWorker("/api/market/refresh");
     assert.equal(response.status, 503);
     const body = await response.json();
     assert.match(body.error, /DATABASE_URL|database/i);
@@ -445,24 +372,16 @@ test("seeds the shared portfolio before the first market refresh persists quotes
   );
 });
 
-test("keeps the dashboard public but gates every Edit Mode opening with a dialog", async () => {
+test("keeps the dashboard public and removes the Edit Mode password gate", async () => {
   const [dashboard, worker] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(dashboard, /fetch\("\/api\/edit-auth"/);
-  assert.match(dashboard, /role="dialog"/);
-  assert.match(dashboard, /type="password"/);
-  assert.match(dashboard, /autoComplete="one-time-code"/);
-  assert.match(dashboard, /setEditPasswordPromptVersion/);
-  assert.match(dashboard, /key=\{editPasswordPromptVersion\}/);
-  assert.match(dashboard, /aria-modal="true"/);
-  assert.match(dashboard, /event\.key === "Escape"/);
-  assert.match(dashboard, /setShowScenario\(true\)/);
-  assert.match(dashboard, /setShowScenario\(false\)/);
-  assert.doesNotMatch(dashboard, /localStorage|sessionStorage|EDIT_MODE_PASSWORD/);
-  assert.match(worker, /handleEditAuthRequest/);
+  assert.match(dashboard, /const requestEditMode = \(\) => \{\s*setShowScenario\(\(current\) => !current\);/);
+  assert.match(dashboard, /const requestImportWorkbook = \(\) => \{\s*fileInputRef\.current\?\.click\(\);/);
+  assert.doesNotMatch(dashboard, /edit-password|\/api\/edit-auth|type="password"|EDIT_MODE_PASSWORD/);
+  assert.doesNotMatch(worker, /handleEditAuthRequest|EDIT_MODE_PASSWORD|\/api\/edit-auth/);
 
   const response = await render();
   const html = await response.text();
@@ -481,7 +400,8 @@ test("loads and replaces the latest validated portfolio through shared PostgreSQ
   assert.match(dashboard, /parseWorkbookForImport/);
   assert.match(dashboard, /settings: parsed\.settings/);
   assert.match(dashboard, /canonical six-sheet audit workbook/);
-  assert.match(dashboard, /Authorize Shared Import/);
+  assert.match(dashboard, /requestImportWorkbook/);
+  assert.doesNotMatch(dashboard, /Authorize Shared Import|\/api\/edit-auth|type="password"/);
   assert.doesNotMatch(
     dashboard,
     /loadPersistedWorkbook|savePersistedWorkbook|removePersistedWorkbook/,

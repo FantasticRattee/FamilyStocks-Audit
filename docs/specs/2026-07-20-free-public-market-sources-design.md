@@ -5,6 +5,9 @@ Date: 20 Jul 2026
 Amended: 2 Aug 2026 — add META as an active audited U.S. holding and public
 Google Finance quote key.
 
+Access-control update: 4 Aug 2026 — `EDIT_MODE_PASSWORD` is no longer used by
+the deployed app; public-price sourcing is unchanged.
+
 ## Goal
 
 Remove the OpenAI Responses API from the public market-price refresh flow while

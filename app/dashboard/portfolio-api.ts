@@ -1,4 +1,3 @@
-import { isEditPasswordValid, type EditAuthEnv } from "./edit-auth";
 import type { MarketQuoteSnapshot } from "./portfolio-repository";
 import {
   validatePortfolioSettings,
@@ -54,7 +53,6 @@ const contentHash = async (
 
 export async function handlePortfolioApiRequest(
   request: Request,
-  env: EditAuthEnv,
   repository: PortfolioRepository,
   seed: SharedPortfolioState,
 ): Promise<Response | null> {
@@ -78,9 +76,6 @@ export async function handlePortfolioApiRequest(
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405, { allow: "POST" });
   }
-  if (!env.EDIT_MODE_PASSWORD) {
-    return jsonResponse({ error: "Edit Mode authentication is unavailable." }, 503);
-  }
 
   let body: unknown;
   try {
@@ -92,12 +87,6 @@ export async function handlePortfolioApiRequest(
     return jsonResponse({ error: "Invalid import request." }, 400);
   }
   const payload = body as Record<string, unknown>;
-  if (typeof payload.password !== "string") {
-    return jsonResponse({ error: "Edit Mode password is required." }, 400);
-  }
-  if (!(await isEditPasswordValid(payload.password, env.EDIT_MODE_PASSWORD))) {
-    return jsonResponse({ error: "Incorrect password." }, 401);
-  }
   if (typeof payload.filename !== "string" || !payload.filename.trim()) {
     return jsonResponse({ error: "Import filename is required." }, 400);
   }

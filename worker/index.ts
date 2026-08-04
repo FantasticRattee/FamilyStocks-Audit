@@ -2,7 +2,6 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
-import { handleEditAuthRequest } from "../app/dashboard/edit-auth";
 import { INITIAL_SHARED_PORTFOLIO_STATE } from "../app/dashboard/initial-shared-portfolio";
 import { handleMarketApiRequest } from "../app/dashboard/market-api";
 import { handlePortfolioApiRequest } from "../app/dashboard/portfolio-api";
@@ -13,7 +12,6 @@ interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> };
   DB?: unknown;
   DATABASE_URL?: string;
-  EDIT_MODE_PASSWORD?: string;
   TIINGO_API_KEY?: string;
   FMP_API_KEY?: string;
   IMAGES?: {
@@ -32,13 +30,11 @@ interface ExecutionContext {
 
 type RuntimeSecret =
   | "DATABASE_URL"
-  | "EDIT_MODE_PASSWORD"
   | "TIINGO_API_KEY"
   | "FMP_API_KEY";
 
 const RUNTIME_SECRETS: RuntimeSecret[] = [
   "DATABASE_URL",
-  "EDIT_MODE_PASSWORD",
   "TIINGO_API_KEY",
   "FMP_API_KEY",
 ];
@@ -75,9 +71,6 @@ const worker = {
     env = resolveRuntimeEnvironment(env);
     const url = new URL(request.url);
 
-    const editAuthResponse = await handleEditAuthRequest(request, env);
-    if (editAuthResponse) return editAuthResponse;
-
     const portfolioRepository = createPostgresPortfolioRepository(env.DATABASE_URL);
     const isPortfolioRoute =
       url.pathname === "/api/portfolio" ||
@@ -91,7 +84,6 @@ const worker = {
     if (portfolioRepository) {
       const portfolioResponse = await handlePortfolioApiRequest(
         request,
-        env,
         portfolioRepository,
         INITIAL_SHARED_PORTFOLIO_STATE,
       );

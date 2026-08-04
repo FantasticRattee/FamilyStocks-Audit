@@ -15,7 +15,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `app/dashboard/initial-shared-portfolio.ts`.
 - **Embedded legacy seed:** `app/dashboard/initial-workbook.ts`, generated from
   `../Portfolio_Accounting.xlsx` and parsed by `app/dashboard/model.ts`.
-- **Authentication:** `app/dashboard/edit-auth.ts`.
+- **Import/edit access:** intentionally passwordless; server-side workbook
+  validation remains in `app/dashboard/portfolio-api.ts`.
 - **Market refresh:** `app/dashboard/market-api.ts`,
   `app/dashboard/portfolio-repository.ts`, `app/dashboard/live-market.ts`, and
   `worker/index.ts`.
@@ -42,15 +43,15 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 
 | If you change… | Update together | Verify |
 |---|---|---|
-| Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; authenticated production import |
+| Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; production import validates without a password gate |
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
 | Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Eight fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
 | Historical Analyzer metric definitions, source parsing, or snapshot retention | `stock-analyzer.ts`, `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`, `StockAnalyzerDashboard.tsx`, PostgreSQL repository, API/metric tests, README | 15-year history; adjusted averages; no look-ahead CAGR; negative P/E = N/M; failed provider refresh retains the last snapshot |
 | Historical Analyzer ticker/company hints or catalog refresh | `us-stock-symbol-search.ts`, `us-stock-symbol-catalog.generated.ts`, `scripts/update-us-stock-symbol-catalog.mjs`, `StockAnalyzerDashboard.tsx`, `globals.css`, symbol/UI tests, Analyzer spec, README | `AMA` resolves AMZN/Amazon; `A` includes AAPL/AMZN/ARM; blank input has no default; keyboard/mouse selection works at mobile width; no network, key, or database request while typing |
 | Historical Analyzer chart axes, EOD range, or point inspection | `stock-chart.ts`, `stock-chart-range.ts`, `StockAnalyzerDashboard.tsx`, `globals.css`, chart/UI tests, Analyzer spec, README | X = chronological date/month/year; visible Y = price or P/E on the right; `1M`/`6M`/`YTD`/year ranges use EOD only; hover/tap shows sampled date/value plus price tag; no provider, database, or Excel request |
-| Edit/import authentication | `edit-auth.ts`, `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests | Wrong password 401; correct password succeeds; no secret in bundle/log/DB |
-| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/password/provider keys remain server-side |
+| Edit/import access | `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests, README | Valid canonical/minimal import succeeds without a password; invalid data leaves shared state unchanged |
+| Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/provider keys remain server-side |
 | Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
 
 ## Internal flow
@@ -64,8 +65,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
    settings, and persisted quotes. It adapts raw holdings through
    `shared-portfolio.ts` into the existing calculation model.
 4. Import detects either the canonical six-sheet audit workbook or a one-sheet
-   four-column holdings workbook in the browser, requests the Edit Mode
-   password, then posts normalized holdings and optional audit settings to
+   four-column holdings workbook in the browser, then posts normalized holdings and optional audit settings to
    `/api/portfolio/import`. The server revalidates and atomically replaces
    holdings plus settings for canonical imports; minimal imports replace only
    holdings.
@@ -104,8 +104,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Analyzer symbol catalog: generated ticker, company name, and exchange hint
   tuples only; it is versioned with the client code and never stored in
   PostgreSQL.
-- Runtime variables: `DATABASE_URL`, `EDIT_MODE_PASSWORD`, required
-  `TIINGO_API_KEY` for analyzer refresh, and optional `FMP_API_KEY`.
+- Runtime variables: `DATABASE_URL`, required `TIINGO_API_KEY` for analyzer
+  refresh, and optional `FMP_API_KEY`.
 
 ## Known constraints and debt
 
