@@ -1052,26 +1052,9 @@ export function Dashboard() {
       },
     ],
   }));
-  const pnlChartRows: BarChart3DRow[] = tickerBreakdown.map((item) => {
-    const displayTicker = getHoldingDisplayTicker(item.ticker, holdingEdits);
-    return {
-      id: item.ticker,
-      label: displayTicker,
-      headline: formatSignedThb(item.unrealizedPnl),
-      detail: `${displayTicker}: ${item.unrealizedPnl >= 0 ? "unrealized gain" : "unrealized loss"} ${formatThb(Math.abs(item.unrealizedPnl))}`,
-      buttonAriaLabel: `Select ${displayTicker} unrealized P&L ${formatSignedThb(item.unrealizedPnl)}`,
-      values: [
-        {
-          id: "pnl",
-          label: item.unrealizedPnl >= 0 ? "Gain" : "Loss",
-          value: item.unrealizedPnl,
-          formattedValue: formatSignedThb(item.unrealizedPnl),
-          color: item.unrealizedPnl >= 0 ? PORTFOLIO_THEME.meadow : PORTFOLIO_THEME.loss,
-          tone: pnlClass(item.unrealizedPnl),
-        },
-      ],
-    };
-  });
+  const pnlGridStyle = {
+    "--pnl-row-count": tickerBreakdown.length,
+  } as CSSProperties;
   const dividendLines = snapshot.dividend.lines.map((line) => {
     const dps = scenario.dividendDps[line.ticker] ?? line.dps;
     const gross = line.eligibleQuantity * dps;
@@ -1726,23 +1709,34 @@ export function Dashboard() {
                     <span>฿0</span>
                     <span>Gain</span>
                   </div>
-                  <div className="pnl-compact-grid">
+                  <div className="pnl-compact-grid" style={pnlGridStyle}>
                     <div className="pnl-row-labels">
-                      {pnlChartRows.map((row) => (
-                        <strong key={row.id}>{row.label}</strong>
+                      {tickerBreakdown.map((item) => (
+                        <strong key={item.ticker}>
+                          {getHoldingDisplayTicker(item.ticker, holdingEdits)}
+                        </strong>
                       ))}
                     </div>
-                    <CompactBarField3D
-                      rows={pnlChartRows}
-                      mode="diverging"
-                      scaleMax={pnlCeiling}
-                      ariaLabel="Interactive 3D unrealized P&L bars"
-                      className="pnl-r3f-bars"
-                    />
+                    <div className="pnl-row-bars" aria-hidden="true">
+                      {tickerBreakdown.map((item) => {
+                        const width = `${(Math.abs(item.unrealizedPnl) / pnlCeiling) * 50}%`;
+                        return (
+                          <div className="pnl-track" key={item.ticker}>
+                            <span className="pnl-zero" />
+                            {item.unrealizedPnl === 0 ? null : (
+                              <i
+                                className={`pnl-bar ${item.unrealizedPnl >= 0 ? "gain" : "loss"}`}
+                                style={{ width }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                     <div className="pnl-row-values">
-                      {pnlChartRows.map((row) => (
-                        <b className={row.values[0]?.tone} key={row.id}>
-                          {row.values[0]?.formattedValue}
+                      {tickerBreakdown.map((item) => (
+                        <b className={pnlClass(item.unrealizedPnl)} key={item.ticker}>
+                          {formatSignedThb(item.unrealizedPnl)}
                         </b>
                       ))}
                     </div>

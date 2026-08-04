@@ -96,7 +96,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["META", "Rattee", 30],
       ["META", "Mom", 12],
       ["AAPL", "Mom", 35],
-      ["MU", "Mom", 4],
+      ["MU", "Mom", 14],
       ["NVDA", "Mom", 45],
       ["KBANK", "Shared", 630],
       ["CASH", "Shared", 1],

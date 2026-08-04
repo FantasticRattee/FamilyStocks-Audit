@@ -279,25 +279,44 @@ test("keeps the approved R3F runtime, demand rendering, and motion fallback", as
   assert.match(packageJson, /"three"/);
 });
 
-test("keeps ownership and P&L bars in 3D while dividend distribution uses normal bars", async () => {
+test("keeps ownership in 3D while P&L and dividend use normal bars", async () => {
   const response = await render();
   assert.equal(response.status, 200);
 
   const html = await response.text();
   assert.match(html, /Interactive 3D family ownership bars/i);
-  assert.match(html, /Interactive 3D unrealized P&amp;L bars/i);
+  assert.doesNotMatch(html, /Interactive 3D unrealized P&amp;L bars/i);
   assert.doesNotMatch(html, /Interactive 3D net dividend forecast bars/i);
   assert.match(html, /class="ownership-chart"/i);
   assert.match(html, /class="pnl-chart"/i);
   assert.match(html, /class="dividend-owner-chart"/i);
   assert.match(html, /class="compact-r3f-bar-field ownership-r3f-bars"/i);
-  assert.match(html, /class="compact-r3f-bar-field pnl-r3f-bars"/i);
+  assert.match(html, /class="pnl-row-bars"/i);
+  assert.doesNotMatch(html, /class="compact-r3f-bar-field pnl-r3f-bars"/i);
   assert.match(html, /class="dividend-owner-row"/i);
   assert.match(html, /class="dividend-track"/i);
   assert.doesNotMatch(html, /class="compact-r3f-bar-field dividend-r3f-bars"/i);
   assert.doesNotMatch(
     html,
     /bar3d-stage|bar3d-controls|bar3d-stage-readout|bar3d-interaction-hint|bar3d-selection/i,
+  );
+});
+
+test("sizes the P&L chart from its active ticker count", async () => {
+  const response = await render();
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:7"/i);
+  assert.match(
+    styles,
+    /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*36px\)/i,
+  );
+  assert.match(
+    styles,
+    /grid-template-rows:\s*repeat\(var\(--pnl-row-count,\s*3\),\s*minmax\(0,\s*1fr\)\)/i,
   );
 });
 
@@ -308,7 +327,7 @@ test("uses one reusable demand-rendered compact R3F bar-field implementation", a
   );
 
   assert.match(dashboard, /function CompactBarField3D/);
-  assert.equal((dashboard.match(/<CompactBarField3D/g) ?? []).length, 2);
+  assert.equal((dashboard.match(/<CompactBarField3D/g) ?? []).length, 1);
   assert.doesNotMatch(dashboard, /function InteractiveBarChart3D/);
   assert.match(dashboard, /frameloop="demand"/);
   assert.match(dashboard, /THREE\.MathUtils\.damp/);
@@ -316,18 +335,21 @@ test("uses one reusable demand-rendered compact R3F bar-field implementation", a
   assert.match(dashboard, /onPointerOver/);
 });
 
-test("keeps P&L depth while family and dividend bars stay straight and calm", async () => {
+test("keeps P&L normal while family ownership remains calmly three-dimensional", async () => {
   const [dashboard, styles] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(dashboard, /const isPerformanceMode = mode === "diverging"/);
-  assert.match(dashboard, /const liftAmount = isPerformanceMode \? 0\.34 : 0/);
+  assert.doesNotMatch(dashboard, /mode="diverging"/);
+  assert.match(dashboard, /className="pnl-row-bars"/);
   assert.match(
     dashboard,
-    /const groupRotation[^=]*= isPerformanceMode\s*\? \[-0\.13, 0, 0\]\s*:\s*\[0, 0, 0\]/,
+    /className=\{`pnl-bar \$\{item\.unrealizedPnl >= 0 \? "gain" : "loss"\}`\}/,
   );
+  assert.match(styles, /\.pnl-track/);
+  assert.match(styles, /\.pnl-zero/);
+  assert.match(styles, /\.pnl-bar/);
   assert.doesNotMatch(dashboard, /3D bars unavailable/);
   assert.match(dashboard, /className="shared-pool-badge minimal"/);
   assert.match(styles, /\.shared-pool-badge\.minimal/);

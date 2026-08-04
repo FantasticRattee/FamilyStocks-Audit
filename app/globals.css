@@ -1801,17 +1801,23 @@ select:focus-visible {
   gap: 10px;
 }
 
-.pnl-r3f-bars,
+.pnl-row-bars,
 .pnl-row-labels,
 .pnl-row-values {
-  height: 108px;
+  height: calc(var(--pnl-row-count, 3) * 36px);
 }
 
+.pnl-row-bars,
 .pnl-row-labels,
 .pnl-row-values {
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--pnl-row-count, 3), minmax(0, 1fr));
   align-items: center;
+}
+
+.pnl-row-bars .pnl-track {
+  width: 100%;
+  align-self: center;
 }
 
 .pnl-row-labels strong,

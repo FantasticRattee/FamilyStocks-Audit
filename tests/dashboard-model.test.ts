@@ -32,10 +32,10 @@ test("imports the stock-audit workbook using labels and preserves its key totals
   const snapshot = await loadSourceSnapshot();
 
   assert.equal(snapshot.asOfDate, "3 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 2634334.34744);
+  closeTo(snapshot.summary.totalMarketValue, 2904935.44704);
   closeTo(snapshot.summary.sharedCapital, 2155932.19);
   closeTo(snapshot.summary.sharedMarketValue, 248270.5);
-  closeTo(snapshot.summary.totalRealizedPnl, 366562.4087022768);
+  closeTo(snapshot.summary.totalRealizedPnl, 366781.8851022768);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
     ["AAPL", "CASH", "GOOGL", "GOOGL", "KBANK", "META", "META", "MU", "NVDA"],

@@ -57,22 +57,22 @@ audit marks after canonical import, but must not change units or cost basis.
 | META | Mom | 12 | THB221,450.76 cost (USD6,600.54) |
 | META | Rattee | 30 | THB552,250.99 cost (USD16,460.34) |
 | AAPL | Mom | 35 | THB355,828.41 cost; saved mark THB354,125.17 |
-| MU | Mom | 4 | THB108,037.32 cost; saved mark THB108,240.44 |
+| MU | Mom | 14 | THB377,618.52 cost; saved mark THB378,841.54 |
 | NVDA | Mom | 45 | THB309,610.70 cost; saved mark THB309,731.08 |
 | KBANK | Shared | 630 | THB181.804905 average cost; saved mark THB242.00 |
 | CASH | Shared | 1 | THB95,810.50 confirmed whole-portfolio broker snapshot |
 
 Shared capital remains THB2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
 Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
-canonical total market value is THB2,634,334.35, unrealized P&L is
--THB32,122.27, realized P&L is THB366,562.41, and total P&L is
-THB334,440.14.
+canonical total market value is THB2,904,935.45, unrealized P&L is
+-THB31,102.37, realized P&L is THB366,781.89, and total P&L is
+THB335,679.51.
 
-The 3 Aug Mom orders are AAPL buy 50 / sell 15, MU buy 10 / sell 6, and NVDA
-buy 35 plus buy 10. They use the user-approved USD/THB reference 33.254 and
-leave AAPL 35, MU 4, and NVDA 45. Time-bounded formulas record AAPL realized
-P&L of -THB808.77 and MU realized P&L of +THB225.20; no future buy is included
-in a sold cost.
+The 3 Aug Mom orders are AAPL buy 50 / sell 15, MU buys 10 @ USD812.00 and
+10 @ USD809.80 / sell 6, and NVDA buy 35 plus buy 10. They use the
+user-approved USD/THB reference 33.254 and leave AAPL 35, MU 14, and NVDA 45.
+Time-bounded formulas record AAPL realized P&L of -THB808.77 and MU realized
+P&L of +THB444.67; no future buy is included in a sold cost.
 
 ### Accounting treatment and live-state gap
 
@@ -84,15 +84,15 @@ removal, but are **not** new external personal capital. GOOGL, META, AAPL, MU,
 and NVDA are personal positions and must never change shared-capital
 percentages, KBANK ownership, or the dividend forecast.
 
-The 3 Aug six-order net cash flow is THB774,060.01. It would leave a ledger
-residual of THB378,524.82, whereas the user-confirmed actual broker cash
-snapshot is THB95,810.50. The THB282,714.32 difference is intentionally an
-unresolved reconciliation item: do not turn it into profit, new capital, an
-owner allocation, or a synthetic transaction without broker evidence.
+The 3 Aug seven-order net cash flow is THB1,043,421.73. It would leave a
+ledger residual of THB109,163.10, whereas the user-confirmed actual broker
+cash snapshot is THB95,810.50. The THB13,352.60 difference is intentionally
+an unresolved reconciliation item: do not turn it into profit, new capital,
+an owner allocation, or a synthetic transaction without broker evidence.
 
 Railway PostgreSQL was updated from this canonical workbook on 4 Aug 2026 and
 now contains nine active holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom
-12, META Rattee 30, AAPL Mom 35, MU Mom 4, NVDA Mom 45, KBANK Shared 630, and
+12, META Rattee 30, AAPL Mom 35, MU Mom 14, NVDA Mom 45, KBANK Shared 630, and
 CASH Shared 1 at THB95,810.50. A successful market refresh followed the
 import.
 
