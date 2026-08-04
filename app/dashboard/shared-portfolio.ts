@@ -249,16 +249,24 @@ export function validatePortfolioSettings(input: unknown): PortfolioSettings {
     ),
     shareholders: settings.shareholders.map((value, index) => {
       const shareholder = asRecord(value, `Audit settings shareholders[${index}]`);
+      const poolPercent = nonNegativeNumber(
+        shareholder.poolPercent,
+        `Audit settings shareholders[${index}].poolPercent`,
+      );
       return {
         owner: requiredText(shareholder.owner, `Audit settings shareholders[${index}].owner`),
         sharedCapital: nonNegativeNumber(
           shareholder.sharedCapital,
           `Audit settings shareholders[${index}].sharedCapital`,
         ),
-        poolPercent: nonNegativeNumber(
-          shareholder.poolPercent,
-          `Audit settings shareholders[${index}].poolPercent`,
-        ),
+        poolPercent,
+        cashPercent:
+          shareholder.cashPercent === undefined
+            ? poolPercent
+            : nonNegativeNumber(
+                shareholder.cashPercent,
+                `Audit settings shareholders[${index}].cashPercent`,
+              ),
         personalCapital: nonNegativeNumber(
           shareholder.personalCapital,
           `Audit settings shareholders[${index}].personalCapital`,

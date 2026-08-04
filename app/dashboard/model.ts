@@ -7,6 +7,7 @@ export type Shareholder = {
   owner: string;
   sharedCapital: number;
   poolPercent: number;
+  cashPercent?: number;
   personalCapital: number;
   totalInvested: number;
 };
@@ -125,6 +126,15 @@ export type DashboardResult = {
       net: number;
     }>;
   };
+};
+
+export type ShareholderEquityRow = Shareholder & {
+  sharedInvestmentMarketValue: number;
+  cashMarketValue: number;
+  sharedMarketValue: number;
+  personalMarketValue: number;
+  estimatedEquity: number;
+  equityPnl: number;
 };
 
 const REQUIRED_SHEETS = [
@@ -288,6 +298,10 @@ const parseShareholders = (rows: Row[]): Shareholder[] => {
   if (percentColumn < 0) throw new Error("Could not find Pool percentage column");
   const personalColumn = findColumn(headers, [["personal"]]);
   const totalColumn = findColumn(headers, [["total", "invested"]]);
+  const cashPercentColumn = findColumn(headers, [
+    ["free", "cash"],
+    ["cash", "%"],
+  ]);
   const shareholders: Shareholder[] = [];
 
   for (const row of rows.slice(headerRow + 1)) {
@@ -304,6 +318,10 @@ const parseShareholders = (rows: Row[]): Shareholder[] => {
       owner: displayOwnerName(sourceOwner),
       sharedCapital,
       poolPercent,
+      cashPercent:
+        cashPercentColumn >= 0
+          ? numberOr(row[cashPercentColumn], poolPercent)
+          : poolPercent,
       personalCapital: personalColumn >= 0 ? numberOr(row[personalColumn]) : 0,
       totalInvested:
         totalColumn >= 0 ? numberOr(row[totalColumn]) : sharedCapital,
@@ -680,4 +698,43 @@ export function calculateDashboard(
       }),
     },
   };
+}
+
+export function calculateShareholderEquityRows(
+  snapshot: DashboardSnapshot,
+  result: DashboardResult,
+): ShareholderEquityRow[] {
+  const sharedCashMarketValue = sum(
+    result.holdings
+      .filter((holding) => holding.category === "shared" && holding.ticker === "CASH")
+      .map((holding) => holding.marketValue),
+  );
+  const sharedInvestmentMarketValue = sum(
+    result.holdings
+      .filter((holding) => holding.category === "shared" && holding.ticker !== "CASH")
+      .map((holding) => holding.marketValue),
+  );
+
+  return snapshot.shareholders.map((holder) => {
+    const personalMarketValue = sum(
+      result.holdings
+        .filter((holding) => holding.owner === holder.owner)
+        .map((holding) => holding.marketValue),
+    );
+    const ownerSharedInvestmentMarketValue =
+      sharedInvestmentMarketValue * holder.poolPercent;
+    const cashMarketValue =
+      sharedCashMarketValue * (holder.cashPercent ?? holder.poolPercent);
+    const sharedMarketValue = ownerSharedInvestmentMarketValue + cashMarketValue;
+    const estimatedEquity = sharedMarketValue + personalMarketValue;
+    return {
+      ...holder,
+      sharedInvestmentMarketValue: ownerSharedInvestmentMarketValue,
+      cashMarketValue,
+      sharedMarketValue,
+      personalMarketValue,
+      estimatedEquity,
+      equityPnl: estimatedEquity - holder.totalInvested,
+    };
+  });
 }

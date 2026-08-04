@@ -168,6 +168,18 @@ test("renders the transaction ledger newest date first without mutating audit ro
   assert.doesNotMatch(transactionFilter, /snapshot\.transactions\.sort\(/);
 });
 
+test("explains the equal free-cash allocation consistently across all audit views", async () => {
+  const dashboard = await readFile(
+    new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(dashboard, /Free Cash %/);
+  assert.match(dashboard, /KBANK × % Pool \+ CASH × % Free Cash/);
+  assert.match(dashboard, /Free cash is excluded from the dividend split/i);
+  assert.match(dashboard, /<option value="TRANSFER">TRANSFER<\/option>/);
+});
+
 test("renders the approved family portrait hero with one image-derived theme", async () => {
   const response = await render();
   assert.equal(response.status, 200);

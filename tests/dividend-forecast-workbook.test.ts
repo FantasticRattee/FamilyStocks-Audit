@@ -24,6 +24,12 @@ const normalizeFormula = (formula: string | undefined) =>
 test("keeps the past payout while adding a current-capital dividend forecast", async () => {
   const workbook = await readWorkbook();
   const dividends = workbook.Sheets.Dividends;
+  const holdingsRows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets.Holdings, {
+    header: 1,
+    raw: true,
+  });
+  const tickerRow = (ticker: string) =>
+    holdingsRows.findIndex((row) => row[0] === ticker) + 1;
 
   assert.equal(dividends.A29?.v, "DIVIDEND FORECAST (CURRENT CAPITAL)");
   assert.equal(dividends.A31?.v, "Shareholder");
@@ -43,9 +49,9 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   assert.equal(dividends.D35?.f, "SUM(D32:D34)");
 
   assert.equal(dividends.A37?.v, "PRIOR-YEAR RECURRING DIVIDEND ASSUMPTIONS");
-  assert.equal(normalizeFormula(dividends.B39?.f), "Holdings!C21");
+  assert.equal(normalizeFormula(dividends.B39?.f), `Holdings!C${tickerRow("SCB")}`);
   assert.equal(dividends.C39?.v, 11.28);
-  assert.equal(normalizeFormula(dividends.B40?.f), "Holdings!C22");
+  assert.equal(normalizeFormula(dividends.B40?.f), `Holdings!C${tickerRow("KBANK")}`);
   assert.equal(dividends.C40?.v, 12);
   assert.match(dividends.E40?.v ?? "", /special.*excluded/i);
   assert.equal(dividends.D41?.f, "SUM(D39:D40)");

@@ -42,7 +42,9 @@ The browser parses the audit first, then the server validates and
 atomically replaces both current holdings and portfolio settings in PostgreSQL.
 This carries forward the audit date, default FX, realized-P&L figure,
 shareholder ownership, dividend settings, historical dividend record, and
-transaction snapshot. Existing persisted market quotes are retained.
+transaction snapshot. The canonical `Shareholders` sheet may separately carry
+`% Share (pool)` for KBANK/dividends and `Free Cash %` for the aggregate cash
+bucket. Existing persisted market quotes are retained.
 
 ### Minimal holdings workbook
 
@@ -53,7 +55,7 @@ columns in this order:
 |---|---|---:|---:|
 | SCB | Shared | 100.00 | 1000 |
 | GOOGL | Rattee | 370.00 | 50 |
-| CASH | Shared | 1152584.83 | 1 |
+| CASH | Shared | 95810.50 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
   currency: USD for GOOGL/META/AAPL/NVDA/MU and THB for SCB/KBANK/CASH.
@@ -234,10 +236,11 @@ remain unchanged.
 
 ## Accounting rules preserved
 
-- Shared pool ownership applies to active shared investments and shared cash.
-  As of the 27 Jul 2026 SCB sale, the active shared assets are `KBANK` plus
-  the imported THB cash balance; historical SCB lots remain in the ledger for
-  realized-P&L traceability.
+- Shared pool ownership applies to KBANK and the dividend forecast. The
+  imported THB cash balance stays as one `Shared` holding but can use a
+  separate `Free Cash %` allocation; the current canonical audit uses one
+  third per owner. Historical SCB lots remain in the ledger for realized-P&L
+  traceability.
 - Personal positions do not change the shared-pool dividend forecast.
 - The April 2026 dividend remains historical; the next forecast is derived
   from current shared capital and the stored recurring-yield assumptions. Its

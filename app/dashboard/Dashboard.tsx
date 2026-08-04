@@ -41,6 +41,7 @@ import {
 } from "./live-market";
 import {
   calculateDashboard,
+  calculateShareholderEquityRows,
   createScenario,
   type DashboardSnapshot,
   type Scenario,
@@ -952,22 +953,7 @@ export function Dashboard() {
   const editableHoldings = Array.from(
     new Map(result.holdings.map((holding) => [holding.ticker, holding])).values(),
   ).filter((holding) => holding.ticker !== "CASH");
-  const shareholderRows = snapshot.shareholders.map((holder) => {
-    const personalMarketValue = sum(
-      result.holdings
-        .filter((holding) => holding.owner === holder.owner)
-        .map((holding) => holding.marketValue),
-    );
-    const sharedMarketValue = result.totals.sharedMarketValue * holder.poolPercent;
-    const estimatedEquity = sharedMarketValue + personalMarketValue;
-    return {
-      ...holder,
-      sharedMarketValue,
-      personalMarketValue,
-      estimatedEquity,
-      equityPnl: estimatedEquity - holder.totalInvested,
-    };
-  });
+  const shareholderRows = calculateShareholderEquityRows(snapshot, result);
   const ownerValueCeiling = Math.max(
     1,
     ...shareholderRows.flatMap((holder) => [
@@ -1028,7 +1014,7 @@ export function Dashboard() {
   const ownershipChartRows: BarChart3DRow[] = ownershipRows.map((holder) => ({
     id: holder.owner,
     label: holder.owner,
-    meta: `${formatPct(holder.poolPercent, 1)} pool`,
+    meta: `${formatPct(holder.poolPercent, 1)} pool · ${formatPct(holder.cashPercent ?? holder.poolPercent, 1)} cash`,
     badge: holder.owner.startsWith("Me")
       ? "ME"
       : holder.owner.slice(0, 1).toUpperCase(),
@@ -1677,7 +1663,9 @@ export function Dashboard() {
                         </span>
                         <div>
                           <strong>{holder.owner}</strong>
-                          <span>{formatPct(holder.poolPercent, 1)} pool</span>
+                          <span>
+                            {formatPct(holder.poolPercent, 1)} pool · {formatPct(holder.cashPercent ?? holder.poolPercent, 1)} cash
+                          </span>
                         </div>
                       </div>
                       <div className="owner-bars">
@@ -1702,7 +1690,7 @@ export function Dashboard() {
                 })}
               </div>
               <p className="panel-note">
-                Current equity = shared market value × pool % + personal position market value.
+                Current equity = KBANK × % Pool + CASH × % Free Cash + owner-specific position market value.
               </p>
             </section>
 
@@ -1823,7 +1811,9 @@ export function Dashboard() {
                     <th>Shareholder</th>
                     <th>Shared Capital · Fixed</th>
                     <th>% Pool</th>
-                    <th>Personal</th>
+                    <th>Free Cash %</th>
+                    <th>External Personal Capital</th>
+                    <th>Owner-specific Holdings</th>
                     <th>Total Invested</th>
                     <th>Est. Current Equity</th>
                     <th>P&amp;L vs Invested</th>
@@ -1837,7 +1827,9 @@ export function Dashboard() {
                       </td>
                       <td>{formatThb(holder.sharedCapital)}</td>
                       <td>{formatPct(holder.poolPercent)}</td>
+                      <td>{formatPct(holder.cashPercent ?? holder.poolPercent)}</td>
                       <td>{formatThb(holder.personalCapital)}</td>
+                      <td>{formatThb(holder.personalMarketValue)}</td>
                       <td>{formatThb(holder.totalInvested)}</td>
                       <td>{formatThb(holder.estimatedEquity)}</td>
                       <td className={pnlClass(holder.equityPnl)}>
@@ -1849,8 +1841,8 @@ export function Dashboard() {
               </table>
             </div>
             <p className="panel-note">
-              Estimated Current Equity = Shared Market Value × % Pool + personal position market value.
-              It is a dashboard estimate; the audit ledger remains in Excel.
+              Estimated Current Equity = KBANK × % Pool + CASH × % Free Cash + owner-specific position market value.
+              Free cash is split equally; contributed capital and the KBANK pool ratio remain unchanged.
             </p>
           </section>
         ) : null}
@@ -1991,7 +1983,7 @@ export function Dashboard() {
                 </div>
                 <p className="panel-note warning">
                   {currentCapitalForecast
-                    ? `Historical Apr 2026 payout: ${formatThb(snapshot.historicalDividend.net)} net. This forecast uses current capital and prior-year recurring DPS; it is not an announced payout.`
+                    ? `Historical Apr 2026 payout: ${formatThb(snapshot.historicalDividend.net)} net. This forecast uses current capital and prior-year recurring DPS; it is not an announced payout. Free cash is excluded from the dividend split.`
                     : "Historical Apr 2026 payout uses its historical eligibility and allocation. This view is for scenario planning only."}
                 </p>
               </article>
@@ -2021,6 +2013,7 @@ export function Dashboard() {
                   <option value="ALL">All</option>
                   <option value="BUY">BUY</option>
                   <option value="SELL">SELL</option>
+                  <option value="TRANSFER">TRANSFER</option>
                 </select>
               </label>
               <label>

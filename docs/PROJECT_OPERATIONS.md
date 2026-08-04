@@ -2,8 +2,9 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified: **4 Aug 2026**. The 3 Aug canonical workbook was imported to
-> Railway PostgreSQL on 4 Aug and its market quotes were refreshed.
+> Last verified locally: **4 Aug 2026**. The canonical workbook and embedded
+> seed include the 4 Aug owner allocation. Production is current only after
+> the canonical import and `/api/portfolio` verification described below.
 
 ## Start here
 
@@ -43,11 +44,12 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 3 Aug workbook reconciled; Railway import complete
+## Current canonical state — 4 Aug owner allocation reconciled
 
 The canonical `Portfolio_Accounting.xlsx` and embedded seed include the owner
-correction, the available broker-history reconciliation, and the completed
-orders through **3 Aug 2026**. A public market refresh may replace the saved
+corrections, the available broker-history reconciliation, completed broker
+orders through **3 Aug 2026**, and three zero-cash ownership allocations dated
+**4 Aug 2026**. A public market refresh may replace the saved
 audit marks after canonical import, but must not change units or cost basis.
 
 | Holding | Owner/account | Units | Entry price / audit value |
@@ -56,14 +58,20 @@ audit marks after canonical import, but must not change units or cost basis.
 | GOOGL | Rattee | 70 | THB851,302.33 cost (65 prior shares + five-share allocation) |
 | META | Mom | 12 | THB221,450.76 cost (USD6,600.54) |
 | META | Rattee | 30 | THB552,250.99 cost (USD16,460.34) |
-| AAPL | Mom | 35 | THB355,828.41 cost; saved mark THB354,125.17 |
-| MU | Mom | 14 | THB377,618.52 cost; saved mark THB378,841.54 |
-| NVDA | Mom | 45 | THB309,610.70 cost; saved mark THB309,731.08 |
+| AAPL | Mom | 21 | THB213,497.04 inherited cost; saved mark THB212,475.10 |
+| AAPL | Ryu | 14 | THB142,331.36 inherited cost; saved mark THB141,650.07 |
+| MU | Mom | 13 | THB350,645.77 inherited cost; saved mark THB351,781.43 |
+| MU | Ryu | 1 | THB26,972.75 inherited cost; saved mark THB27,060.11 |
+| NVDA | Mom | 27 | THB185,766.42 inherited cost; saved mark THB185,838.65 |
+| NVDA | Ryu | 18 | THB123,844.28 inherited cost; saved mark THB123,892.43 |
 | KBANK | Shared | 630 | THB181.804905 average cost; saved mark THB242.00 |
 | CASH | Shared | 1 | THB95,810.50 confirmed whole-portfolio broker snapshot |
 
 Shared capital remains THB2,155,932.19: Mom 57.9796%, Rattee 28.1053%, and
 Ryu 13.9151%. SCB has zero active shares after the 27 Jul 2026 sale. The
+THB95,810.50 current free-cash bucket is allocated one third to each owner for
+current-equity reporting; KBANK and dividend allocation retain the original
+pool percentages. The
 canonical total market value is THB2,904,935.45, unrealized P&L is
 -THB31,102.37, realized P&L is THB366,781.89, and total P&L is
 THB335,679.51.
@@ -72,7 +80,10 @@ The 3 Aug Mom orders are AAPL buy 50 / sell 15, MU buys 10 @ USD812.00 and
 10 @ USD809.80 / sell 6, and NVDA buy 35 plus buy 10. They use the
 user-approved USD/THB reference 33.254 and leave AAPL 35, MU 14, and NVDA 45.
 Time-bounded formulas record AAPL realized P&L of -THB808.77 and MU realized
-P&L of +THB444.67; no future buy is included in a sold cost.
+P&L of +THB444.67; no future buy is included in a sold cost. The later 4 Aug
+internal allocation moves AAPL 14, MU 1 and NVDA 18 from Mom to Ryu at
+inherited THB cost **THB293,148.40**. It is not a broker trade, cash flow, new
+capital or realized P&L event.
 
 ### Accounting treatment and live-state gap
 
@@ -90,11 +101,11 @@ cash snapshot is THB95,810.50. The THB13,352.60 difference is intentionally
 an unresolved reconciliation item: do not turn it into profit, new capital,
 an owner allocation, or a synthetic transaction without broker evidence.
 
-Railway PostgreSQL was updated from this canonical workbook on 4 Aug 2026 and
-now contains nine active holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom
-12, META Rattee 30, AAPL Mom 35, MU Mom 14, NVDA Mom 45, KBANK Shared 630, and
-CASH Shared 1 at THB95,810.50. A successful market refresh followed the
-import.
+The next canonical production import must contain 12 active holding rows:
+GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, AAPL Mom 21, AAPL
+Ryu 14, MU Mom 13, MU Ryu 1, NVDA Mom 27, NVDA Ryu 18, KBANK Shared 630, and
+CASH Shared 1 at THB95,810.50. Do not mark production synchronized until the
+import, market refresh and all-five-tab verification have completed.
 
 ## Canonical Excel workbook
 
@@ -103,8 +114,8 @@ Path: `../Portfolio_Accounting.xlsx`
 The workbook must keep exactly these six sheets:
 
 1. `Summary` — formula-driven market value, unrealized/realized P&L and totals.
-2. `Shareholders` — shared contributed capital, ownership percentages and
-   personal positions.
+2. `Shareholders` — shared contributed capital, KBANK/dividend pool
+   percentages, equal free-cash percentages and personal-capital metadata.
 3. `Lot Holdings` — active lots and retained historical lots.
 4. `Dividends` — historical paid dividend and the current-capital forecast.
 5. `Holdings` — current active positions, including Shared `CASH`.
@@ -117,7 +128,8 @@ The workbook must keep exactly these six sheets:
   eligibility, and is not a synthetic balancing transaction.
 - SCB is a historical zero-quantity holding after the 27 Jul 2026 sale; retain
   its lots and sell rows for traceability.
-- Shared capital percentages allocate shared cash and KBANK. Personal GOOGL,
+- Shared capital percentages allocate KBANK and dividends. `Free Cash %`
+  allocates the single aggregate CASH balance one third each. Personal GOOGL,
   META, AAPL, MU, and NVDA belong to their named owners only and do not dilute
   the dividend forecast. Their purchase cost reduces Shared CASH as a funding
   classification only; it is not their owners' externally contributed capital.
