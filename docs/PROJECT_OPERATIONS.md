@@ -101,11 +101,15 @@ cash snapshot is THB95,810.50. The THB13,352.60 difference is intentionally
 an unresolved reconciliation item: do not turn it into profit, new capital,
 an owner allocation, or a synthetic transaction without broker evidence.
 
-The next canonical production import must contain 12 active holding rows:
+The canonical production import completed on 4 Aug 2026 contains 12 active
+holding rows:
 GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, AAPL Mom 21, AAPL
 Ryu 14, MU Mom 13, MU Ryu 1, NVDA Mom 27, NVDA Ryu 18, KBANK Shared 630, and
-CASH Shared 1 at THB95,810.50. Do not mark production synchronized until the
-import, market refresh and all-five-tab verification have completed.
+CASH Shared 1 at THB95,810.50. Allocation commit `d2e9f5c` deployed
+successfully; the canonical import, public-market refresh and all-five-tab
+verification completed. Production `/api/portfolio` also confirmed equal
+one-third Free Cash percentages and three zero-cash, zero-P&L `TRANSFER` rows.
+Repeat these checks before marking any future update synchronized.
 
 ## Canonical Excel workbook
 
