@@ -2,7 +2,8 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified: **3 Aug 2026** for the canonical workbook; Railway import is pending.
+> Last verified: **4 Aug 2026**. The 3 Aug canonical workbook was imported to
+> Railway PostgreSQL on 4 Aug and its market quotes were refreshed.
 
 ## Start here
 
@@ -42,7 +43,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 3 Aug workbook reconciled; Railway import pending
+## Current canonical state — 3 Aug workbook reconciled; Railway import complete
 
 The canonical `Portfolio_Accounting.xlsx` and embedded seed include the owner
 correction, the available broker-history reconciliation, and the completed
@@ -89,11 +90,11 @@ snapshot is THB95,810.50. The THB282,714.32 difference is intentionally an
 unresolved reconciliation item: do not turn it into profit, new capital, an
 owner allocation, or a synthetic transaction without broker evidence.
 
-The live Railway PostgreSQL portfolio remains pre-import until the next
-canonical import. The required post-import state is nine active
-holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom 12, META Rattee 30, AAPL
-Mom 35, MU Mom 4, NVDA Mom 45, KBANK Shared 630, and CASH Shared 1 at
-THB95,810.50.
+Railway PostgreSQL was updated from this canonical workbook on 4 Aug 2026 and
+now contains nine active holding rows: GOOGL Mom 5, GOOGL Rattee 70, META Mom
+12, META Rattee 30, AAPL Mom 35, MU Mom 4, NVDA Mom 45, KBANK Shared 630, and
+CASH Shared 1 at THB95,810.50. A successful market refresh followed the
+import.
 
 ## Canonical Excel workbook
 
