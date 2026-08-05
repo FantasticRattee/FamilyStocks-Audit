@@ -101,6 +101,7 @@ type TickerAllocation = {
   ticker: string;
   displayTicker: string;
   marketValue: number;
+  quantity: number;
   ratio: number;
   color: string;
 };
@@ -786,7 +787,11 @@ function PortfolioComposition3D({
               key={allocation.ticker}
               type="button"
               aria-pressed={index === activeIndex}
-              aria-label={`Select ${allocation.displayTicker} allocation ${formatPct(allocation.ratio, 1)}, ${formatThb(allocation.marketValue)}`}
+              aria-label={`Select ${allocation.displayTicker} allocation ${formatPct(allocation.ratio, 1)}, ${formatThb(allocation.marketValue)}, ${
+                allocation.ticker === "CASH"
+                  ? "cash balance"
+                  : `${formatQty(allocation.quantity)} units`
+              }`}
               onClick={() => setActiveIndex(index)}
               onMouseEnter={() => setActiveIndex(index)}
               onFocus={() => setActiveIndex(index)}
@@ -795,6 +800,11 @@ function PortfolioComposition3D({
               <span>
                 <strong>{allocation.displayTicker}</strong>
                 <small>{formatThb(allocation.marketValue)}</small>
+                <small className="allocation-holding-meta">
+                  {allocation.ticker === "CASH"
+                    ? "Cash balance"
+                    : `${formatQty(allocation.quantity)} units`}
+                </small>
               </span>
               <b>{formatPct(allocation.ratio, 1)}</b>
             </button>
@@ -970,14 +980,27 @@ export function Dashboard() {
       .reduce((byTicker, holding) => {
         const current = byTicker.get(holding.ticker) ?? {
           ticker: holding.ticker,
+          quantity: 0,
+          costBasis: 0,
           marketValue: 0,
           unrealizedPnl: 0,
         };
+        current.quantity += holding.quantity;
+        current.costBasis += holding.costBasis;
         current.marketValue += holding.marketValue;
         current.unrealizedPnl += holding.unrealizedPnl;
         byTicker.set(holding.ticker, current);
         return byTicker;
-      }, new Map<string, { ticker: string; marketValue: number; unrealizedPnl: number }>())
+      }, new Map<
+        string,
+        {
+          ticker: string;
+          quantity: number;
+          costBasis: number;
+          marketValue: number;
+          unrealizedPnl: number;
+        }
+      >())
       .values(),
   ).sort((left, right) => right.marketValue - left.marketValue);
   const tickerColors = [
@@ -991,6 +1014,7 @@ export function Dashboard() {
     ticker: item.ticker,
     displayTicker: getHoldingDisplayTicker(item.ticker, holdingEdits),
     marketValue: item.marketValue,
+    quantity: item.quantity,
     ratio: item.marketValue / Math.max(result.totals.marketValue, 1),
     color: tickerColors[index % tickerColors.length],
   }));
@@ -1746,9 +1770,14 @@ export function Dashboard() {
                     </div>
                     <div className="pnl-row-values">
                       {tickerBreakdown.map((item) => (
-                        <b className={pnlClass(item.unrealizedPnl)} key={item.ticker}>
-                          {formatSignedThb(item.unrealizedPnl)}
-                        </b>
+                        <div className="pnl-value-pair" key={item.ticker}>
+                          <small className="pnl-cost-basis">
+                            {`Cost ${formatThb(item.costBasis)}`}
+                          </small>
+                          <b className={pnlClass(item.unrealizedPnl)}>
+                            {formatSignedThb(item.unrealizedPnl)}
+                          </b>
+                        </div>
                       ))}
                     </div>
                   </div>
