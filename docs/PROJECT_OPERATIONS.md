@@ -2,9 +2,11 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last local canonical reconciliation: **7 Aug 2026**. The workbook and
-> embedded seed now use pooled allocation effective 5 Aug; deploy/import and
-> production verification must follow this change.
+> Last canonical and live-production reconciliation: **7 Aug 2026**. Commit
+> `30181e2` contains the pooled-allocation implementation; the canonical
+> workbook was imported into Railway PostgreSQL and public prices were refreshed
+> afterward. Production therefore has the three active pooled rows: GOOGL 75,
+> NVDA 45 and CASH THB1,850,489.59.
 
 ## Start here
 
@@ -136,16 +138,15 @@ snapshot forward gives THB93,086.66. The THB13,352.60 pre-existing difference is
 an unresolved reconciliation item: do not turn it into profit, new capital,
 an owner allocation, or a synthetic transaction without broker evidence.
 
-The verified canonical production import contains 12 active holding rows:
-GOOGL Mom 5, GOOGL Rattee 70, META Mom 20, META Rattee 30, AAPL Mom 6, AAPL
-Ryu 14, MU Mom 13, MU Ryu 1, NVDA Mom 27, NVDA Ryu 18, KBANK Shared 630, and
-CASH Shared 1 at THB93,086.66. It also contains 74 transaction rows,
-including the three zero-cash `TRANSFER` rows and the three new completed Mom
-broker rows. Import hash
-`9eb44eb2bedb1833eba1302b3ecb86aff681c256d9092f8c3ddb7708e36f1e0f` and
-the 5 Aug 2026 public-price refresh were verified through `/api/portfolio`.
-Repeat the canonical import, public-market refresh, API check and all-five-tab
-check after every future accounting update.
+The pre-pooling production evidence above is historical only. On **7 Aug
+2026**, the new pooled canonical workbook was imported into Railway as
+`Portfolio_Accounting.xlsx` (3 active holding rows; import hash
+`1a8f1f1ccc949e874626da48834732f60594acbebed01396c078fb3238131901`).
+Google Finance refreshed GOOGL and NVDA and USD/THB afterward; CASH stayed at
+its imported audit value. Overview, Shareholders, Holdings, Dividends and
+Transactions were each verified against `/api/portfolio`. Repeat that complete
+import, public-market refresh, API check and all-five-tab verification after
+every future accounting update.
 
 ## Canonical Excel workbook
 
