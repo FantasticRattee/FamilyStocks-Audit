@@ -429,6 +429,20 @@ test("keeps P&L normal while family ownership remains calmly three-dimensional",
   assert.match(styles, /\.shared-pool-badge\.minimal/);
 });
 
+test("adds a dated realized-sale P&L view with Rattee's pooled share", async () => {
+  const dashboard = await readFile(
+    new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(dashboard, /\["sale-pnl", "กำไรขาย"\]/);
+  assert.match(dashboard, /activeTab === "sale-pnl"/);
+  assert.match(dashboard, /กำไรสะสม/);
+  assert.match(dashboard, /ขาดทุนสะสม/);
+  assert.match(dashboard, /ส่วนของ Rattee/);
+  assert.match(dashboard, /Historical/);
+});
+
 test("requires Railway PostgreSQL before a market refresh can mutate shared state", async () => {
   const previousDatabaseUrl = process.env.DATABASE_URL;
   const originalFetch = globalThis.fetch;

@@ -6,6 +6,7 @@ import {
   calculateDashboard,
   calculateShareholderEquityRows,
   createScenario,
+  deriveSalePnlSummary,
   parseWorkbook,
 } from "../app/dashboard/model";
 
@@ -127,6 +128,47 @@ test("allocates every active pooled asset by total contributed-capital percentag
   closeTo(
     owners.reduce((total, owner) => total + owner.estimatedEquity, 0),
     result.totals.marketValue,
+  );
+});
+
+test("derives dated realized sale P&L without applying the pooled split to historical sales", async () => {
+  const snapshot = await loadSourceSnapshot();
+  const salePnl = deriveSalePnlSummary(snapshot.transactions, snapshot.shareholders);
+  const ledgerSales = snapshot.transactions.filter(
+    (transaction) => transaction.side === "SELL",
+  );
+  const rattee = snapshot.shareholders.find((holder) => holder.owner === "Rattee");
+
+  assert.ok(rattee);
+  assert.equal(salePnl.rows.length, ledgerSales.length);
+  assert.equal(
+    salePnl.rows.every((row, index, rows) =>
+      index === 0 || rows[index - 1].date >= row.date,
+    ),
+    true,
+  );
+  for (const row of salePnl.rows) {
+    closeTo(row.soldCostThb, row.netProceedsThb - row.realizedPnlThb);
+  }
+
+  const historicalSale = salePnl.rows.find((row) => row.date < "2026-08-05");
+  const pooledSale = salePnl.rows.find((row) => row.date >= "2026-08-05");
+  assert.ok(historicalSale);
+  assert.ok(pooledSale);
+  assert.equal(historicalSale.allocationMode, "historical");
+  assert.equal(historicalSale.ratteeShareThb, null);
+  assert.equal(pooledSale.allocationMode, "pooled");
+  closeTo(
+    pooledSale.ratteeShareThb ?? 0,
+    pooledSale.realizedPnlThb * rattee.poolPercent,
+  );
+  closeTo(
+    salePnl.totalGainsThb + salePnl.totalLossesThb,
+    salePnl.netRealizedPnlThb,
+  );
+  closeTo(
+    salePnl.netRealizedPnlThb,
+    ledgerSales.reduce((total, transaction) => total + transaction.realizedPnlThb, 0),
   );
 });
 

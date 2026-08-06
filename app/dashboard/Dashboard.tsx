@@ -43,6 +43,7 @@ import {
   calculateDashboard,
   calculateShareholderEquityRows,
   createScenario,
+  deriveSalePnlSummary,
   type DashboardSnapshot,
   type Scenario,
 } from "./model";
@@ -61,6 +62,7 @@ const TABS = [
   ["holdings", "หุ้นที่ถือ"],
   ["dividends", "ปันผล"],
   ["transactions", "รายการ"],
+  ["sale-pnl", "กำไรขาย"],
 ] as const;
 
 const PORTFOLIO_THEME = {
@@ -1091,6 +1093,10 @@ export function Dashboard() {
       );
     })
     .sort((left, right) => right.date.localeCompare(left.date));
+  const salePnlSummary = useMemo(
+    () => deriveSalePnlSummary(snapshot.transactions, snapshot.shareholders),
+    [snapshot.shareholders, snapshot.transactions],
+  );
 
   const applyWorkbook = async (file: File) => {
     const requestId = ++workbookRequestIdRef.current;
@@ -2109,6 +2115,93 @@ export function Dashboard() {
             </div>
             <p className="panel-note warning">
               Realized P&amp;L is imported from the current audit workbook. Confirm lot-time-specific cost treatment before using it for settlement-grade accounting.
+            </p>
+          </section>
+        ) : null}
+
+        {activeTab === "sale-pnl" ? (
+          <section className="panel sale-pnl-panel">
+            <SectionTitle
+              eyebrow="REALIZED SALE P&amp;L"
+              title="กำไร/ขาดทุนจากการขาย"
+              action={<span className="count-chip">{salePnlSummary.rows.length} sales</span>}
+            />
+            <div className="sale-pnl-summary" aria-label="Realized sale P&L summary">
+              <article className="sale-pnl-summary-card gain">
+                <span>กำไรสะสม</span>
+                <strong>{formatSignedThb(salePnlSummary.totalGainsThb)}</strong>
+                <small>เฉพาะรายการ SELL ที่กำไร</small>
+              </article>
+              <article className="sale-pnl-summary-card loss">
+                <span>ขาดทุนสะสม</span>
+                <strong>{formatSignedThb(salePnlSummary.totalLossesThb)}</strong>
+                <small>เฉพาะรายการ SELL ที่ขาดทุน</small>
+              </article>
+              <article
+                className={`sale-pnl-summary-card ${pnlClass(salePnlSummary.netRealizedPnlThb)}`}
+              >
+                <span>กำไรสุทธิจากการขาย</span>
+                <strong>{formatSignedThb(salePnlSummary.netRealizedPnlThb)}</strong>
+                <small>รวมผล realized จากทุกวันที่ขาย</small>
+              </article>
+            </div>
+            <div className="table-wrap">
+              <table className="sale-pnl-table">
+                <thead>
+                  <tr>
+                    <th>วันที่ขาย</th>
+                    <th>หุ้น</th>
+                    <th>จำนวน</th>
+                    <th>ยอดขายสุทธิ</th>
+                    <th>ต้นทุนที่ขาย</th>
+                    <th>กำไร/ขาดทุนรวม</th>
+                    <th>ส่วนของ Rattee</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salePnlSummary.rows.map((sale, index) => (
+                    <tr key={`${sale.date}-${sale.ticker}-${sale.account}-${index}`}>
+                      <td>{formatDate(sale.date)}</td>
+                      <td>
+                        <strong>{getHoldingDisplayTicker(sale.ticker, holdingEdits)}</strong>
+                        <small className="sale-pnl-account">{sale.account}</small>
+                      </td>
+                      <td>{formatQty(sale.quantity)}</td>
+                      <td>{formatThb(sale.netProceedsThb)}</td>
+                      <td>{formatThb(sale.soldCostThb)}</td>
+                      <td className={pnlClass(sale.realizedPnlThb)}>
+                        <strong>{formatSignedThb(sale.realizedPnlThb)}</strong>
+                      </td>
+                      <td className={sale.ratteeShareThb === null ? "neutral" : pnlClass(sale.ratteeShareThb)}>
+                        {sale.ratteeShareThb === null ? (
+                          <span className="sale-pnl-historical">Historical</span>
+                        ) : (
+                          <>
+                            <strong>{formatSignedThb(sale.ratteeShareThb)}</strong>
+                            <small className="sale-pnl-allocation">
+                              {formatPct(salePnlSummary.ratteePoolPercent)} pooled
+                            </small>
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`sale-pnl-status ${sale.classification}`}>
+                          {sale.classification === "gain"
+                            ? "กำไร"
+                            : sale.classification === "loss"
+                              ? "ขาดทุน"
+                              : "เสมอตัว"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {salePnlSummary.rows.length === 0 ? <EmptyTransactions /> : null}
+            </div>
+            <p className="panel-note warning">
+              ส่วนของ Rattee แสดงเฉพาะ SELL ตั้งแต่ 5 Aug 2026 ตามสัดส่วน Total Capital ปัจจุบัน ({formatPct(salePnlSummary.ratteePoolPercent)}). รายการก่อนหน้านั้นคงเป็น Historical เพื่อไม่ย้อนแก้ owner record เดิม.
             </p>
           </section>
         ) : null}

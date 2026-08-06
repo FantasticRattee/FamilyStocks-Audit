@@ -2253,6 +2253,103 @@ td strong {
   min-width: 1100px;
 }
 
+.sale-pnl-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sale-pnl-summary-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid #dfe8e4;
+  border-radius: 15px;
+  background: #f7faf7;
+  padding: 15px 16px;
+}
+
+.sale-pnl-summary-card > span,
+.sale-pnl-summary-card small {
+  color: #718293;
+  font-size: 0.7rem;
+}
+
+.sale-pnl-summary-card > span {
+  font-weight: 780;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.sale-pnl-summary-card strong {
+  color: var(--navy);
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  letter-spacing: -0.025em;
+}
+
+.sale-pnl-summary-card.gain {
+  border-color: #bfdfd0;
+  background: #f0f8f3;
+}
+
+.sale-pnl-summary-card.loss {
+  border-color: #efd4d0;
+  background: #fff5f3;
+}
+
+.sale-pnl-summary-card.gain strong,
+.sale-pnl-summary-card.positive strong {
+  color: var(--gain);
+}
+
+.sale-pnl-summary-card.loss strong,
+.sale-pnl-summary-card.negative strong {
+  color: var(--loss);
+}
+
+.sale-pnl-table {
+  min-width: 980px;
+}
+
+.sale-pnl-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.sale-pnl-account,
+.sale-pnl-allocation {
+  display: block;
+  margin-top: 3px;
+  color: #7d8e9c;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.sale-pnl-historical,
+.sale-pnl-status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #dce4e6;
+  border-radius: 999px;
+  background: #f4f7f7;
+  color: #647786;
+  padding: 4px 7px;
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.sale-pnl-status.gain {
+  border-color: #bee0d0;
+  background: #ecf8f3;
+  color: #08745b;
+}
+
+.sale-pnl-status.loss {
+  border-color: #f0d3cf;
+  background: #fff0ef;
+  color: #b94d4d;
+}
+
 .transaction-note {
   max-width: 250px;
   overflow: hidden;
@@ -2832,6 +2929,28 @@ td strong {
   box-shadow: inset 0 0 24px rgba(120, 107, 62, 0.025);
 }
 
+.ghibli-countryside-ledger .sale-pnl-summary-card {
+  border-color: rgba(105, 133, 91, 0.25);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(215, 230, 193, 0.45), transparent 45%),
+    rgba(255, 250, 235, 0.92);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.ghibli-countryside-ledger .sale-pnl-summary-card.gain {
+  border-color: rgba(98, 142, 103, 0.35);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(185, 222, 193, 0.42), transparent 46%),
+    rgba(242, 248, 233, 0.96);
+}
+
+.ghibli-countryside-ledger .sale-pnl-summary-card.loss {
+  border-color: rgba(194, 119, 101, 0.28);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(244, 204, 181, 0.42), transparent 46%),
+    rgba(255, 247, 235, 0.96);
+}
+
 .ghibli-countryside-ledger th {
   border-bottom-color: rgba(125, 128, 88, 0.25);
   background: #edf1de;
@@ -3011,6 +3130,10 @@ td strong {
   }
 
   .wealth-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sale-pnl-summary {
     grid-template-columns: 1fr;
   }
 

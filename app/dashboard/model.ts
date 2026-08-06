@@ -66,6 +66,91 @@ export type Transaction = {
   note: string;
 };
 
+export type SalePnlClassification = "gain" | "loss" | "flat";
+
+export type SalePnlRow = {
+  date: string;
+  account: string;
+  ticker: string;
+  quantity: number;
+  netProceedsThb: number;
+  soldCostThb: number;
+  realizedPnlThb: number;
+  classification: SalePnlClassification;
+  ratteeShareThb: number | null;
+  allocationMode: "pooled" | "historical";
+};
+
+export type SalePnlSummary = {
+  rows: SalePnlRow[];
+  totalGainsThb: number;
+  totalLossesThb: number;
+  netRealizedPnlThb: number;
+  ratteePoolPercent: number;
+};
+
+export const POOLED_SALE_PNL_START_DATE = "2026-08-05";
+
+const findRatteePoolPercent = (shareholders: Shareholder[]) =>
+  shareholders.find((shareholder) => shareholder.owner.trim().toLowerCase() === "rattee")
+    ?.poolPercent ?? 0;
+
+/**
+ * A derived, audit-friendly view of broker SELL rows. Historical owner notes
+ * remain in the ledger, while only post-pooling sales receive the current
+ * whole-portfolio Rattee allocation.
+ */
+export const deriveSalePnlSummary = (
+  transactions: Transaction[],
+  shareholders: Shareholder[],
+  pooledStartDate = POOLED_SALE_PNL_START_DATE,
+): SalePnlSummary => {
+  const ratteePoolPercent = findRatteePoolPercent(shareholders);
+  const rows = transactions
+    .filter((transaction) => transaction.side.toUpperCase() === "SELL")
+    .map((transaction) => {
+      const allocationMode = transaction.date >= pooledStartDate ? "pooled" : "historical";
+      const classification: SalePnlClassification =
+        transaction.realizedPnlThb > 0
+          ? "gain"
+          : transaction.realizedPnlThb < 0
+            ? "loss"
+            : "flat";
+      return {
+        date: transaction.date,
+        account: transaction.account,
+        ticker: transaction.ticker,
+        quantity: transaction.quantity,
+        netProceedsThb: transaction.costProceedsThb,
+        soldCostThb: transaction.costProceedsThb - transaction.realizedPnlThb,
+        realizedPnlThb: transaction.realizedPnlThb,
+        classification,
+        ratteeShareThb:
+          allocationMode === "pooled"
+            ? transaction.realizedPnlThb * ratteePoolPercent
+            : null,
+        allocationMode,
+      } satisfies SalePnlRow;
+    })
+    .sort((left, right) => right.date.localeCompare(left.date));
+  const totalGainsThb = rows.reduce(
+    (total, row) => total + Math.max(row.realizedPnlThb, 0),
+    0,
+  );
+  const totalLossesThb = rows.reduce(
+    (total, row) => total + Math.min(row.realizedPnlThb, 0),
+    0,
+  );
+
+  return {
+    rows,
+    totalGainsThb,
+    totalLossesThb,
+    netRealizedPnlThb: totalGainsThb + totalLossesThb,
+    ratteePoolPercent,
+  };
+};
+
 export type DashboardSnapshot = {
   filename: string;
   asOfDate: string;
