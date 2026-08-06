@@ -91,33 +91,24 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
     [
-      ["GOOGL", "Mom", 5],
-      ["GOOGL", "Rattee", 70],
-      ["META", "Rattee", 30],
-      ["META", "Mom", 20],
-      ["AAPL", "Mom", 6],
-      ["MU", "Mom", 13],
-      ["NVDA", "Mom", 27],
-      ["AAPL", "Ryu", 14],
-      ["MU", "Ryu", 1],
-      ["NVDA", "Ryu", 18],
-      ["KBANK", "Shared", 630],
+      ["GOOGL", "Shared", 75],
+      ["NVDA", "Shared", 45],
       ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "4 Aug 2026");
+  assert.equal(parsed.settings?.asOfDate, "5 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
         1_399_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-04");
-  assert.equal(parsed.settings?.transactions.at(-1)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "META");
-  assert.equal(parsed.settings?.transactions.at(-1)?.account, "Personal-US (Mom)");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-05");
+  assert.equal(parsed.settings?.transactions.at(-1)?.side, "SELL");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "AMD");
+  assert.equal(parsed.settings?.transactions.at(-1)?.account, "Shared-US");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {

@@ -85,20 +85,12 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
 
   assert.deepEqual(plan.symbols, [
     "GOOGL",
-    "META",
-    "AAPL",
-    "MU",
     "NVDA",
-    "KBANK",
     "USDTHB",
   ]);
   assert.deepEqual(plan.stocks, [
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
-    { ticker: "META", marketKey: "META", currency: "USD" },
-    { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
-    { ticker: "MU", marketKey: "MU", currency: "USD" },
     { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
-    { ticker: "KBANK", marketKey: "KBANK", currency: "THB" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
@@ -125,17 +117,15 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
 
   assert.deepEqual(plan.symbols, [
     "GOOGL",
-    "META",
+    "NVDA",
     "AAPL",
     "MU",
-    "NVDA",
-    "KBANK",
     "USDTHB",
   ]);
   assert.deepEqual(plan.stocks.filter((stock) => ["AAPL", "MU", "NVDA"].includes(stock.ticker)), [
+    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
     { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
     { ticker: "MU", marketKey: "MU", currency: "USD" },
-    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
@@ -145,7 +135,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 93_086.66486) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 1_850_489.59252) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -156,11 +146,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
   assert.deepEqual(plan.symbols, [
     "GOOGL",
-    "META",
-    "AAPL",
-    "MU",
     "NVDA",
-    "KBANK",
     "USDTHB",
   ]);
 });
@@ -170,7 +156,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   const snapshot = await loadSnapshot();
   const auditScenario = createScenario(snapshot);
   auditScenario.prices.GOOGL = 350;
-  auditScenario.prices.META = 540;
+  auditScenario.prices.NVDA = 200;
   auditScenario.fx = 33;
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -179,8 +165,7 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   const liveState = liveMarket.createLiveMarketState(plan, {
     quotes: {
       GOOGL: quote("GOOGL", 400, "USD"),
-      META: quote("META", 500, "USD"),
-      KBANK: quote("KBANK.BK", 200, "THB"),
+      NVDA: quote("NVDA", 220, "USD"),
       USDTHB: quote("USDTHB", 34, "THB"),
     },
     failures: {},
@@ -194,28 +179,25 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
   );
 
   assert.equal(liveScenario.prices.GOOGL, 400);
-  assert.equal(liveScenario.prices.META, 500);
-  assert.equal(liveScenario.prices.KBANK, 200);
+  assert.equal(liveScenario.prices.NVDA, 220);
   assert.equal(liveScenario.fx, 34);
   assert.equal(auditScenario.prices.GOOGL, 350);
   assert.equal(auditScenario.fx, 33);
 
   const result = calculateDashboard(snapshot, liveScenario);
-  const expectedPersonalMarketValue = snapshot.holdings
-    .filter((holding) => holding.category === "personal")
+  const expectedSharedMarketValue = snapshot.holdings
+    .filter((holding) => holding.category === "shared")
     .reduce(
       (total, holding) =>
-        total +
-        holding.quantity *
-          (liveScenario.prices[holding.ticker] ?? holding.importedPriceThb / snapshot.defaultFx) *
-          liveScenario.fx,
+        total + (holding.ticker === "CASH"
+          ? holding.costBasis
+          : holding.quantity *
+            (liveScenario.prices[holding.ticker] ?? holding.importedPriceThb / snapshot.defaultFx) *
+            liveScenario.fx),
       0,
     );
-  assert.equal(result.totals.personalMarketValue, expectedPersonalMarketValue);
-  assert.ok(
-    Math.abs(result.totals.sharedMarketValue - (93_086.66486 + 630 * 200)) <
-      0.000001,
-  );
+  assert.equal(result.totals.personalMarketValue, 0);
+  assert.ok(Math.abs(result.totals.sharedMarketValue - expectedSharedMarketValue) < 0.000001);
 });
 
 test("retains free public-source links with the display-only market state", async () => {

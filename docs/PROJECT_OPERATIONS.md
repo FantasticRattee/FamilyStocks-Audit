@@ -2,11 +2,9 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last verified end to end: **5 Aug 2026, 00:02 ICT**. The canonical workbook,
-> embedded seed and Railway PostgreSQL include the 4 Aug owner allocation and
-> Mom AAPL/META rebalance. GitHub commit `0d83a43`, the canonical import,
-> public-market refresh, `/api/portfolio` and all five dashboard tabs were
-> verified together.
+> Last local canonical reconciliation: **7 Aug 2026**. The workbook and
+> embedded seed now use pooled allocation effective 5 Aug; deploy/import and
+> production verification must follow this change.
 
 ## Start here
 
@@ -46,7 +44,35 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 4 Aug owner allocation and Mom rebalance reconciled
+## Current canonical state — 5 Aug pooled allocation reconciled
+
+From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
+Historic owner/unit records remain in the ledger, but do not determine active
+ownership, future realized P&L, or future dividend allocation.
+
+| Shareholder | Total contributed capital | Allocation |
+|---|---:|---:|
+| Mom | THB1,250,000.00 | 42.3785% |
+| Rattee | THB1,399,606.00 | 47.4506% |
+| Ryu | THB300,000.00 | 10.1708% |
+| **Total** | **THB2,949,606.00** | **100.0000%** |
+
+| Active pooled holding | Units / value | Saved 5 Aug audit basis |
+|---|---:|---:|
+| GOOGL | 75 | THB833,636.21 market value |
+| NVDA | 45 | THB309,731.08 market value |
+| CASH | THB1,850,489.59 | retained broker cash, no quote request |
+
+The 5 Aug transactions are KBANK sells 600 + 30 @ THB247, AAPL sell 20 @
+USD308, MU sell 14 @ USD920, META sell 50 @ USD582, and AMD buy/sell 10 @
+USD481 / USD486. USD rows use FX 33.254. Their total realized P&L is
+THB132,934.16, allocated Mom THB56,335.56, Rattee THB63,078.07 and Ryu
+THB13,520.53. Workbook totals: market value THB2,993,856.89, unrealized P&L
+-THB75,174.25, cumulative realized P&L THB499,775.21, total P&L
+THB424,600.95. No Thai dividend-eligible security remains active, so the
+current forecast is THB0; the April 2026 payout remains historical.
+
+## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 
 The canonical `Portfolio_Accounting.xlsx` and embedded seed include the owner
 corrections, the available broker-history reconciliation, completed broker
@@ -128,27 +154,26 @@ Path: `../Portfolio_Accounting.xlsx`
 The workbook must keep exactly these six sheets:
 
 1. `Summary` — formula-driven market value, unrealized/realized P&L and totals.
-2. `Shareholders` — shared contributed capital, KBANK/dividend pool
-   percentages, equal free-cash percentages and personal-capital metadata.
+2. `Shareholders` — total contributed capital and pooled allocation
+   percentages, with historical personal-capital metadata retained for audit.
 3. `Lot Holdings` — active lots and retained historical lots.
 4. `Dividends` — historical paid dividend and the current-capital forecast.
-5. `Holdings` — current active positions, including Shared `CASH`.
+5. `Holdings` — current pooled positions, including pooled `CASH`.
 6. `Transactions` — full audit ledger and evidence notes.
 
 ### Accounting rules that protect the audit
 
-- `CASH` is a Shared-only THB row: `Units = 1`, and entry price equals the
+- `CASH` is a pooled THB row: `Units = 1`, and entry price equals the
   confirmed whole-portfolio broker cash snapshot. It has no quote or dividend
   eligibility, and is not a synthetic balancing transaction.
 - SCB is a historical zero-quantity holding after the 27 Jul 2026 sale; retain
   its lots and sell rows for traceability.
-- Shared capital percentages allocate KBANK and dividends. `Free Cash %`
-  allocates the single aggregate CASH balance one third each. Personal GOOGL,
-  META, AAPL, MU, and NVDA belong to their named owners only and do not dilute
-  the dividend forecast. Their purchase cost reduces Shared CASH as a funding
-  classification only; it is not their owners' externally contributed capital.
-- The current dividend forecast uses shareholder shared capital as its yield
-  denominator; it does not use shared cash or market value.
+- From 5 Aug 2026, every active holding and the aggregate CASH row use one
+  Total Contributed Capital allocation: Mom 42.3785%, Rattee 47.4506%, Ryu
+  10.1708%. Do not re-create personal active positions unless the user changes
+  this policy explicitly.
+- The current dividend forecast uses total contributed capital as its yield
+  denominator. Past shareholder allocation remains historical evidence only.
 - A sale's realized P&L must use only purchase cost existing before that sale.
   Never use a whole-ledger average that includes future buys, and never hide a
   missing historical cost basis with `IFERROR`.
@@ -302,8 +327,9 @@ workbook.
   current supported-ticker code before retrying.
 - **Market price looks old:** market refresh is manual and public sources can
   be delayed; refresh and inspect source links before changing cost basis.
-- **A personal position changes pool numbers:** stop. Personal positions must
-  not affect shared ownership or dividend allocation.
+- **An active position is split by historic owner units:** stop. Since 5 Aug
+  2026, active assets use total-contributed-capital percentages; historic owner
+  notes exist only for audit traceability.
 - **A total profit does not reconcile with one sale:** separate sale proceeds,
   sold cost basis, remaining assets (for example KBANK), pre-existing cash,
   and historical realized P&L before allocating anyone's share.

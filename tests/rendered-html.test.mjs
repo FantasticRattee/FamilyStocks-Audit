@@ -114,16 +114,16 @@ test("persists one fresh free-source market refresh in shared PostgreSQL", async
   assert.doesNotMatch(html, /OpenAI web search|EODHD/);
 });
 
-test("server-renders the approved Family Wealth graph-first overview", async () => {
+test("server-renders the approved pooled-family graph-first overview", async () => {
   const response = await render();
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /Family ownership/i);
+  assert.match(html, /Pooled allocation/i);
   assert.match(html, /Portfolio composition/i);
   assert.match(html, /P&amp;L by ticker/i);
   assert.match(html, /Dividend distribution/i);
-  assert.match(html, /aria-label="Family ownership comparison/i);
+  assert.match(html, /aria-label="Pooled family allocation/i);
   assert.match(html, /aria-label="Portfolio composition by ticker/i);
   assert.match(html, /aria-label="Unrealized P&amp;L by ticker/i);
   assert.match(html, /aria-label="Net dividend forecast distribution/i);
@@ -141,14 +141,14 @@ test("shows one reconciled portfolio context across every dashboard tab", async 
 
   assert.match(html, /aria-label="Portfolio reconciliation summary"/i);
   assert.match(html, /Portfolio current value/i);
-  assert.match(html, /Shared capital · fixed/i);
-  assert.match(html, /Current shared assets/i);
+  assert.match(html, /Total capital · fixed/i);
+  assert.match(html, /Current pooled assets/i);
   assert.match(
     dashboard,
     /<\/nav>[\s\S]*?className="portfolio-context-strip"[\s\S]*?formatThb\(result\.totals\.marketValue\)[\s\S]*?formatThb\(snapshot\.summary\.sharedCapital\)[\s\S]*?formatThb\(result\.totals\.sharedMarketValue\)/,
   );
-  assert.match(dashboard, /<small>SHARED CAPITAL · FIXED<\/small>/);
-  assert.match(dashboard, /<span>Current shared assets<\/span>/);
+  assert.match(dashboard, /<small>TOTAL CAPITAL · FIXED<\/small>/);
+  assert.match(dashboard, /<span>Current pooled assets<\/span>/);
   assert.doesNotMatch(dashboard, /<small>SHARED POOL<\/small>/);
 });
 
@@ -168,15 +168,15 @@ test("renders the transaction ledger newest date first without mutating audit ro
   assert.doesNotMatch(transactionFilter, /snapshot\.transactions\.sort\(/);
 });
 
-test("explains the equal free-cash allocation consistently across all audit views", async () => {
+test("explains the total-capital pooled allocation consistently across all audit views", async () => {
   const dashboard = await readFile(
     new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(dashboard, /Free Cash %/);
-  assert.match(dashboard, /KBANK × % Pool \+ CASH × % Free Cash/);
-  assert.match(dashboard, /Free cash is excluded from the dividend split/i);
+  assert.match(dashboard, /total pooled asset value × total contributed-capital percentage/i);
+  assert.match(dashboard, /active assets and future realized P&amp;L use this allocation/i);
+  assert.doesNotMatch(dashboard, /Free Cash %/);
   assert.match(dashboard, /<option value="TRANSFER">TRANSFER<\/option>/);
 });
 
@@ -194,8 +194,8 @@ test("renders shareholder metrics as rows and owners as columns", async () => {
     shareholderView,
     /shareholderRows\.map\(\(holder\) => \([\s\S]*?<th scope="col" key=\{holder\.owner\}>\{holder\.owner\}<\/th>/,
   );
-  assert.match(shareholderView, /<th scope="row">Shared Capital · Fixed<\/th>/);
-  assert.match(shareholderView, /<th scope="row">P&amp;L vs Invested<\/th>/);
+  assert.match(shareholderView, /<th scope="row">Total Capital Contributed<\/th>/);
+  assert.match(shareholderView, /<th scope="row">P&amp;L vs Contributed Capital<\/th>/);
   assert.doesNotMatch(shareholderView, /<th>Shareholder<\/th>/);
 });
 
@@ -342,12 +342,12 @@ test("keeps the approved R3F runtime, demand rendering, and motion fallback", as
   assert.match(packageJson, /"three"/);
 });
 
-test("keeps ownership in 3D while P&L and dividend use normal bars", async () => {
+test("keeps pooled allocation in 3D while P&L and dividend use normal bars", async () => {
   const response = await render();
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /Interactive 3D family ownership bars/i);
+  assert.match(html, /Interactive 3D pooled allocation bars/i);
   assert.doesNotMatch(html, /Interactive 3D unrealized P&amp;L bars/i);
   assert.doesNotMatch(html, /Interactive 3D net dividend forecast bars/i);
   assert.match(html, /class="ownership-chart"/i);
@@ -372,7 +372,7 @@ test("sizes the P&L chart from its active ticker count", async () => {
   const html = await response.text();
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:7"/i);
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:3"/i);
   assert.match(
     styles,
     /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*44px\)/i,

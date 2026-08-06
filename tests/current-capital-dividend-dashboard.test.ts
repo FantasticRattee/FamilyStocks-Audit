@@ -28,7 +28,7 @@ const loadSourceSnapshot = async () => {
   );
 };
 
-test("uses the current-capital forecast rather than the historical payout", async () => {
+test("keeps the current-capital forecast at zero when no active dividend equity remains", async () => {
   const snapshot = await loadSourceSnapshot();
   const result = calculateDashboard(snapshot, createScenario(snapshot));
 
@@ -37,28 +37,31 @@ test("uses the current-capital forecast rather than the historical payout", asyn
     snapshot.dividend.lines.map((line) => [line.ticker, line.eligibleQuantity, line.dps]),
     [
       ["SCB", 0, 11.28],
-      ["KBANK", 630, 12],
+      ["KBANK", 0, 12],
     ],
   );
-  closeTo(snapshot.dividend.costBasis, 2155932.19);
-  closeTo(result.dividend.gross, 7560);
-  closeTo(result.dividend.net, 6804);
+  closeTo(snapshot.dividend.costBasis, 2949606.003945636);
+  closeTo(result.dividend.gross, 0);
+  closeTo(result.dividend.net, 0);
   closeTo(snapshot.historicalDividend.net, 64519.2);
 
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
   assert.ok(mom);
-  closeTo(mom.net, 3944.929269783759);
-  closeTo(mom.capitalPercent, 1250000 / 2155932.19, 0.000001);
+  closeTo(mom.net, 0);
+  closeTo(mom.capitalPercent, 1250000 / 2949606.003945636, 0.000001);
 });
 
-test("recalculates the forecast when current shareholder capital increases", async () => {
+test("recalculates a future pooled forecast when total contributed capital increases", async () => {
   const snapshot = await loadSourceSnapshot();
+  const kbank = snapshot.dividend.lines.find((line) => line.ticker === "KBANK");
+  assert.ok(kbank);
+  kbank.eligibleQuantity = 630;
   const baseline = calculateDashboard(snapshot, createScenario(snapshot));
 
   snapshot.shareholders[0].sharedCapital += 100000;
   const result = calculateDashboard(snapshot, createScenario(snapshot));
-  const expectedYield = 7560 / 2155932.19;
-  const expectedCapital = 2255932.19;
+  const expectedYield = 7560 / 2949606.003945636;
+  const expectedCapital = 3049606.003945636;
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
 
   assert.ok(result.dividend.gross > baseline.dividend.gross);

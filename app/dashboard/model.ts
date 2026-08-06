@@ -220,6 +220,18 @@ const numberRightOf = (rows: Row[], label: string) => {
   throw new Error(`Could not find numeric value for ${label}`);
 };
 
+const numberRightOfAny = (rows: Row[], labels: string[]) => {
+  for (const label of labels) {
+    try {
+      return numberRightOf(rows, label);
+    } catch {
+      // Accept both the pre-pooling and pooled workbook labels so a verified
+      // historical backup remains readable by the dashboard.
+    }
+  }
+  throw new Error(`Could not find numeric value for any of: ${labels.join(", ")}`);
+};
+
 const numberOr = (value: CellValue, fallback = 0) => toNumber(value) ?? fallback;
 
 const stringDate = (value: CellValue) => {
@@ -264,9 +276,18 @@ const parseSummary = (rows: Row[]) => ({
   totalUnrealizedPnl: numberRightOf(rows, "Total Unrealized P&L (THB)"),
   totalRealizedPnl: numberRightOf(rows, "Total Realized P&L (THB)"),
   totalPnl: numberRightOf(rows, "Total P&L (THB)"),
-  sharedCapital: numberRightOf(rows, "Shared Capital Contributed (THB)"),
-  sharedMarketValue: numberRightOf(rows, "Shared Market Value (THB)"),
-  sharedUnrealizedPnl: numberRightOf(rows, "Shared Unrealized P&L (THB)"),
+  sharedCapital: numberRightOfAny(rows, [
+    "Total Capital Contributed (THB)",
+    "Shared Capital Contributed (THB)",
+  ]),
+  sharedMarketValue: numberRightOfAny(rows, [
+    "Pooled Market Value (THB)",
+    "Shared Market Value (THB)",
+  ]),
+  sharedUnrealizedPnl: numberRightOfAny(rows, [
+    "Pooled Unrealized P&L (THB)",
+    "Shared Unrealized P&L (THB)",
+  ]),
 });
 
 const parseAsOfDate = (rows: Row[]) => {
@@ -276,28 +297,47 @@ const parseAsOfDate = (rows: Row[]) => {
 };
 
 const parseShareholders = (rows: Row[]): Shareholder[] => {
-  const headerRow = findHeaderRow(rows, [
-    "Shareholder",
-    "Shared Invested",
-    "Total Invested",
-  ]);
+  let headerRow: number;
+  try {
+    headerRow = findHeaderRow(rows, [
+      "Shareholder",
+      "Total Contributed Capital",
+      "% Total Capital",
+    ]);
+  } catch {
+    headerRow = findHeaderRow(rows, [
+      "Shareholder",
+      "Shared Invested",
+      "Total Invested",
+    ]);
+  }
   const headers = rows[headerRow].map(normalise);
   const ownerColumn = requiredColumn(headers, [["shareholder"]], "Shareholder");
   const sharedColumn = requiredColumn(
     headers,
-    [["shared", "invested"], ["invested"]],
-    "Shared invested",
+    [
+      ["total", "contributed", "capital"],
+      ["shared", "invested"],
+      ["shared", "capital"],
+      ["invested"],
+    ],
+    "Total contributed capital",
   );
   const percentColumn = headers.findIndex(
     (header) =>
+      header.includes("totalcapital") ||
+      header.includes("pooledallocation") ||
       header.includes("pool") ||
       (header.includes("share") &&
         !header.includes("holder") &&
         !header.includes("shared")),
   );
-  if (percentColumn < 0) throw new Error("Could not find Pool percentage column");
+  if (percentColumn < 0) throw new Error("Could not find capital allocation percentage column");
   const personalColumn = findColumn(headers, [["personal"]]);
-  const totalColumn = findColumn(headers, [["total", "invested"]]);
+  const totalColumn = findColumn(headers, [
+    ["total", "invested"],
+    ["total", "contributed", "capital"],
+  ]);
   const cashPercentColumn = findColumn(headers, [
     ["free", "cash"],
     ["cash", "%"],
@@ -401,6 +441,7 @@ const parseHoldings = (rows: Row[], defaultFx: number): Holding[] => {
   for (const row of rows.slice(headerRow + 1)) {
     const ticker = text(row[tickerColumn]);
     const tickerKey = normalise(ticker);
+    if (tickerKey.includes("grandtotal")) break;
     const quantity = toNumber(row[quantityColumn]);
     if (
       !ticker ||

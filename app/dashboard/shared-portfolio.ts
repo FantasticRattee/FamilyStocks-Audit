@@ -550,7 +550,7 @@ export function buildDashboardSnapshotFromSharedPortfolio(
       whtRate: settings.dividend.whtRate,
       lines: dividendLines,
       basis: "current-capital",
-      // Forecast yield is anchored to contributed shared capital. Cash is an
+      // Forecast yield is anchored to total contributed capital. Cash is an
       // asset in the portfolio, but it must not dilute a forecast based on the
       // family's capital allocation.
       costBasis: sharedCapital,

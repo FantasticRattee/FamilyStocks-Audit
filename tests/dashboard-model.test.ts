@@ -29,104 +29,72 @@ const loadSourceSnapshot = async () => {
   );
 };
 
-test("imports the stock-audit workbook using labels and preserves its key totals", async () => {
+test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "4 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 2947921.4397);
-  closeTo(snapshot.summary.sharedCapital, 2155932.19);
-  closeTo(snapshot.summary.sharedMarketValue, 245546.66486);
-  closeTo(snapshot.summary.totalRealizedPnl, 366841.0439682768);
+  assert.equal(snapshot.asOfDate, "5 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 2993856.88642);
+  closeTo(snapshot.summary.sharedCapital, 2949606.003945636);
+  closeTo(snapshot.summary.sharedMarketValue, 2993856.88642);
+  closeTo(snapshot.summary.totalRealizedPnl, 499775.2074162766);
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker).sort(),
-    [
-      "AAPL",
-      "AAPL",
-      "CASH",
-      "GOOGL",
-      "GOOGL",
-      "KBANK",
-      "META",
-      "META",
-      "MU",
-      "MU",
-      "NVDA",
-      "NVDA",
-    ],
+    ["CASH", "GOOGL", "NVDA"],
   );
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-04");
-  assert.equal(snapshot.transactions.at(-1)?.side, "BUY");
-  assert.equal(snapshot.transactions.at(-1)?.ticker, "META");
-  assert.equal(snapshot.transactions.at(-1)?.account, "Personal-US (Mom)");
-  closeTo(snapshot.shareholders[0].poolPercent, 0.5797956010852086, 0.000001);
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-05");
+  assert.equal(snapshot.transactions.at(-1)?.side, "SELL");
+  assert.equal(snapshot.transactions.at(-1)?.ticker, "AMD");
+  assert.equal(snapshot.transactions.at(-1)?.account, "Shared-US");
+  closeTo(snapshot.shareholders[0].poolPercent, 0.42378541348502036, 0.000001);
   closeTo(
     (snapshot.shareholders[0] as typeof snapshot.shareholders[0] & { cashPercent?: number })
       .cashPercent ?? 0,
-    1 / 3,
+    0.42378541348502036,
     0.000001,
   );
-  assert.deepEqual(
-    snapshot.holdings
-      .filter((holding) => holding.owner === "Ryu")
-      .map((holding) => [holding.ticker, holding.quantity]),
-    [
-      ["AAPL", 14],
-      ["MU", 1],
-      ["NVDA", 18],
-    ],
-  );
+  assert.equal(snapshot.holdings.every((holding) => holding.category === "shared"), true);
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
 
-test("recalculates a personal US-price scenario without changing shared-pool value", async () => {
+test("recalculates a pooled US-price scenario without creating personal holdings", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
   scenario.fx = 33;
   scenario.prices.GOOGL = 330;
-  scenario.prices.META = 540;
+  scenario.prices.NVDA = 200;
 
   const result = calculateDashboard(snapshot, scenario);
   const googleHoldings = result.holdings.filter((holding) => holding.ticker === "GOOGL");
-
-  const metaHoldings = result.holdings.filter((holding) => holding.ticker === "META");
-  assert.equal(googleHoldings.length, 2);
-  assert.equal(metaHoldings.length, 2);
+  const nvdaHoldings = result.holdings.filter((holding) => holding.ticker === "NVDA");
+  assert.equal(googleHoldings.length, 1);
+  assert.equal(nvdaHoldings.length, 1);
   const expectedGooglValue = 75 * 330 * 33;
-  const expectedMetaValue = 50 * 540 * 33;
-  const expectedOtherPersonalValue = snapshot.holdings
-    .filter(
-      (holding) =>
-        holding.category === "personal" &&
-        holding.ticker !== "GOOGL" &&
-        holding.ticker !== "META",
-    )
-    .reduce(
-      (total, holding) =>
-        total + holding.quantity * (scenario.prices[holding.ticker] ?? 0) * scenario.fx,
-      0,
-    );
-  const expectedPersonalValue = expectedGooglValue + expectedMetaValue + expectedOtherPersonalValue;
+  const expectedNvdaValue = 45 * 200 * 33;
+  const cashValue = snapshot.holdings.find((holding) => holding.ticker === "CASH")?.costBasis ?? 0;
   closeTo(
     googleHoldings.reduce((total, holding) => total + holding.marketValue, 0),
     expectedGooglValue,
   );
   closeTo(
-    metaHoldings.reduce((total, holding) => total + holding.marketValue, 0),
-    expectedMetaValue,
+    nvdaHoldings.reduce((total, holding) => total + holding.marketValue, 0),
+    expectedNvdaValue,
   );
-  closeTo(result.totals.sharedMarketValue, 245546.66486);
-  closeTo(result.totals.personalMarketValue, expectedPersonalValue);
-  closeTo(result.totals.marketValue, 245546.66486 + expectedPersonalValue);
+  closeTo(result.totals.sharedMarketValue, expectedGooglValue + expectedNvdaValue + cashValue);
+  closeTo(result.totals.personalMarketValue, 0);
+  closeTo(result.totals.marketValue, expectedGooglValue + expectedNvdaValue + cashValue);
 });
 
-test("uses current shared capital—not personal capital—to split the dividend forecast", async () => {
+test("uses total contributed capital to split a future pooled dividend forecast", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
+  const kbank = snapshot.dividend.lines.find((line) => line.ticker === "KBANK");
+  assert.ok(kbank);
+  kbank.eligibleQuantity = 630;
   scenario.dividendDps.KBANK = 13;
 
   const result = calculateDashboard(snapshot, scenario);
@@ -136,23 +104,25 @@ test("uses current shared capital—not personal capital—to split the dividend
   closeTo(result.dividend.wht, 819);
   closeTo(result.dividend.net, 7371);
   assert.ok(mom);
-  closeTo(mom.net, 7371 * (1250000 / 2155932.19));
+  closeTo(mom.net, 7371 * (1250000 / 2949606.003945636));
 });
 
-test("allocates free cash equally while keeping KBANK on the contributed pool percentages", async () => {
+test("allocates every active pooled asset by total contributed-capital percentage", async () => {
   const snapshot = await loadSourceSnapshot();
   const result = calculateDashboard(snapshot, createScenario(snapshot));
   const owners = calculateShareholderEquityRows(snapshot, result);
   const cashValue = result.holdings.find((holding) => holding.ticker === "CASH")?.marketValue ?? 0;
-  const kbankValue = result.holdings.find((holding) => holding.ticker === "KBANK")?.marketValue ?? 0;
+  const investmentValue = result.totals.marketValue - cashValue;
 
   for (const owner of owners) {
-    closeTo(owner.cashMarketValue, cashValue / 3);
-    closeTo(owner.sharedInvestmentMarketValue, kbankValue * owner.poolPercent);
+    closeTo(owner.cashMarketValue, cashValue * owner.poolPercent);
+    closeTo(owner.sharedInvestmentMarketValue, investmentValue * owner.poolPercent);
     closeTo(
       owner.sharedMarketValue,
       owner.cashMarketValue + owner.sharedInvestmentMarketValue,
     );
+    closeTo(owner.personalMarketValue, 0);
+    closeTo(owner.estimatedEquity, result.totals.marketValue * owner.poolPercent);
   }
   closeTo(
     owners.reduce((total, owner) => total + owner.estimatedEquity, 0),

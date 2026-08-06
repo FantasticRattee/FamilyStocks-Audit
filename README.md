@@ -41,10 +41,12 @@ contains these sheets:
 The browser parses the audit first, then the server validates and
 atomically replaces both current holdings and portfolio settings in PostgreSQL.
 This carries forward the audit date, default FX, realized-P&L figure,
-shareholder ownership, dividend settings, historical dividend record, and
-transaction snapshot. The canonical `Shareholders` sheet may separately carry
-`% Share (pool)` for KBANK/dividends and `Free Cash %` for the aggregate cash
-bucket. Existing persisted market quotes are retained.
+shareholder allocation, dividend settings, historical dividend record, and
+transaction snapshot. From 5 Aug 2026 the canonical `Shareholders` sheet uses
+**Total Contributed Capital** and **% Total Capital (Pooled Allocation)** for
+every active holding, aggregate cash, future realized P&L and future dividend
+forecast. Historic owner/unit notes remain in the ledger for traceability.
+Existing persisted market quotes are retained.
 
 ### Minimal holdings workbook
 
@@ -236,16 +238,14 @@ remain unchanged.
 
 ## Accounting rules preserved
 
-- Shared pool ownership applies to KBANK and the dividend forecast. The
-  imported THB cash balance stays as one `Shared` holding but can use a
-  separate `Free Cash %` allocation; the current canonical audit uses one
-  third per owner. Historical SCB lots remain in the ledger for realized-P&L
-  traceability.
-- Personal positions do not change the shared-pool dividend forecast.
-- The April 2026 dividend remains historical; the next forecast is derived
-  from current shared capital and the stored recurring-yield assumptions. Its
-  yield denominator is shareholder shared capital, so a shared cash balance
-  increases shared value without diluting the dividend forecast.
+- From 5 Aug 2026, GOOGL, NVDA and aggregate `CASH` are current **pooled**
+  holdings. They are allocated by the canonical Total Contributed Capital
+  percentages: Mom 42.3785%, Rattee 47.4506%, Ryu 10.1708%.
+- Owner/unit notes before 5 Aug are retained in Excel and the transaction
+  ledger, but no longer split active holdings, future sale P&L or dividends.
+- The April 2026 dividend remains historical. The next forecast uses total
+  contributed capital and active dividend-eligible holdings; it is zero while
+  the active pool contains no Thai dividend equity.
 - Market refresh changes current valuation only, never historical entry price
   or cost basis.
 - Realized P&L remains an imported legacy audit setting and requires lot-level

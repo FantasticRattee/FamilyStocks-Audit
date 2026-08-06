@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-07-30. Use with the `impact-check` skill before changing shared
+Updated: 2026-08-07. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -89,9 +89,10 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `Holdings` sheet with `Ticker`, `Owner/Account`, `Entry Price`, `Units`.
   Canonical `Transactions` may retain inactive historical tickers; only active
   normalized holdings are candidates for the supported-active-ticker contract.
-- Canonical `Shareholders` may carry `Free Cash %` separately from `% Share
-  (pool)`: KBANK/dividends use the pool percentage, while aggregate CASH uses
-  the free-cash percentage for current-equity reporting.
+- From 5 Aug 2026, canonical `Shareholders` uses Total Contributed Capital and
+  `% Total Capital (Pooled Allocation)`. Every active asset, including
+  aggregate CASH, uses that one percentage. Owner/unit data before 5 Aug is
+  historical audit context rather than active-allocation input.
 - Workbook export: exactly one `Holdings` sheet and exactly `Ticker`,
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency

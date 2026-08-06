@@ -957,9 +957,6 @@ export function Dashboard() {
   const sharedHoldings = result.holdings.filter(
     (holding) => holding.category === "shared",
   );
-  const personalHoldings = result.holdings.filter(
-    (holding) => holding.category === "personal",
-  );
   const editableHoldings = Array.from(
     new Map(result.holdings.map((holding) => [holding.ticker, holding])).values(),
   ).filter((holding) => holding.ticker !== "CASH");
@@ -1038,13 +1035,13 @@ export function Dashboard() {
   const ownershipChartRows: BarChart3DRow[] = ownershipRows.map((holder) => ({
     id: holder.owner,
     label: holder.owner,
-    meta: `${formatPct(holder.poolPercent, 1)} pool · ${formatPct(holder.cashPercent ?? holder.poolPercent, 1)} cash`,
+    meta: `${formatPct(holder.poolPercent, 1)} of total capital`,
     badge: holder.owner.startsWith("Me")
       ? "ME"
       : holder.owner.slice(0, 1).toUpperCase(),
     headline: formatThb(holder.estimatedEquity),
-    detail: `${holder.owner}: invested ${formatThb(holder.totalInvested)} · current equity ${formatThb(holder.estimatedEquity)}`,
-    buttonAriaLabel: `Select ${holder.owner} ownership comparison: invested ${formatThb(holder.totalInvested)}, current equity ${formatThb(holder.estimatedEquity)}`,
+    detail: `${holder.owner}: contributed ${formatThb(holder.totalInvested)} · allocated current value ${formatThb(holder.estimatedEquity)}`,
+    buttonAriaLabel: `Select ${holder.owner} pooled allocation: contributed ${formatThb(holder.totalInvested)}, allocated current value ${formatThb(holder.estimatedEquity)}`,
     values: [
       {
         id: "invested",
@@ -1595,17 +1592,17 @@ export function Dashboard() {
           <div>
             <span>Portfolio current value</span>
             <strong>{formatThb(result.totals.marketValue)}</strong>
-            <small>All shared + owner-specific assets</small>
+            <small>All active assets are pooled</small>
           </div>
           <div>
-            <span>Shared capital · fixed</span>
+            <span>Total capital · fixed</span>
             <strong>{formatThb(snapshot.summary.sharedCapital)}</strong>
             <small>Contributed capital; not market value</small>
           </div>
           <div>
-            <span>Current shared assets</span>
+            <span>Current pooled assets</span>
             <strong>{formatThb(result.totals.sharedMarketValue)}</strong>
-            <small>Shared positions + cash at current value</small>
+            <small>All active positions + cash at current value</small>
           </div>
         </section>
 
@@ -1653,26 +1650,26 @@ export function Dashboard() {
 
             <section
               className="panel family-ownership-panel"
-              aria-label="Family ownership comparison: invested capital versus estimated current equity"
+              aria-label="Pooled family allocation: contributed capital versus allocated current value"
             >
               <SectionTitle
-                eyebrow="FAMILY OWNERSHIP"
-                title="ใครถืออะไร · Family ownership"
+                eyebrow="FAMILY ALLOCATION"
+                title="สัดส่วนพอร์ต · Pooled allocation"
                 action={(
                   <span
                     className="shared-pool-badge minimal"
-                    aria-label={`Shared capital fixed ${formatThb(snapshot.summary.sharedCapital)}; current shared assets ${formatThb(result.totals.sharedMarketValue)}`}
+                    aria-label={`Total capital fixed ${formatThb(snapshot.summary.sharedCapital)}; current pooled assets ${formatThb(result.totals.sharedMarketValue)}`}
                   >
-                    <small>SHARED CAPITAL · FIXED</small>
+                    <small>TOTAL CAPITAL · FIXED</small>
                     <strong>{formatThb(snapshot.summary.sharedCapital)}</strong>
-                    <span>Current shared assets</span>
+                    <span>Current pooled assets</span>
                     <b>{formatThb(result.totals.sharedMarketValue)}</b>
                   </span>
                 )}
               />
               <div className="ownership-legend" aria-hidden="true">
-                <span><i className="capital-swatch" />Total invested</span>
-                <span><i className="equity-swatch" />Current equity</span>
+                <span><i className="capital-swatch" />Capital contributed</span>
+                <span><i className="equity-swatch" />Allocated current value</span>
               </div>
               <div className="ownership-chart">
                 {ownershipRows.map((holder, index) => {
@@ -1688,7 +1685,7 @@ export function Dashboard() {
                         <div>
                           <strong>{holder.owner}</strong>
                           <span>
-                            {formatPct(holder.poolPercent, 1)} pool · {formatPct(holder.cashPercent ?? holder.poolPercent, 1)} cash
+                            {formatPct(holder.poolPercent, 1)} of total capital
                           </span>
                         </div>
                       </div>
@@ -1701,7 +1698,7 @@ export function Dashboard() {
                           rows={[chartRow]}
                           mode="paired"
                           scaleMax={ownerValueCeiling}
-                          ariaLabel={`Interactive 3D family ownership bars for ${holder.owner}: invested ${formatThb(holder.totalInvested)}, current equity ${formatThb(holder.estimatedEquity)}`}
+                          ariaLabel={`Interactive 3D pooled allocation bars for ${holder.owner}: contributed ${formatThb(holder.totalInvested)}, allocated current value ${formatThb(holder.estimatedEquity)}`}
                           className="ownership-r3f-bars"
                         />
                         <div className="owner-bar-values">
@@ -1714,7 +1711,7 @@ export function Dashboard() {
                 })}
               </div>
               <p className="panel-note">
-                Current equity = KBANK × % Pool + CASH × % Free Cash + owner-specific position market value.
+                Allocated current value = total pooled asset value × total contributed-capital percentage.
               </p>
             </section>
 
@@ -1733,7 +1730,7 @@ export function Dashboard() {
                   totalValue={result.totals.marketValue}
                   fallbackStyle={tickerRingFallbackStyle}
                 />
-                <p className="panel-note">Shared and personal accounts are aggregated by ticker.</p>
+                <p className="panel-note">All active assets are pooled and allocated by total contributed-capital percentage.</p>
               </article>
 
               <article className="panel pnl-chart-panel" aria-label="Unrealized P&L by ticker">
@@ -1845,49 +1842,37 @@ export function Dashboard() {
                 </thead>
                 <tbody>
                   <tr>
-                    <th scope="row">Shared Capital · Fixed</th>
+                    <th scope="row">Total Capital Contributed</th>
                     {shareholderRows.map((holder) => (
                       <td key={holder.owner}>{formatThb(holder.sharedCapital)}</td>
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">% Pool</th>
+                    <th scope="row">% Total Capital</th>
                     {shareholderRows.map((holder) => (
                       <td key={holder.owner}>{formatPct(holder.poolPercent)}</td>
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">Free Cash %</th>
-                    {shareholderRows.map((holder) => (
-                      <td key={holder.owner}>{formatPct(holder.cashPercent ?? holder.poolPercent)}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">External Personal Capital</th>
+                    <th scope="row">Historical Personal Capital Included</th>
                     {shareholderRows.map((holder) => (
                       <td key={holder.owner}>{formatThb(holder.personalCapital)}</td>
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">Owner-specific Holdings</th>
+                    <th scope="row">Allocated Pooled Assets</th>
                     {shareholderRows.map((holder) => (
-                      <td key={holder.owner}>{formatThb(holder.personalMarketValue)}</td>
+                      <td key={holder.owner}>{formatThb(holder.sharedMarketValue)}</td>
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">Total Invested</th>
-                    {shareholderRows.map((holder) => (
-                      <td key={holder.owner}>{formatThb(holder.totalInvested)}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th scope="row">Est. Current Equity</th>
+                    <th scope="row">Allocated Current Equity</th>
                     {shareholderRows.map((holder) => (
                       <td key={holder.owner}>{formatThb(holder.estimatedEquity)}</td>
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">P&amp;L vs Invested</th>
+                    <th scope="row">P&amp;L vs Contributed Capital</th>
                     {shareholderRows.map((holder) => (
                       <td className={pnlClass(holder.equityPnl)} key={holder.owner}>
                         {formatThb(holder.equityPnl)}
@@ -1898,55 +1883,53 @@ export function Dashboard() {
               </table>
             </div>
             <p className="panel-note">
-              Estimated Current Equity = KBANK × % Pool + CASH × % Free Cash + owner-specific position market value.
-              Free cash is split equally; contributed capital and the KBANK pool ratio remain unchanged.
+              Allocated Current Equity = total pooled asset value × total contributed-capital percentage.
+              From 5 Aug 2026, active assets and future realized P&amp;L use this allocation; historic owner notes remain audit history only.
             </p>
           </section>
         ) : null}
 
         {activeTab === "holdings" ? (
           <section className="holdings-layout">
-            {[
-              ["Current shared assets · Active investments + cash", sharedHoldings],
-              ["Personal positions · Owner-specific", personalHoldings],
-            ].map(([title, positions]) => (
-              <article className="panel" key={String(title)}>
-                <SectionTitle eyebrow="HOLDINGS" title={String(title)} />
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Ticker</th>
-                        <th>Owner / Account</th>
-                        <th>Qty</th>
-                        <th>Avg Cost</th>
-                        <th>Current Price</th>
-                        <th>Market Value</th>
-                        <th>Unrealized P&amp;L</th>
+            <article className="panel">
+              <SectionTitle eyebrow="HOLDINGS" title="Current pooled assets · Active investments + cash" />
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ticker</th>
+                      <th>Pool / Account</th>
+                      <th>Qty</th>
+                      <th>Avg Cost</th>
+                      <th>Current Price</th>
+                      <th>Market Value</th>
+                      <th>Unrealized P&amp;L</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sharedHoldings.map((holding) => (
+                      <tr key={`${holding.ticker}:${holding.account}`}>
+                        <td>
+                          <strong>{getHoldingDisplayTicker(holding.ticker, holdingEdits)}</strong>
+                          <span className="currency-tag">{holding.currency}</span>
+                        </td>
+                        <td>{holding.account}</td>
+                        <td>{formatQty(holding.quantity)}</td>
+                        <td>{formatThb(holding.avgCostThb, 2)}</td>
+                        <td>{formatNative(holding.priceNative, holding.currency)}</td>
+                        <td>{formatThb(holding.marketValue)}</td>
+                        <td className={pnlClass(holding.unrealizedPnl)}>
+                          {formatThb(holding.unrealizedPnl)}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {(positions as typeof result.holdings).map((holding) => (
-                        <tr key={`${holding.ticker}:${holding.account}`}>
-                          <td>
-                            <strong>{getHoldingDisplayTicker(holding.ticker, holdingEdits)}</strong>
-                            <span className="currency-tag">{holding.currency}</span>
-                          </td>
-                          <td>{holding.owner ?? holding.account}</td>
-                          <td>{formatQty(holding.quantity)}</td>
-                          <td>{formatThb(holding.avgCostThb, 2)}</td>
-                          <td>{formatNative(holding.priceNative, holding.currency)}</td>
-                          <td>{formatThb(holding.marketValue)}</td>
-                          <td className={pnlClass(holding.unrealizedPnl)}>
-                            {formatThb(holding.unrealizedPnl)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            ))}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="panel-note">
+                Owner/unit notes before 5 Aug 2026 remain in the Excel audit ledger; they no longer define active ownership or future gain allocation.
+              </p>
+            </article>
           </section>
         ) : null}
 
@@ -2040,7 +2023,7 @@ export function Dashboard() {
                 </div>
                 <p className="panel-note warning">
                   {currentCapitalForecast
-                    ? `Historical Apr 2026 payout: ${formatThb(snapshot.historicalDividend.net)} net. This forecast uses current capital and prior-year recurring DPS; it is not an announced payout. Free cash is excluded from the dividend split.`
+                    ? `Historical Apr 2026 payout: ${formatThb(snapshot.historicalDividend.net)} net. This forecast uses total contributed capital and prior-year recurring DPS; it is not an announced payout.`
                     : "Historical Apr 2026 payout uses its historical eligibility and allocation. This view is for scenario planning only."}
                 </p>
               </article>
