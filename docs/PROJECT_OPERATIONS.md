@@ -2,9 +2,10 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> The canonical workbook was reconciled through **7 Aug 2026**. Production is
-> current only after the matching GitHub deployment, canonical import and
-> post-import refresh have all been verified.
+> Last canonical and live-production reconciliation: **8 Aug 2026**. Commit
+> `cc02b15` contains the 7 Aug pooled exits; its canonical workbook was
+> imported into Railway PostgreSQL and refreshed afterward. The only active
+> pooled row is CASH THB3,082,130.29.
 
 ## Start here
 
@@ -137,15 +138,15 @@ snapshot forward gives THB93,086.66. The THB13,352.60 pre-existing difference is
 an unresolved reconciliation item: do not turn it into profit, new capital,
 an owner allocation, or a synthetic transaction without broker evidence.
 
-The pre-pooling production evidence above is historical only. On **7 Aug
-2026**, the new pooled canonical workbook was imported into Railway as
-`Portfolio_Accounting.xlsx` (3 active holding rows; import hash
-`1a8f1f1ccc949e874626da48834732f60594acbebed01396c078fb3238131901`).
-Google Finance refreshed GOOGL and NVDA and USD/THB afterward; CASH stayed at
-its imported audit value. Overview, Shareholders, Holdings, Dividends and
-Transactions were each verified against `/api/portfolio`. Repeat that complete
-import, public-market refresh, API check and all-five-tab verification after
-every future accounting update.
+The pre-pooling production evidence above is historical only. On **8 Aug
+2026**, commit `cc02b15` was deployed, `Portfolio_Accounting.xlsx` was
+imported into Railway, and `/api/portfolio` verified the 7 Aug canonical state:
+one active CASH row at THB3,082,130.2945, 87 parsed ledger rows and cumulative
+realized P&L THB512,874.3623946404. The post-import refresh correctly reported
+no market mapping because CASH has no quote source. Overview, Shareholders,
+Holdings, Dividends, Transactions and Realized Sale P&L were each verified.
+Repeat that complete import, public-market refresh, API check and all-six-tab
+verification after every future accounting update.
 
 ## Canonical Excel workbook
 
