@@ -90,24 +90,20 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.equal(parsed.filename, "Portfolio_Accounting.xlsx");
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
-    [
-      ["GOOGL", "Shared", 75],
-      ["NVDA", "Shared", 45],
-      ["CASH", "Shared", 1],
-    ],
+    [["CASH", "Shared", 1]],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "5 Aug 2026");
+  assert.equal(parsed.settings?.asOfDate, "7 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
         1_399_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-05");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-07");
   assert.equal(parsed.settings?.transactions.at(-1)?.side, "SELL");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "AMD");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "GOOGL");
   assert.equal(parsed.settings?.transactions.at(-1)?.account, "Shared-US");
 });
 

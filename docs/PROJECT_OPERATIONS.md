@@ -2,11 +2,9 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last canonical and live-production reconciliation: **7 Aug 2026**. Commit
-> `30181e2` contains the pooled-allocation implementation; the canonical
-> workbook was imported into Railway PostgreSQL and public prices were refreshed
-> afterward. Production therefore has the three active pooled rows: GOOGL 75,
-> NVDA 45 and CASH THB1,850,489.59.
+> The canonical workbook was reconciled through **7 Aug 2026**. Production is
+> current only after the matching GitHub deployment, canonical import and
+> post-import refresh have all been verified.
 
 ## Start here
 
@@ -46,7 +44,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 5 Aug pooled allocation reconciled
+## Current canonical state — 7 Aug pooled exits reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -59,20 +57,21 @@ ownership, future realized P&L, or future dividend allocation.
 | Ryu | THB300,000.00 | 10.1708% |
 | **Total** | **THB2,949,606.00** | **100.0000%** |
 
-| Active pooled holding | Units / value | Saved 5 Aug audit basis |
+| Active pooled holding | Units / value | Saved 7 Aug audit basis |
 |---|---:|---:|
-| GOOGL | 75 | THB833,636.21 market value |
-| NVDA | 45 | THB309,731.08 market value |
-| CASH | THB1,850,489.59 | retained broker cash, no quote request |
+| CASH | THB3,082,130.29 | pooled broker cash, no quote request |
 
-The 5 Aug transactions are KBANK sells 600 + 30 @ THB247, AAPL sell 20 @
-USD308, MU sell 14 @ USD920, META sell 50 @ USD582, and AMD buy/sell 10 @
-USD481 / USD486. USD rows use FX 33.254. Their total realized P&L is
-THB132,934.16, allocated Mom THB56,335.56, Rattee THB63,078.07 and Ryu
-THB13,520.53. Workbook totals: market value THB2,993,856.89, unrealized P&L
--THB75,174.25, cumulative realized P&L THB499,775.21, total P&L
-THB424,600.95. No Thai dividend-eligible security remains active, so the
-current forecast is THB0; the April 2026 payout remains historical.
+The 5 Aug transactions are retained historical pooled ledger rows. On 7 Aug,
+the shared account sells GOOGL 25 @ USD355.60, 10 @ USD354.64 and 40 @
+USD355.38; sells NVDA 45 @ USD222.60; and closes an intraday SNDK 10-share
+buy/sell at USD1,195.00 / USD1,233.72. The screenshot does not include a THB
+settlement rate, so the workbook carries forward the user-approved audit FX
+reference 33.254. The six rows add THB13,099.15 realized P&L, allocated Mom
+THB5,551.23, Rattee THB6,215.63 and Ryu THB1,332.30. Workbook totals: market
+value THB3,082,130.29, unrealized P&L THB0.00, cumulative realized P&L
+THB512,874.36 and total P&L THB512,874.36. No Thai dividend-eligible security
+remains active, so the current forecast is THB0; the April 2026 payout remains
+historical.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 

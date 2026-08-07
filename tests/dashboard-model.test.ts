@@ -33,23 +33,20 @@ const loadSourceSnapshot = async () => {
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "5 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 2993856.88642);
+  assert.equal(snapshot.asOfDate, "7 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 3082130.2945);
   closeTo(snapshot.summary.sharedCapital, 2949606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 2993856.88642);
-  closeTo(snapshot.summary.totalRealizedPnl, 499775.2074162766);
-  assert.deepEqual(
-    snapshot.holdings.map((holding) => holding.ticker).sort(),
-    ["CASH", "GOOGL", "NVDA"],
-  );
+  closeTo(snapshot.summary.sharedMarketValue, 3082130.2945);
+  closeTo(snapshot.summary.totalRealizedPnl, 512874.3623946404);
+  assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), ["CASH"]);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-05");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-07");
   assert.equal(snapshot.transactions.at(-1)?.side, "SELL");
-  assert.equal(snapshot.transactions.at(-1)?.ticker, "AMD");
+  assert.equal(snapshot.transactions.at(-1)?.ticker, "GOOGL");
   assert.equal(snapshot.transactions.at(-1)?.account, "Shared-US");
   closeTo(snapshot.shareholders[0].poolPercent, 0.42378541348502036, 0.000001);
   closeTo(
@@ -62,7 +59,7 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
 
-test("recalculates a pooled US-price scenario without creating personal holdings", async () => {
+test("does not recreate sold pooled holdings in a price scenario", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
   scenario.fx = 33;
@@ -70,24 +67,12 @@ test("recalculates a pooled US-price scenario without creating personal holdings
   scenario.prices.NVDA = 200;
 
   const result = calculateDashboard(snapshot, scenario);
-  const googleHoldings = result.holdings.filter((holding) => holding.ticker === "GOOGL");
-  const nvdaHoldings = result.holdings.filter((holding) => holding.ticker === "NVDA");
-  assert.equal(googleHoldings.length, 1);
-  assert.equal(nvdaHoldings.length, 1);
-  const expectedGooglValue = 75 * 330 * 33;
-  const expectedNvdaValue = 45 * 200 * 33;
-  const cashValue = snapshot.holdings.find((holding) => holding.ticker === "CASH")?.costBasis ?? 0;
-  closeTo(
-    googleHoldings.reduce((total, holding) => total + holding.marketValue, 0),
-    expectedGooglValue,
-  );
-  closeTo(
-    nvdaHoldings.reduce((total, holding) => total + holding.marketValue, 0),
-    expectedNvdaValue,
-  );
-  closeTo(result.totals.sharedMarketValue, expectedGooglValue + expectedNvdaValue + cashValue);
+  assert.deepEqual(result.holdings.map((holding) => holding.ticker), ["CASH"]);
+  const cashValue = snapshot.holdings[0]?.costBasis ?? 0;
+  closeTo(result.holdings[0]?.marketValue ?? 0, cashValue);
+  closeTo(result.totals.sharedMarketValue, cashValue);
   closeTo(result.totals.personalMarketValue, 0);
-  closeTo(result.totals.marketValue, expectedGooglValue + expectedNvdaValue + cashValue);
+  closeTo(result.totals.marketValue, cashValue);
 });
 
 test("uses total contributed capital to split a future pooled dividend forecast", async () => {
