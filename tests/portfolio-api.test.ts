@@ -237,7 +237,9 @@ test("partial refresh updates successes and explicitly retains prior database qu
     source: "Google Finance",
   });
   const stored = {
+    QQQI: oldQuote("QQQI", 55.2, "USD"),
     GOOGL: oldQuote("GOOGL", 370, "USD"),
+    WDC: oldQuote("WDC", 437, "USD"),
     META: oldQuote("META", 550, "USD"),
     AAPL: oldQuote("AAPL", 305, "USD"),
     NVDA: oldQuote("NVDA", 206, "USD"),
@@ -251,7 +253,9 @@ test("partial refresh updates successes and explicitly retains prior database qu
   const merged = mergePersistedMarketQuotes(stored, {
     quotes: { GOOGL: nextGoogl },
     failures: {
+      QQQI: "No new quote",
       META: "No new quote",
+      WDC: "No new quote",
       AAPL: "No new quote",
       NVDA: "No new quote",
       MU: "No new quote",
@@ -262,6 +266,8 @@ test("partial refresh updates successes and explicitly retains prior database qu
   });
 
   assert.equal(merged.quotes.GOOGL.price, 372.49);
+  assert.equal(merged.quotes.QQQI.price, 55.2);
+  assert.equal(merged.quotes.WDC.price, 437);
   assert.equal(merged.quotes.META.price, 550);
   assert.equal(merged.quotes.AAPL.price, 305);
   assert.equal(merged.quotes.NVDA.price, 206);
@@ -271,6 +277,8 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.equal(merged.quotes.USDTHB.price, 33.3);
   assert.deepEqual(merged.refreshedKeys, ["GOOGL"]);
   assert.deepEqual(merged.retainedKeys, [
+    "QQQI",
+    "WDC",
     "META",
     "AAPL",
     "NVDA",

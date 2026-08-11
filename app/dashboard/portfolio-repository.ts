@@ -3,7 +3,9 @@ import type { MarketQuote } from "./market-data";
 export type MarketQuoteSnapshot = MarketQuote;
 
 export const SHARED_MARKET_KEYS = [
+  "QQQI",
   "GOOGL",
+  "WDC",
   "META",
   "AAPL",
   "NVDA",
