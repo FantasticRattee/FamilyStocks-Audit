@@ -12,6 +12,15 @@ const googleQuotePage = (identifier: string, price: string) => `
   </main>
 `;
 
+const googleModernQuotePage = (identifier: string, price: string) => `
+  <main>
+    <div title="${identifier}"></div>
+    <div data-exchange="NASDAQ" data-currency-code="USD" data-last-price="${price}">
+      <div class="YMlKec fxKbKc">$${price}</div>
+    </div>
+  </main>
+`;
+
 const setQuotePage = (symbol: string, price: number) => `
   <div class="price-info-stock-detail"><label>Last</label> <span>${price.toFixed(2)}</span></div>
   <script>
@@ -42,10 +51,10 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
         return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
       }
       if (url.hostname === "www.google.com" && url.pathname.includes("QQQI")) {
-        return new Response(googleQuotePage("QQQI:NASDAQ", "$55.20"));
+        return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.20"));
       }
       if (url.hostname === "www.google.com" && url.pathname.includes("WDC")) {
-        return new Response(googleQuotePage("WDC:NASDAQ", "$437.00"));
+        return new Response(googleModernQuotePage("WDC:NASDAQ", "437.00"));
       }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
@@ -155,8 +164,8 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.75"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$207.25"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$813.25"));
-      if (url.pathname.includes("QQQI")) return new Response(googleQuotePage("QQQI:NASDAQ", "$55.25"));
-      if (url.pathname.includes("WDC")) return new Response(googleQuotePage("WDC:NASDAQ", "$438.25"));
+      if (url.pathname.includes("QQQI")) return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.25"));
+      if (url.pathname.includes("WDC")) return new Response(googleModernQuotePage("WDC:NASDAQ", "438.25"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
       return new Response(setQuotePage("KBANK", 232));
@@ -205,8 +214,8 @@ test("returns per-key failures from a public source without overwriting the othe
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$206.73"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
-      if (url.pathname.includes("QQQI")) return new Response(googleQuotePage("QQQI:NASDAQ", "$55.20"));
-      if (url.pathname.includes("WDC")) return new Response(googleQuotePage("WDC:NASDAQ", "$437.00"));
+      if (url.pathname.includes("QQQI")) return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.20"));
+      if (url.pathname.includes("WDC")) return new Response(googleModernQuotePage("WDC:NASDAQ", "437.00"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.50"));
       if (url.pathname.endsWith("/SCB/price")) return new Response("source unavailable", { status: 503 });
       return new Response(setQuotePage("KBANK", 231));

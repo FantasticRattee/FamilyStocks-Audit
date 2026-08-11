@@ -264,9 +264,19 @@ const parseGoogleFinanceQuote = (
 ): MarketQuote | null => {
   const segment = googleQuoteSegment(page, config);
   if (!segment) return null;
-  const priceText = segment.match(
-    /<div\s+class="N6SYTe"[^>]*>[\s\S]{0,700}?<span[^>]*>\s*([^<]+?)\s*<\/span>/i,
-  )?.[1];
+  // Google Finance is migrating its server-rendered quote markup. The old
+  // quote card uses N6SYTe, while the current page exposes the primary quote
+  // as a validated data-last-price attribute before rendering the YMlKec
+  // display value. Keep both contracts so a public-page refresh does not
+  // silently fall back to an old audit mark for new ETF or equity tickers.
+  const priceText =
+    segment.match(/\bdata-last-price="([^"]+)"/i)?.[1] ??
+    segment.match(
+      /<div\s+class="N6SYTe"[^>]*>[\s\S]{0,700}?<span[^>]*>\s*([^<]+?)\s*<\/span>/i,
+    )?.[1] ??
+    segment.match(
+      /<div[^>]*class="[^"]*\bYMlKec\b[^"]*"[^>]*>\s*([^<]+?)\s*<\/div>/i,
+    )?.[1];
   const price = priceText ? parsePositivePrice(priceText) : undefined;
   if (!price) return null;
   return {
