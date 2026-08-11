@@ -33,20 +33,25 @@ const loadSourceSnapshot = async () => {
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "7 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 3082130.2945);
+  assert.equal(snapshot.asOfDate, "10 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 3078454.5104036);
   closeTo(snapshot.summary.sharedCapital, 2949606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3082130.2945);
+  closeTo(snapshot.summary.sharedMarketValue, 3078454.5104036);
   closeTo(snapshot.summary.totalRealizedPnl, 512874.3623946404);
-  assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), ["CASH"]);
+  assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), [
+    "QQQI",
+    "GOOGL",
+    "WDC",
+    "CASH",
+  ]);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-07");
-  assert.equal(snapshot.transactions.at(-1)?.side, "SELL");
-  assert.equal(snapshot.transactions.at(-1)?.ticker, "GOOGL");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-10");
+  assert.equal(snapshot.transactions.at(-1)?.side, "BUY");
+  assert.equal(snapshot.transactions.at(-1)?.ticker, "WDC");
   assert.equal(snapshot.transactions.at(-1)?.account, "Shared-US");
   closeTo(snapshot.shareholders[0].poolPercent, 0.42378541348502036, 0.000001);
   closeTo(
@@ -59,20 +64,33 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
 
-test("does not recreate sold pooled holdings in a price scenario", async () => {
+test("prices only current pooled holdings without recreating sold positions", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
   scenario.fx = 33;
+  scenario.prices.QQQI = 54;
   scenario.prices.GOOGL = 330;
-  scenario.prices.NVDA = 200;
+  scenario.prices.WDC = 430;
 
   const result = calculateDashboard(snapshot, scenario);
-  assert.deepEqual(result.holdings.map((holding) => holding.ticker), ["CASH"]);
-  const cashValue = snapshot.holdings[0]?.costBasis ?? 0;
-  closeTo(result.holdings[0]?.marketValue ?? 0, cashValue);
-  closeTo(result.totals.sharedMarketValue, cashValue);
+  assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
+    "QQQI",
+    "GOOGL",
+    "WDC",
+    "CASH",
+  ]);
+  assert.equal(result.holdings.some((holding) => holding.ticker === "NVDA"), false);
+  const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
+  assert.ok(cash);
+  closeTo(
+    result.holdings.find((holding) => holding.ticker === "CASH")?.marketValue ?? 0,
+    cash.costBasis,
+  );
+  const expectedSharedMarketValue =
+    cash.costBasis + 1190 * 54 * 33 + 30 * 330 * 33 + 22.9782 * 430 * 33;
+  closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
-  closeTo(result.totals.marketValue, cashValue);
+  closeTo(result.totals.marketValue, expectedSharedMarketValue);
 });
 
 test("uses total contributed capital to split a future pooled dividend forecast", async () => {

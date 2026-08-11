@@ -2,10 +2,10 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Last canonical and live-production reconciliation: **8 Aug 2026**. Commit
-> `cc02b15` contains the 7 Aug pooled exits; its canonical workbook was
-> imported into Railway PostgreSQL and refreshed afterward. The only active
-> pooled row is CASH THB3,082,130.29.
+> Latest canonical reconciliation: **10 Aug 2026**. Three pooled U.S. buys
+> consume existing cash (no new capital): QQQI 1,190, GOOGL 30 and WDC
+> 22.9782. The live-production status is recorded after the canonical import
+> in `../Handoff.md`.
 
 ## Start here
 
@@ -45,7 +45,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 7 Aug pooled exits reconciled
+## Current canonical state — 10 Aug pooled purchases reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -58,21 +58,22 @@ ownership, future realized P&L, or future dividend allocation.
 | Ryu | THB300,000.00 | 10.1708% |
 | **Total** | **THB2,949,606.00** | **100.0000%** |
 
-| Active pooled holding | Units / value | Saved 7 Aug audit basis |
+| Active pooled holding | Units / value | Saved 10 Aug audit basis |
 |---|---:|---:|
-| CASH | THB3,082,130.29 | pooled broker cash, no quote request |
+| QQQI | 1,190 | USD55.20 × 33.254 |
+| GOOGL | 30 | USD355.36 × 33.254 |
+| WDC | 22.9782 | USD437.00 × 33.254 |
+| CASH | THB205,632.36 | pooled broker cash, no quote request |
 
-The 5 Aug transactions are retained historical pooled ledger rows. On 7 Aug,
-the shared account sells GOOGL 25 @ USD355.60, 10 @ USD354.64 and 40 @
-USD355.38; sells NVDA 45 @ USD222.60; and closes an intraday SNDK 10-share
-buy/sell at USD1,195.00 / USD1,233.72. The screenshot does not include a THB
-settlement rate, so the workbook carries forward the user-approved audit FX
-reference 33.254. The six rows add THB13,099.15 realized P&L, allocated Mom
-THB5,551.23, Rattee THB6,215.63 and Ryu THB1,332.30. Workbook totals: market
-value THB3,082,130.29, unrealized P&L THB0.00, cumulative realized P&L
-THB512,874.36 and total P&L THB512,874.36. No Thai dividend-eligible security
-remains active, so the current forecast is THB0; the April 2026 payout remains
-historical.
+The 10 Aug screenshot records QQQI buy 1,190 @ USD55.20 (USD65,793.84 broker
+total), GOOGL buy 30 @ USD355.36 (USD10,663.37), and WDC buy 22.9782 @
+USD437.00 (USD10,043.60). All three are `Shared-US` pooled trades funded by
+existing cash. At the approved audit FX 33.254 their THB ledger cost is
+THB2,876,497.94, reducing cash from THB3,082,130.29 to THB205,632.36.
+Workbook totals at the entry-price audit mark are market value THB3,078,454.51,
+unrealized P&L -THB3,675.78, cumulative realized P&L THB512,874.36 and total
+P&L THB509,198.58. QQQI distribution is excluded from the forecast until its
+declared DPS and withholding treatment are verified.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 
@@ -227,7 +228,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh GOOGL/META/AAPL/NVDA/MU/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry

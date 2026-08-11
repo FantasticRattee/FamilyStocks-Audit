@@ -83,8 +83,12 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
     createHoldingEdits(snapshot),
   );
 
-  assert.deepEqual(plan.symbols, ["USDTHB"]);
-  assert.deepEqual(plan.stocks, []);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "WDC", "USDTHB"]);
+  assert.deepEqual(plan.stocks, [
+    { ticker: "QQQI", marketKey: "QQQI", currency: "USD" },
+    { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
+    { ticker: "WDC", marketKey: "WDC", currency: "USD" },
+  ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
 
@@ -118,13 +122,18 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
   );
 
   assert.deepEqual(plan.symbols, [
+    "QQQI",
     "GOOGL",
+    "WDC",
     "AAPL",
     "NVDA",
     "MU",
     "USDTHB",
   ]);
-  assert.deepEqual(plan.stocks.filter((stock) => ["AAPL", "MU", "NVDA"].includes(stock.ticker)), [
+  assert.deepEqual(plan.stocks, [
+    { ticker: "QQQI", marketKey: "QQQI", currency: "USD" },
+    { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
+    { ticker: "WDC", marketKey: "WDC", currency: "USD" },
     { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
     { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
     { ticker: "MU", marketKey: "MU", currency: "USD" },
@@ -137,7 +146,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 3_082_130.2945) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 205_632.35876) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -146,7 +155,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
 
   assert.equal(plan.unmappedTickers.CASH, undefined);
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
-  assert.deepEqual(plan.symbols, ["USDTHB"]);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "WDC", "USDTHB"]);
 });
 
 test("applies valid live quotes only to the display scenario and refreshes USD/THB", async () => {

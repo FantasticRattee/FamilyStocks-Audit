@@ -372,7 +372,7 @@ test("sizes the P&L chart from its active ticker count", async () => {
   const html = await response.text();
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:1"/i);
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:4"/i);
   assert.match(
     styles,
     /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*44px\)/i,

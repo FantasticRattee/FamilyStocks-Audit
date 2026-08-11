@@ -81,11 +81,11 @@ overwrites the canonical audit workbook.
 
 ## Market refresh
 
-`Refresh market prices` is public and manual. Each click fetches the eight
+`Refresh market prices` is public and manual. Each click fetches the ten
 allow-listed market keys from free public sources without an API key:
 
-- Google Finance public quote pages: `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`,
-  and `USDTHB`.
+- Google Finance public quote pages: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
+  `NVDA`, `MU`, and `USDTHB`.
 - Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared

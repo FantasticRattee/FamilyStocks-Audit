@@ -14,6 +14,8 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   AAPL: { marketKey: "AAPL", currency: "USD" },
   NVDA: { marketKey: "NVDA", currency: "USD" },
   MU: { marketKey: "MU", currency: "USD" },
+  QQQI: { marketKey: "QQQI", currency: "USD" },
+  WDC: { marketKey: "WDC", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };

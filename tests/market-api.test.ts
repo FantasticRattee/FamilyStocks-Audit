@@ -41,6 +41,12 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("MU")) {
         return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("QQQI")) {
+        return new Response(googleQuotePage("QQQI:NASDAQ", "$55.20"));
+      }
+      if (url.hostname === "www.google.com" && url.pathname.includes("WDC")) {
+        return new Response(googleQuotePage("WDC:NASDAQ", "$437.00"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
       }
@@ -67,6 +73,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       "www.google.com",
       "www.google.com",
       "www.google.com",
+      "www.google.com",
+      "www.google.com",
       "www.set.or.th",
       "www.set.or.th",
     ],
@@ -84,6 +92,10 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.NVDA?.exchange, "NASDAQ");
   assert.equal(body.quotes.MU?.price, 812);
   assert.equal(body.quotes.MU?.exchange, "NASDAQ");
+  assert.equal(body.quotes.QQQI?.price, 55.2);
+  assert.equal(body.quotes.QQQI?.exchange, "NASDAQ");
+  assert.equal(body.quotes.WDC?.price, 437);
+  assert.equal(body.quotes.WDC?.exchange, "NASDAQ");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
   assert.equal(body.quotes.SCB?.price, 158.5);
   assert.equal(body.quotes.SCB?.source, "SET public quote");
@@ -95,6 +107,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
     "https://www.google.com/finance/quote/AAPL:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/NVDA:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/MU:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/QQQI:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/WDC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
     "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",
@@ -121,6 +135,8 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
           "AAPL",
           "NVDA",
           "MU",
+          "QQQI",
+          "WDC",
           "USDTHB",
           "SCB",
           "KBANK",
@@ -139,6 +155,8 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.75"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$207.25"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$813.25"));
+      if (url.pathname.includes("QQQI")) return new Response(googleQuotePage("QQQI:NASDAQ", "$55.25"));
+      if (url.pathname.includes("WDC")) return new Response(googleQuotePage("WDC:NASDAQ", "$438.25"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
       return new Response(setQuotePage("KBANK", 232));
@@ -156,8 +174,10 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "META",
     "MU",
     "NVDA",
+    "QQQI",
     "SCB",
     "USDTHB",
+    "WDC",
   ]);
   const body = (await response.json()) as { cooldownActive?: boolean; refreshedKeys: string[] };
   assert.equal(body.cooldownActive, undefined);
@@ -167,6 +187,8 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "AAPL",
     "NVDA",
     "MU",
+    "QQQI",
+    "WDC",
     "USDTHB",
     "SCB",
     "KBANK",
@@ -183,6 +205,8 @@ test("returns per-key failures from a public source without overwriting the othe
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$206.73"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
+      if (url.pathname.includes("QQQI")) return new Response(googleQuotePage("QQQI:NASDAQ", "$55.20"));
+      if (url.pathname.includes("WDC")) return new Response(googleQuotePage("WDC:NASDAQ", "$437.00"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.50"));
       if (url.pathname.endsWith("/SCB/price")) return new Response("source unavailable", { status: 503 });
       return new Response(setQuotePage("KBANK", 231));
