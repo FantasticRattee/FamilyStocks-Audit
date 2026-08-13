@@ -2,10 +2,10 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **10 Aug 2026**. Three pooled U.S. buys
-> consume existing cash (no new capital): QQQI 1,190, GOOGL 30 and WDC
-> 22.9782. The live-production status is recorded after the canonical import
-> in `../Handoff.md`.
+> Latest canonical reconciliation: **12 Aug 2026**. The pooled portfolio
+> closed WDC, rolled GOOGL from 30 to 40 shares, and added META 20 using
+> existing cash (no new capital). The live-production status is recorded after
+> the canonical import in `../Handoff.md`.
 
 ## Start here
 
@@ -45,7 +45,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 10 Aug pooled purchases reconciled
+## Current canonical state — 12 Aug pooled rotation reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -58,22 +58,22 @@ ownership, future realized P&L, or future dividend allocation.
 | Ryu | THB300,000.00 | 10.1708% |
 | **Total** | **THB2,949,606.00** | **100.0000%** |
 
-| Active pooled holding | Units / value | Saved 10 Aug audit basis |
+| Active pooled holding | Units / value | Saved 12 Aug audit basis |
 |---|---:|---:|
 | QQQI | 1,190 | USD55.20 × 33.254 |
-| GOOGL | 30 | USD355.36 × 33.254 |
-| WDC | 22.9782 | USD437.00 × 33.254 |
-| CASH | THB205,632.36 | pooled broker cash, no quote request |
+| GOOGL | 40 | USD342.54 × 33.254 |
+| META | 20 | USD582.93 × 33.254 |
+| CASH | THB39,868.82 | pooled broker cash, no quote request |
 
-The 10 Aug screenshot records QQQI buy 1,190 @ USD55.20 (USD65,793.84 broker
-total), GOOGL buy 30 @ USD355.36 (USD10,663.37), and WDC buy 22.9782 @
-USD437.00 (USD10,043.60). All three are `Shared-US` pooled trades funded by
-existing cash. At the approved audit FX 33.254 their THB ledger cost is
-THB2,876,497.94, reducing cash from THB3,082,130.29 to THB205,632.36.
-Workbook totals at the entry-price audit mark are market value THB3,078,454.51,
-unrealized P&L -THB3,675.78, cumulative realized P&L THB512,874.36 and total
-P&L THB509,198.58. QQQI distribution is excluded from the forecast until its
-declared DPS and withholding treatment are verified.
+The 12 Aug screenshot records WDC sell 22.9782 @ USD440.00 (USD10,108.13
+net), GOOGL sell 8 @ USD347.26 (USD2,775.89 net), then GOOGL buys 8 @
+USD347.30 and 10 @ USD342.54, plus META buy 20 @ USD582.93. All five are
+`Shared-US` pooled trades funded by existing cash. At the approved audit FX
+33.254, WDC realizes +THB2,145.88 and the GOOGL sale -THB2,250.48; batch net
+is -THB104.59. Workbook totals at the entry-price audit mark are market value
+THB3,067,585.66, unrealized P&L -THB14,440.04, cumulative realized P&L
+THB512,769.77 and total P&L THB498,329.73. QQQI distribution is excluded from
+the forecast until its declared DPS and withholding treatment are verified.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 

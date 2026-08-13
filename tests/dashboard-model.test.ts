@@ -33,15 +33,15 @@ const loadSourceSnapshot = async () => {
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "10 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 3078454.5104036);
+  assert.equal(snapshot.asOfDate, "12 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 3067585.66001);
   closeTo(snapshot.summary.sharedCapital, 2949606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3078454.5104036);
-  closeTo(snapshot.summary.totalRealizedPnl, 512874.3623946404);
+  closeTo(snapshot.summary.sharedMarketValue, 3067585.66001);
+  closeTo(snapshot.summary.totalRealizedPnl, 512769.7674799737);
   assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), [
     "QQQI",
     "GOOGL",
-    "WDC",
+    "META",
     "CASH",
   ]);
   assert.deepEqual(
@@ -49,9 +49,9 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-10");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-12");
   assert.equal(snapshot.transactions.at(-1)?.side, "BUY");
-  assert.equal(snapshot.transactions.at(-1)?.ticker, "WDC");
+  assert.equal(snapshot.transactions.at(-1)?.ticker, "META");
   assert.equal(snapshot.transactions.at(-1)?.account, "Shared-US");
   closeTo(snapshot.shareholders[0].poolPercent, 0.42378541348502036, 0.000001);
   closeTo(
@@ -70,13 +70,13 @@ test("prices only current pooled holdings without recreating sold positions", as
   scenario.fx = 33;
   scenario.prices.QQQI = 54;
   scenario.prices.GOOGL = 330;
-  scenario.prices.WDC = 430;
+  scenario.prices.META = 580;
 
   const result = calculateDashboard(snapshot, scenario);
   assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
     "QQQI",
     "GOOGL",
-    "WDC",
+    "META",
     "CASH",
   ]);
   assert.equal(result.holdings.some((holding) => holding.ticker === "NVDA"), false);
@@ -87,7 +87,7 @@ test("prices only current pooled holdings without recreating sold positions", as
     cash.costBasis,
   );
   const expectedSharedMarketValue =
-    cash.costBasis + 1190 * 54 * 33 + 30 * 330 * 33 + 22.9782 * 430 * 33;
+    cash.costBasis + 1190 * 54 * 33 + 40 * 330 * 33 + 20 * 580 * 33;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
   closeTo(result.totals.marketValue, expectedSharedMarketValue);
