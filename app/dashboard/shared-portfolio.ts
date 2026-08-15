@@ -21,6 +21,7 @@ export const SUPPORTED_HOLDING_TICKERS = {
   AAPL: { currency: "USD", marketKey: "AAPL" },
   NVDA: { currency: "USD", marketKey: "NVDA" },
   MU: { currency: "USD", marketKey: "MU" },
+  AVGO: { currency: "USD", marketKey: "AVGO" },
   QQQI: { currency: "USD", marketKey: "QQQI" },
   WDC: { currency: "USD", marketKey: "WDC" },
   SCB: { currency: "THB", marketKey: "SCB" },

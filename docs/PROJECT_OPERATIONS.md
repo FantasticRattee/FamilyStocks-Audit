@@ -2,10 +2,10 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **12 Aug 2026**. The pooled portfolio
-> closed WDC, rolled GOOGL from 30 to 40 shares, and added META 20 using
-> existing cash (no new capital). The live-production status is recorded after
-> the canonical import in `../Handoff.md`.
+> Latest canonical reconciliation: **15 Aug 2026**. Rattee added THB50,000 of
+> external capital and the pooled portfolio used that contribution plus its
+> remaining cash to buy AVGO 6.9162 shares. The live-production status is
+> recorded after the canonical import in `../Handoff.md`.
 
 ## Start here
 
@@ -45,7 +45,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 12 Aug pooled rotation reconciled
+## Current canonical state — 15 Aug contribution and AVGO purchase reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -53,26 +53,26 @@ ownership, future realized P&L, or future dividend allocation.
 
 | Shareholder | Total contributed capital | Allocation |
 |---|---:|---:|
-| Mom | THB1,250,000.00 | 42.3785% |
-| Rattee | THB1,399,606.00 | 47.4506% |
-| Ryu | THB300,000.00 | 10.1708% |
-| **Total** | **THB2,949,606.00** | **100.0000%** |
+| Mom | THB1,250,000.00 | 41.6721% |
+| Rattee | THB1,449,606.00 | 48.3265% |
+| Ryu | THB300,000.00 | 10.0013% |
+| **Total** | **THB2,999,606.00** | **100.0000%** |
 
-| Active pooled holding | Units / value | Saved 12 Aug audit basis |
+| Active pooled holding | Units / value | Saved 15 Aug audit basis |
 |---|---:|---:|
 | QQQI | 1,190 | USD55.20 × 33.254 |
 | GOOGL | 40 | USD342.54 × 33.254 |
 | META | 20 | USD582.93 × 33.254 |
-| CASH | THB39,868.82 | pooled broker cash, no quote request |
+| AVGO | 6.9162 | USD389.75 × 33.254 plus broker fee |
+| CASH | THB159.50 | pooled broker cash, no quote request |
 
-The 12 Aug screenshot records WDC sell 22.9782 @ USD440.00 (USD10,108.13
-net), GOOGL sell 8 @ USD347.26 (USD2,775.89 net), then GOOGL buys 8 @
-USD347.30 and 10 @ USD342.54, plus META buy 20 @ USD582.93. All five are
-`Shared-US` pooled trades funded by existing cash. At the approved audit FX
-33.254, WDC realizes +THB2,145.88 and the GOOGL sale -THB2,250.48; batch net
-is -THB104.59. Workbook totals at the entry-price audit mark are market value
-THB3,067,585.66, unrealized P&L -THB14,440.04, cumulative realized P&L
-THB512,769.77 and total P&L THB498,329.73. QQQI distribution is excluded from
+`Transactions/IMG_3037.PNG` records AVGO buy 6.9162 @ USD389.75 with a
+USD2,697.70 broker total. The approved audit FX 33.254 gives a THB89,709.32
+ledger cost. Rattee's separate THB50,000.00 contribution is recorded as
+capital, not profit; together with prior cash THB39,868.82 it leaves THB159.50
+cash after the purchase. Workbook totals at the saved audit mark are market
+value THB3,117,515.46, unrealized P&L -THB14,510.24, cumulative realized P&L
+THB512,769.77 and total P&L THB498,259.53. QQQI distribution is excluded from
 the forecast until its declared DPS and withholding treatment are verified.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
@@ -228,7 +228,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry

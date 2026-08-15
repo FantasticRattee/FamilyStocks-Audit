@@ -94,21 +94,22 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["QQQI", "Shared", 1190],
       ["GOOGL", "Shared", 40],
       ["META", "Shared", 20],
+      ["AVGO", "Shared", 6.9162],
       ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "12 Aug 2026");
+  assert.equal(parsed.settings?.asOfDate, "15 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        1_399_606.003945636,
+        1_449_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-12");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-15");
   assert.equal(parsed.settings?.transactions.at(-1)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "META");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "AVGO");
   assert.equal(parsed.settings?.transactions.at(-1)?.account, "Shared-US");
 });
 
@@ -154,11 +155,13 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: " aapl ", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
+      { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
     ]),
     [
       { ticker: "AAPL", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
+      { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
     ],
   );
 

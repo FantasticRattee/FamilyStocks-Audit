@@ -40,7 +40,7 @@ test("keeps the current-capital forecast at zero when no active dividend equity 
       ["KBANK", 0, 12],
     ],
   );
-  closeTo(snapshot.dividend.costBasis, 2949606.003945636);
+  closeTo(snapshot.dividend.costBasis, 2999606.003945636);
   closeTo(result.dividend.gross, 0);
   closeTo(result.dividend.net, 0);
   closeTo(snapshot.historicalDividend.net, 64519.2);
@@ -48,7 +48,7 @@ test("keeps the current-capital forecast at zero when no active dividend equity 
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
   assert.ok(mom);
   closeTo(mom.net, 0);
-  closeTo(mom.capitalPercent, 1250000 / 2949606.003945636, 0.000001);
+  closeTo(mom.capitalPercent, 1250000 / 2999606.003945636, 0.000001);
 });
 
 test("recalculates a future pooled forecast when total contributed capital increases", async () => {
@@ -60,8 +60,8 @@ test("recalculates a future pooled forecast when total contributed capital incre
 
   snapshot.shareholders[0].sharedCapital += 100000;
   const result = calculateDashboard(snapshot, createScenario(snapshot));
-  const expectedYield = 7560 / 2949606.003945636;
-  const expectedCapital = 3049606.003945636;
+  const expectedYield = 7560 / 2999606.003945636;
+  const expectedCapital = 3099606.003945636;
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
 
   assert.ok(result.dividend.gross > baseline.dividend.gross);

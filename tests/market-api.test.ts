@@ -41,6 +41,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("META")) {
         return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("AVGO")) {
+        return new Response(googleQuotePage("AVGO:NASDAQ", "$389.75"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("AAPL")) {
         return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
       }
@@ -84,6 +87,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       "www.google.com",
       "www.google.com",
       "www.google.com",
+      "www.google.com",
       "www.set.or.th",
       "www.set.or.th",
     ],
@@ -95,6 +99,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.GOOGL?.source, "Google Finance");
   assert.equal(body.quotes.META?.price, 548.5);
   assert.equal(body.quotes.META?.exchange, "NASDAQ");
+  assert.equal(body.quotes.AVGO?.price, 389.75);
+  assert.equal(body.quotes.AVGO?.exchange, "NASDAQ");
   assert.equal(body.quotes.AAPL?.price, 305.64);
   assert.equal(body.quotes.AAPL?.exchange, "NASDAQ");
   assert.equal(body.quotes.NVDA?.price, 206.73);
@@ -113,6 +119,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.deepEqual(body.sources?.map((source) => source.url), [
     "https://www.google.com/finance/quote/GOOGL:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/META:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/AVGO:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/AAPL:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/NVDA:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/MU:NASDAQ?hl=en",
@@ -141,6 +148,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
         refreshedKeys: [
           "GOOGL",
           "META",
+          "AVGO",
           "AAPL",
           "NVDA",
           "MU",
@@ -161,6 +169,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$356.25"));
       if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$549.25"));
+      if (url.pathname.includes("AVGO")) return new Response(googleQuotePage("AVGO:NASDAQ", "$390.25"));
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.75"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$207.25"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$813.25"));
@@ -178,6 +187,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
   assert.equal(persistCalls, 1);
   assert.deepEqual(Object.keys((persisted as { quotes: object }).quotes).sort(), [
     "AAPL",
+    "AVGO",
     "GOOGL",
     "KBANK",
     "META",
@@ -193,6 +203,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
   assert.deepEqual(body.refreshedKeys, [
     "GOOGL",
     "META",
+    "AVGO",
     "AAPL",
     "NVDA",
     "MU",
@@ -211,6 +222,7 @@ test("returns per-key failures from a public source without overwriting the othe
       const url = new URL(String(input));
       if (url.pathname.includes("GOOGL")) return new Response(googleQuotePage("GOOGL:NASDAQ", "$355.60"));
       if (url.pathname.includes("META")) return new Response(googleQuotePage("META:NASDAQ", "$548.50"));
+      if (url.pathname.includes("AVGO")) return new Response(googleQuotePage("AVGO:NASDAQ", "$389.75"));
       if (url.pathname.includes("AAPL")) return new Response(googleQuotePage("AAPL:NASDAQ", "$305.64"));
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$206.73"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));

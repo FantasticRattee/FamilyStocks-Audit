@@ -7,6 +7,7 @@ export const SHARED_MARKET_KEYS = [
   "GOOGL",
   "WDC",
   "META",
+  "AVGO",
   "AAPL",
   "NVDA",
   "MU",

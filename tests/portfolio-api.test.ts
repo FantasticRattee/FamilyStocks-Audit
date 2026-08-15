@@ -241,6 +241,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     GOOGL: oldQuote("GOOGL", 370, "USD"),
     WDC: oldQuote("WDC", 437, "USD"),
     META: oldQuote("META", 550, "USD"),
+    AVGO: oldQuote("AVGO", 389.75, "USD"),
     AAPL: oldQuote("AAPL", 305, "USD"),
     NVDA: oldQuote("NVDA", 206, "USD"),
     MU: oldQuote("MU", 812, "USD"),
@@ -255,6 +256,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     failures: {
       QQQI: "No new quote",
       META: "No new quote",
+      AVGO: "No new quote",
       WDC: "No new quote",
       AAPL: "No new quote",
       NVDA: "No new quote",
@@ -269,6 +271,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.equal(merged.quotes.QQQI.price, 55.2);
   assert.equal(merged.quotes.WDC.price, 437);
   assert.equal(merged.quotes.META.price, 550);
+  assert.equal(merged.quotes.AVGO.price, 389.75);
   assert.equal(merged.quotes.AAPL.price, 305);
   assert.equal(merged.quotes.NVDA.price, 206);
   assert.equal(merged.quotes.MU.price, 812);
@@ -280,6 +283,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     "QQQI",
     "WDC",
     "META",
+    "AVGO",
     "AAPL",
     "NVDA",
     "MU",

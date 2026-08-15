@@ -99,7 +99,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
 - Shared market keys: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`,
-  `SCB`, `KBANK`, `USDTHB`.
+  `AVGO`, `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -118,7 +118,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
 - Active holdings currently accepted are QQQI, GOOGL, WDC, META, AAPL, NVDA,
-  MU, SCB, KBANK, and shared CASH. Historical ledger rows may include inactive
+  MU, AVGO, SCB, KBANK, and shared CASH. Historical ledger rows may include inactive
   tickers such as V or SPCX, but they must not be promoted into active imported
   holdings until ticker currency and market mappings are deliberately added.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost

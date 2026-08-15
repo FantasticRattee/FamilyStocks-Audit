@@ -64,6 +64,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["META:NASDAQ"],
   },
+  AVGO: {
+    symbol: "AVGO",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/AVGO:NASDAQ?hl=en",
+    title: "Google Finance · AVGO (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["AVGO:NASDAQ"],
+  },
   AAPL: {
     symbol: "AAPL",
     currency: "USD",
