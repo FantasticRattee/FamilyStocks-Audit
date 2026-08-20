@@ -78,6 +78,23 @@ the saved audit mark are market value THB3,414,471.71, unrealized P&L
 THB485,215.78. QQQI and SPCX distribution remain excluded from the Thai-bank
 forecast until verified dividend assumptions are added.
 
+## Live synchronization verified — 21 Aug 2026
+
+GitHub `main` commit `6adf501` contains the regenerated canonical workbook
+seed and updated expectations. Railway imported `Portfolio_Accounting.xlsx`
+at `2026-08-20T18:01:11.224Z` UTC with content hash
+`cc76d747f66ec98e413f1adc0c646b25c465008f0f34d643c32789092fb06d36`.
+The subsequent public refresh completed all 12 configured quote keys without
+failures at `2026-08-20T18:01:26.146Z` UTC. SPCX refreshed at USD132.30 and
+USD/THB at 32.8565; live market value was THB3,291,276.27 and total P&L was
+THB362,020.33. These are display values, not replacements for fixed audit
+costs or transaction records.
+
+Production API and the six visible dashboard tabs were checked after import:
+Overview, Shareholders, Holdings, Dividends, Transactions, and Realized Sale
+P&L. The API reports SPCX 67, CASH THB1,257.24, total capital
+THB3,309,606.00, and the 20 Aug SPCX transaction as the newest trade.
+
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 
 The canonical `Portfolio_Accounting.xlsx` and embedded seed include the owner
