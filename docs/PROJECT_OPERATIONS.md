@@ -45,7 +45,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 20 Aug Mom SPCX purchase and Rattee cash reconciled
+## Current canonical state — 20 Aug SPCX extension and Rattee cash reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -64,17 +64,19 @@ ownership, future realized P&L, or future dividend allocation.
 | GOOGL | 40 | imported audit mark THB11,390.82516 |
 | META | 20 | imported audit mark THB19,384.75422 |
 | AVGO | 6.9162 | imported audit mark THB12,960.7465 |
-| SPCX | 65 | USD140.00 × exact settlement FX 32.946884102 |
-| CASH | THB10,159.67 | pooled broker cash, no quote request |
+| SPCX | 67 | 65 @ USD140.00 plus 2 @ USD132.79; new lot uses approved FX 33.254 |
+| CASH | THB1,257.24 | pooled broker cash after Rattee-funded SPCX buy, no quote request |
 
 `Transactions/SPCX_2026-08-19_buy.jpg` records Mom's SPCX buy of 65 @ USD140.00
-with a USD9,105.56 broker total and THB299,999.83 settlement. Rattee's
-THB10,000.00 deposit on 20 Aug is recorded as capital; the matching
-THB9,999.84 exchange is currency conversion only. Workbook totals at the saved
-audit mark are market value THB3,427,332.27, unrealized P&L -THB14,693.43,
-cumulative realized P&L THB512,769.77 and total P&L THB498,076.34. QQQI and
-SPCX distribution remain excluded from the Thai-bank forecast until verified
-dividend assumptions are added.
+with a USD9,105.56 broker total and THB299,999.83 settlement. The follow-up
+`Transactions/SPCX_2026-08-20_buy_2.jpg` records Rattee's 2 @ USD132.79,
+USD267.71 broker total, funded from existing cash. The screenshot does not
+show THB settlement FX, so the workbook uses the approved 33.254 reference;
+the THB outflow is THB8,902.43. No new capital is added. Workbook totals at
+the saved audit mark are market value THB3,414,471.71, unrealized P&L
+-THB27,553.99, cumulative realized P&L THB512,769.77 and total P&L
+THB485,215.78. QQQI and SPCX distribution remain excluded from the Thai-bank
+forecast until verified dividend assumptions are added.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 

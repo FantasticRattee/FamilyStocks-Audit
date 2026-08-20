@@ -9,7 +9,7 @@ test("normalizes Tiingo history and keeps provider keys out of the stored payloa
   const nextEstimateDate = `${currentYear + 1}-06-30`;
   const result = await fetchStockAnalyzerInput(
     "msft",
-    { TIINGO_API_KEY: "tiingo-secret", FMP_API_KEY: "fmp-secret" },
+    { TIINGO_API_KEY: "change-me-tiingo", FMP_API_KEY: "change-me-fmp" },
     async (input, init) => {
       const url = String(input);
       const headers = new Headers(init?.headers);
@@ -49,7 +49,7 @@ test("normalizes Tiingo history and keeps provider keys out of the stored payloa
   assert.equal(result.source.price, "Tiingo EOD");
   assert.equal(calls.filter((call) => call.url.includes("api.tiingo.com")).length, 2);
   assert.ok(calls.filter((call) => call.url.includes("api.tiingo.com")).every(
-    (call) => call.authorization === "Token tiingo-secret",
+    (call) => call.authorization === "Token change-me-tiingo",
   ));
-  assert.doesNotMatch(JSON.stringify(result), /tiingo-secret|fmp-secret/);
+  assert.doesNotMatch(JSON.stringify(result), /change-me-tiingo|change-me-fmp/);
 });

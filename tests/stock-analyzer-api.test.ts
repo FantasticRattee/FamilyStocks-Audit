@@ -79,7 +79,7 @@ test("persists a successful analyzer refresh and retains the old snapshot after 
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ symbol: "MSFT" }),
     }),
-    { TIINGO_API_KEY: "test-key" },
+    { TIINGO_API_KEY: "change-me-key" },
     repository,
     async (input) => {
       const url = String(input);
@@ -107,7 +107,7 @@ test("persists a successful analyzer refresh and retains the old snapshot after 
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ symbol: "MSFT" }),
     }),
-    { TIINGO_API_KEY: "test-key" },
+    { TIINGO_API_KEY: "change-me-key" },
     repository,
     async () => new Response("source unavailable", { status: 503 }),
   );

@@ -95,7 +95,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["GOOGL", "Shared", 40],
       ["META", "Shared", 20],
       ["AVGO", "Shared", 6.9162],
-      ["SPCX", "Shared", 65],
+      ["SPCX", "Shared", 67],
       ["CASH", "Shared", 1],
     ],
   );
@@ -108,12 +108,12 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
         1_459_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-2)?.date, "2026-08-19");
-  assert.equal(parsed.settings?.transactions.at(-2)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-2)?.ticker, "SPCX");
-  assert.equal(parsed.settings?.transactions.at(-2)?.account, "Shared-US");
+  assert.equal(parsed.settings?.transactions.at(-3)?.date, "2026-08-19");
+  assert.equal(parsed.settings?.transactions.at(-3)?.side, "BUY");
+  assert.equal(parsed.settings?.transactions.at(-3)?.ticker, "SPCX");
+  assert.equal(parsed.settings?.transactions.at(-3)?.account, "Shared-US");
   assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-20");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "CASH");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "SPCX");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {
