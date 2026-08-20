@@ -114,6 +114,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["QQQI:NASDAQ"],
   },
+  SPCX: {
+    symbol: "SPCX",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/SPCX:NASDAQ?hl=en",
+    title: "Google Finance · SPCX (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["SPCX:NASDAQ"],
+  },
   WDC: {
     symbol: "WDC",
     currency: "USD",

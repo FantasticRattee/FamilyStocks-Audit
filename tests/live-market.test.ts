@@ -83,12 +83,13 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
     createHoldingEdits(snapshot),
   );
 
-  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "USDTHB"]);
   assert.deepEqual(plan.stocks, [
     { ticker: "QQQI", marketKey: "QQQI", currency: "USD" },
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
     { ticker: "META", marketKey: "META", currency: "USD" },
     { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
+    { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
@@ -127,6 +128,7 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
     "GOOGL",
     "META",
     "AVGO",
+    "SPCX",
     "AAPL",
     "NVDA",
     "MU",
@@ -137,6 +139,7 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
     { ticker: "META", marketKey: "META", currency: "USD" },
     { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
+    { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
     { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
     { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
     { ticker: "MU", marketKey: "MU", currency: "USD" },
@@ -149,7 +152,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 159.50141) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 10159.67141) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -158,7 +161,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
 
   assert.equal(plan.unmappedTickers.CASH, undefined);
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
-  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "USDTHB"]);
 });
 
 test("applies valid live quotes only to the display scenario and refreshes USD/THB", async () => {

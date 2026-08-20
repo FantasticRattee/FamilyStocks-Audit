@@ -45,7 +45,7 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 15 Aug contribution and AVGO purchase reconciled
+## Current canonical state — 20 Aug Mom SPCX purchase and Rattee cash reconciled
 
 From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
 Historic owner/unit records remain in the ledger, but do not determine active
@@ -53,27 +53,28 @@ ownership, future realized P&L, or future dividend allocation.
 
 | Shareholder | Total contributed capital | Allocation |
 |---|---:|---:|
-| Mom | THB1,250,000.00 | 41.6721% |
-| Rattee | THB1,449,606.00 | 48.3265% |
-| Ryu | THB300,000.00 | 10.0013% |
-| **Total** | **THB2,999,606.00** | **100.0000%** |
+| Mom | THB1,550,000.00 | 46.8334% |
+| Rattee | THB1,459,606.00 | 44.1021% |
+| Ryu | THB300,000.00 | 9.0645% |
+| **Total** | **THB3,309,606.00** | **100.0000%** |
 
-| Active pooled holding | Units / value | Saved 15 Aug audit basis |
+| Active pooled holding | Units / value | Saved 20 Aug audit basis |
 |---|---:|---:|
-| QQQI | 1,190 | USD55.20 × 33.254 |
-| GOOGL | 40 | USD342.54 × 33.254 |
-| META | 20 | USD582.93 × 33.254 |
-| AVGO | 6.9162 | USD389.75 × 33.254 plus broker fee |
-| CASH | THB159.50 | pooled broker cash, no quote request |
+| QQQI | 1,190 | imported audit mark THB1,835.6208 |
+| GOOGL | 40 | imported audit mark THB11,390.82516 |
+| META | 20 | imported audit mark THB19,384.75422 |
+| AVGO | 6.9162 | imported audit mark THB12,960.7465 |
+| SPCX | 65 | USD140.00 × exact settlement FX 32.946884102 |
+| CASH | THB10,159.67 | pooled broker cash, no quote request |
 
-`Transactions/IMG_3037.PNG` records AVGO buy 6.9162 @ USD389.75 with a
-USD2,697.70 broker total. The approved audit FX 33.254 gives a THB89,709.32
-ledger cost. Rattee's separate THB50,000.00 contribution is recorded as
-capital, not profit; together with prior cash THB39,868.82 it leaves THB159.50
-cash after the purchase. Workbook totals at the saved audit mark are market
-value THB3,117,515.46, unrealized P&L -THB14,510.24, cumulative realized P&L
-THB512,769.77 and total P&L THB498,259.53. QQQI distribution is excluded from
-the forecast until its declared DPS and withholding treatment are verified.
+`Transactions/SPCX_2026-08-19_buy.jpg` records Mom's SPCX buy of 65 @ USD140.00
+with a USD9,105.56 broker total and THB299,999.83 settlement. Rattee's
+THB10,000.00 deposit on 20 Aug is recorded as capital; the matching
+THB9,999.84 exchange is currency conversion only. Workbook totals at the saved
+audit mark are market value THB3,427,332.27, unrealized P&L -THB14,693.43,
+cumulative realized P&L THB512,769.77 and total P&L THB498,076.34. QQQI and
+SPCX distribution remain excluded from the Thai-bank forecast until verified
+dividend assumptions are added.
 
 ## Superseded pre-pooling state — through 4 Aug 2026, retained for traceability
 
@@ -228,7 +229,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry
@@ -282,7 +283,7 @@ update the shared portfolio rows in PostgreSQL.
    cash value are correct.
 4. Click `Refresh market prices` after the import. Confirm every active
    market-priced ticker has a source link/timestamp (GOOGL, META, AAPL, NVDA,
-   MU use Google Finance; SCB and KBANK use SET); CASH is retained at its
+   MU, and SPCX use Google Finance; SCB and KBANK use SET); CASH is retained at its
    imported amount.
 5. Verify `/api/portfolio` and the visible dashboard agree. Check a second
    device/browser if the goal is to confirm shared persistence.
@@ -312,7 +313,8 @@ Ticker | Owner/Account | Entry Price | Units
 ```
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
-tickers are `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SCB`, `KBANK`, and `CASH`;
+tickers are `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`,
+`SCB`, `KBANK`, and `CASH`;
 `CASH` is only valid for `Shared`. A canonical workbook may retain other
 tickers in its historical `Transactions` ledger, but they must not become
 active holdings unless active ticker support is deliberately added. Dashboard

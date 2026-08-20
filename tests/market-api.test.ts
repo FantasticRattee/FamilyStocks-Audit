@@ -56,6 +56,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("QQQI")) {
         return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.20"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("SPCX")) {
+        return new Response(googleModernQuotePage("SPCX:NASDAQ", "140.25"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("WDC")) {
         return new Response(googleModernQuotePage("WDC:NASDAQ", "437.00"));
       }
@@ -88,6 +91,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       "www.google.com",
       "www.google.com",
       "www.google.com",
+      "www.google.com",
       "www.set.or.th",
       "www.set.or.th",
     ],
@@ -109,6 +113,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.MU?.exchange, "NASDAQ");
   assert.equal(body.quotes.QQQI?.price, 55.2);
   assert.equal(body.quotes.QQQI?.exchange, "NASDAQ");
+  assert.equal(body.quotes.SPCX?.price, 140.25);
+  assert.equal(body.quotes.SPCX?.exchange, "NASDAQ");
   assert.equal(body.quotes.WDC?.price, 437);
   assert.equal(body.quotes.WDC?.exchange, "NASDAQ");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
@@ -124,6 +130,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
     "https://www.google.com/finance/quote/NVDA:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/MU:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/QQQI:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/SPCX:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/WDC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
@@ -153,6 +160,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
           "NVDA",
           "MU",
           "QQQI",
+          "SPCX",
           "WDC",
           "USDTHB",
           "SCB",
@@ -174,6 +182,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       if (url.pathname.includes("NVDA")) return new Response(googleQuotePage("NVDA:NASDAQ", "$207.25"));
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$813.25"));
       if (url.pathname.includes("QQQI")) return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.25"));
+      if (url.pathname.includes("SPCX")) return new Response(googleModernQuotePage("SPCX:NASDAQ", "140.50"));
       if (url.pathname.includes("WDC")) return new Response(googleModernQuotePage("WDC:NASDAQ", "438.25"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
@@ -195,6 +204,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "NVDA",
     "QQQI",
     "SCB",
+    "SPCX",
     "USDTHB",
     "WDC",
   ]);
@@ -208,6 +218,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "NVDA",
     "MU",
     "QQQI",
+    "SPCX",
     "WDC",
     "USDTHB",
     "SCB",

@@ -95,22 +95,25 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["GOOGL", "Shared", 40],
       ["META", "Shared", 20],
       ["AVGO", "Shared", 6.9162],
+      ["SPCX", "Shared", 65],
       ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "15 Aug 2026");
+  assert.equal(parsed.settings?.asOfDate, "20 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        1_449_606.003945636,
+        1_459_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-15");
-  assert.equal(parsed.settings?.transactions.at(-1)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "AVGO");
-  assert.equal(parsed.settings?.transactions.at(-1)?.account, "Shared-US");
+  assert.equal(parsed.settings?.transactions.at(-2)?.date, "2026-08-19");
+  assert.equal(parsed.settings?.transactions.at(-2)?.side, "BUY");
+  assert.equal(parsed.settings?.transactions.at(-2)?.ticker, "SPCX");
+  assert.equal(parsed.settings?.transactions.at(-2)?.account, "Shared-US");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-20");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "CASH");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {
@@ -156,12 +159,14 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
+      { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
     ]),
     [
       { ticker: "AAPL", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
+      { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
     ],
   );
 

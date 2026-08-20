@@ -33,16 +33,17 @@ const loadSourceSnapshot = async () => {
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "15 Aug 2026");
-  closeTo(snapshot.summary.totalMarketValue, 3117515.4591533);
-  closeTo(snapshot.summary.sharedCapital, 2999606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3117515.4591533);
+  assert.equal(snapshot.asOfDate, "20 Aug 2026");
+  closeTo(snapshot.summary.totalMarketValue, 3427332.274477695);
+  closeTo(snapshot.summary.sharedCapital, 3309606.003945636);
+  closeTo(snapshot.summary.sharedMarketValue, 3427332.274477695);
   closeTo(snapshot.summary.totalRealizedPnl, 512769.7674799737);
   assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), [
     "QQQI",
     "GOOGL",
     "META",
     "AVGO",
+    "SPCX",
     "CASH",
   ]);
   assert.deepEqual(
@@ -50,15 +51,17 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-15");
-  assert.equal(snapshot.transactions.at(-1)?.side, "BUY");
-  assert.equal(snapshot.transactions.at(-1)?.ticker, "AVGO");
-  assert.equal(snapshot.transactions.at(-1)?.account, "Shared-US");
-  closeTo(snapshot.shareholders[0].poolPercent, 0.41672139552853577, 0.000001);
+  assert.equal(snapshot.transactions.at(-2)?.date, "2026-08-19");
+  assert.equal(snapshot.transactions.at(-2)?.side, "BUY");
+  assert.equal(snapshot.transactions.at(-2)?.ticker, "SPCX");
+  assert.equal(snapshot.transactions.at(-2)?.account, "Shared-US");
+  assert.equal(snapshot.transactions.at(-1)?.date, "2026-08-20");
+  assert.equal(snapshot.transactions.at(-1)?.ticker, "CASH");
+  closeTo(snapshot.shareholders[0].poolPercent, 0.4683336923344125, 0.000001);
   closeTo(
     (snapshot.shareholders[0] as typeof snapshot.shareholders[0] & { cashPercent?: number })
       .cashPercent ?? 0,
-    0.41672139552853577,
+    0.4683336923344125,
     0.000001,
   );
   assert.equal(snapshot.holdings.every((holding) => holding.category === "shared"), true);
@@ -73,6 +76,7 @@ test("prices only current pooled holdings without recreating sold positions", as
   scenario.prices.GOOGL = 330;
   scenario.prices.META = 580;
   scenario.prices.AVGO = 390;
+  scenario.prices.SPCX = 140;
 
   const result = calculateDashboard(snapshot, scenario);
   assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
@@ -80,6 +84,7 @@ test("prices only current pooled holdings without recreating sold positions", as
     "GOOGL",
     "META",
     "AVGO",
+    "SPCX",
     "CASH",
   ]);
   assert.equal(result.holdings.some((holding) => holding.ticker === "NVDA"), false);
@@ -90,7 +95,12 @@ test("prices only current pooled holdings without recreating sold positions", as
     cash.costBasis,
   );
   const expectedSharedMarketValue =
-    cash.costBasis + 1190 * 54 * 33 + 40 * 330 * 33 + 20 * 580 * 33 + 6.9162 * 390 * 33;
+    cash.costBasis +
+    1190 * 54 * 33 +
+    40 * 330 * 33 +
+    20 * 580 * 33 +
+    6.9162 * 390 * 33 +
+    65 * 140 * 33;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
   closeTo(result.totals.marketValue, expectedSharedMarketValue);
@@ -111,7 +121,7 @@ test("uses total contributed capital to split a future pooled dividend forecast"
   closeTo(result.dividend.wht, 819);
   closeTo(result.dividend.net, 7371);
   assert.ok(mom);
-  closeTo(mom.net, 7371 * (1250000 / 2999606.003945636));
+  closeTo(mom.net, 7371 * (1550000 / 3309606.003945636));
 });
 
 test("allocates every active pooled asset by total contributed-capital percentage", async () => {

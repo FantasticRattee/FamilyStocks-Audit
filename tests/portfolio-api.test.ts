@@ -242,6 +242,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     WDC: oldQuote("WDC", 437, "USD"),
     META: oldQuote("META", 550, "USD"),
     AVGO: oldQuote("AVGO", 389.75, "USD"),
+    SPCX: oldQuote("SPCX", 140, "USD"),
     AAPL: oldQuote("AAPL", 305, "USD"),
     NVDA: oldQuote("NVDA", 206, "USD"),
     MU: oldQuote("MU", 812, "USD"),
@@ -257,6 +258,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
       QQQI: "No new quote",
       META: "No new quote",
       AVGO: "No new quote",
+      SPCX: "No new quote",
       WDC: "No new quote",
       AAPL: "No new quote",
       NVDA: "No new quote",
@@ -281,6 +283,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.deepEqual(merged.refreshedKeys, ["GOOGL"]);
   assert.deepEqual(merged.retainedKeys, [
     "QQQI",
+    "SPCX",
     "WDC",
     "META",
     "AVGO",
