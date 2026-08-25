@@ -393,6 +393,13 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
   assert.match(html, /class="pnl-cost-basis"[^>]*>Cost ฿[\d,]+/i);
 });
 
+test("renders pooled and owner-specific active holdings together", async () => {
+  const dashboard = await readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8");
+  assert.match(dashboard, /const activeHoldings = result\.holdings/);
+  assert.match(dashboard, /activeHoldings\.map\(\(holding\) =>/);
+  assert.match(dashboard, /Pooled \+ owner-specific overlays/);
+});
+
 test("uses one reusable demand-rendered compact R3F bar-field implementation", async () => {
   const dashboard = await readFile(
     new URL("../app/dashboard/Dashboard.tsx", import.meta.url),

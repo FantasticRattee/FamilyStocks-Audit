@@ -956,9 +956,7 @@ export function Dashboard() {
     return editedTicker !== holding.ticker || Boolean(holdingEdits[holding.ticker]?.quote);
   });
   const editableDirty = scenarioDirty || tickerEditsDirty;
-  const sharedHoldings = result.holdings.filter(
-    (holding) => holding.category === "shared",
-  );
+  const activeHoldings = result.holdings;
   const editableHoldings = Array.from(
     new Map(result.holdings.map((holding) => [holding.ticker, holding])).values(),
   ).filter((holding) => holding.ticker !== "CASH");
@@ -1898,7 +1896,7 @@ export function Dashboard() {
         {activeTab === "holdings" ? (
           <section className="holdings-layout">
             <article className="panel">
-              <SectionTitle eyebrow="HOLDINGS" title="Current pooled assets · Active investments + cash" />
+              <SectionTitle eyebrow="HOLDINGS" title="Current assets · Pooled + owner-specific overlays" />
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -1913,7 +1911,7 @@ export function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sharedHoldings.map((holding) => (
+                    {activeHoldings.map((holding) => (
                       <tr key={`${holding.ticker}:${holding.account}`}>
                         <td>
                           <strong>{getHoldingDisplayTicker(holding.ticker, holdingEdits)}</strong>
@@ -1933,7 +1931,7 @@ export function Dashboard() {
                 </table>
               </div>
               <p className="panel-note">
-                Owner/unit notes before 5 Aug 2026 remain in the Excel audit ledger; they no longer define active ownership or future gain allocation.
+                Pooled rows use total-capital allocation. Owner-specific active overlays are added in full to the named owner&apos;s current equity; historical owner notes remain in the Excel audit ledger.
               </p>
             </article>
           </section>
