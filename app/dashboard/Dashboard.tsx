@@ -1887,8 +1887,7 @@ export function Dashboard() {
               </table>
             </div>
             <p className="panel-note">
-              Allocated Current Equity = total pooled asset value × total contributed-capital percentage.
-              From 5 Aug 2026, active assets and future realized P&amp;L use this allocation; historic owner notes remain audit history only.
+              Allocated Current Equity = pooled assets × total contributed-capital percentage + full value of any owner-specific active overlay. Historic owner notes remain audit history only.
             </p>
           </section>
         ) : null}

@@ -175,7 +175,7 @@ test("explains the total-capital pooled allocation consistently across all audit
   );
 
   assert.match(dashboard, /total pooled asset value × total contributed-capital percentage/i);
-  assert.match(dashboard, /active assets and future realized P&amp;L use this allocation/i);
+  assert.match(dashboard, /owner-specific active overlay/i);
   assert.doesNotMatch(dashboard, /Free Cash %/);
   assert.match(dashboard, /<option value="TRANSFER">TRANSFER<\/option>/);
 });
