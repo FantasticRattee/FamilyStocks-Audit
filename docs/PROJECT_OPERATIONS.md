@@ -82,7 +82,25 @@ THB512,769.77 and total P&L THB497,934.68. QQQI and SPCX distributions remain
 excluded from the Thai-bank forecast until verified dividend assumptions are
 added.
 
-## Live synchronization verified — 21 Aug 2026
+## Live synchronization verified — 25 Aug 2026
+
+GitHub `main` contains the workbook/INTC support commit `c9690ca` and UI
+follow-ups `b7ee0d2` and `30327c6`. Railway imported the canonical workbook at
+`2026-08-25T09:33:42.659Z` UTC with content hash
+`0d9ac007405facea141fd056b9fb14e6ba1a915cebd43860a3d5a64ec29b6968` and
+8 active rows. The public refresh completed 13 configured quote keys without
+failures at `2026-08-25T09:34:07.925Z` UTC. SPCX refreshed at USD135.00,
+INTC at USD87.26, QQQI at USD53.84, and USD/THB at 32.745. Live full portfolio
+value was THB3,321,493.36, pooled shared value THB3,289,793.58, personal
+overlay value THB31,699.78, and total P&L THB369,250.60.
+
+Production API and all six visible dashboard tabs were verified: Overview,
+Shareholders, Holdings, Dividends, Transactions, and Realized Sale P&L.
+Shareholders adds the full owner-specific overlay value to Rattee; Holdings
+shows SPCX 65 pooled, SPCX 2 Rattee, and INTC 8 Rattee; Transactions shows
+the 24 Aug INTC buy newest-first.
+
+## Historical live synchronization verified — 21 Aug 2026
 
 GitHub `main` commit `6adf501` contains the regenerated canonical workbook
 seed and updated expectations. Railway imported `Portfolio_Accounting.xlsx`
