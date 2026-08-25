@@ -17,7 +17,7 @@ code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
 Railway PostgreSQL is the shared source of truth for:
 
 - current holdings, including any imported shared THB cash balance;
-- the latest successful `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SPCX`, `SCB`, `KBANK`,
+- the latest successful `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SPCX`, `INTC`, `SCB`, `KBANK`,
   and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
@@ -60,11 +60,11 @@ columns in this order:
 | CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX and THB for SCB/KBANK/CASH.
+  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
 - Supported tickers are currently `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `SCB`, `KBANK`, and `CASH`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.
@@ -81,11 +81,11 @@ overwrites the canonical audit workbook.
 
 ## Market refresh
 
-`Refresh market prices` is public and manual. Each click fetches the eleven
+`Refresh market prices` is public and manual. Each click fetches the thirteen
 allow-listed market keys from free public sources without an API key:
 
 - Google Finance public quote pages: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, and `USDTHB`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, and `USDTHB`.
 - Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared
@@ -238,9 +238,11 @@ remain unchanged.
 
 ## Accounting rules preserved
 
-- From 5 Aug 2026, all active holdings — including SPCX and aggregate `CASH` —
-  are current **pooled** holdings. They are allocated by the canonical Total
+- From 5 Aug 2026, pooled assets and aggregate `CASH` use the canonical Total
   Contributed Capital percentages: Mom 46.8334%, Rattee 44.1021%, Ryu 9.0645%.
+  Explicitly confirmed owner-specific active overlays, currently Rattee's
+  SPCX 2 and INTC 8, remain in the same portfolio proof but their full value
+  is added to the named owner's current equity.
 - Owner/unit notes before 5 Aug are retained in Excel and the transaction
   ledger, but no longer split active holdings, future sale P&L or dividends.
 - The April 2026 dividend remains historical. The next forecast uses total

@@ -71,6 +71,29 @@ const workbookBytes = (rows: unknown[][]) => {
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 };
 
+test("accepts an INTC holding and Rattee-specific SPCX overlay", () => {
+  const parsed = parseMinimalHoldingsWorkbook(
+    workbookBytes([
+      [...MINIMAL_HOLDINGS_HEADERS],
+      ["SPCX", "Shared", 140, 65],
+      ["SPCX", "Rattee", 132.79, 2],
+      ["INTC", "Rattee", 86.14, 8],
+      ["CASH", "Shared", 1257.24307, 1],
+    ]),
+    "new-holdings.xlsx",
+  );
+
+  assert.deepEqual(
+    parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
+    [
+      ["SPCX", "Shared", 65],
+      ["SPCX", "Rattee", 2],
+      ["INTC", "Rattee", 8],
+      ["CASH", "Shared", 1],
+    ],
+  );
+});
+
 const canonicalAuditWorkbook = new URL(
   "../../Portfolio_Accounting.xlsx",
   import.meta.url,
@@ -95,25 +118,30 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
       ["GOOGL", "Shared", 40],
       ["META", "Shared", 20],
       ["AVGO", "Shared", 6.9162],
-      ["SPCX", "Shared", 67],
+      ["SPCX", "Shared", 65],
       ["CASH", "Shared", 1],
+      ["SPCX", "Rattee", 2],
+      ["INTC", "Rattee", 8],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "20 Aug 2026");
+  assert.equal(parsed.settings?.asOfDate, "24 Aug 2026");
   assert.ok(
     Math.abs(
       (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
         1_459_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-3)?.date, "2026-08-19");
-  assert.equal(parsed.settings?.transactions.at(-3)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-3)?.ticker, "SPCX");
-  assert.equal(parsed.settings?.transactions.at(-3)?.account, "Shared-US");
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-20");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "SPCX");
+  assert.equal(parsed.settings?.transactions.at(-4)?.date, "2026-08-19");
+  assert.equal(parsed.settings?.transactions.at(-4)?.side, "BUY");
+  assert.equal(parsed.settings?.transactions.at(-4)?.ticker, "SPCX");
+  assert.equal(parsed.settings?.transactions.at(-4)?.account, "Shared-US");
+  assert.equal(parsed.settings?.transactions.at(-2)?.date, "2026-08-20");
+  assert.equal(parsed.settings?.transactions.at(-2)?.ticker, "SPCX");
+  assert.equal(parsed.settings?.transactions.at(-2)?.account, "Personal-US (Rattee)");
+  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-24");
+  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "INTC");
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {

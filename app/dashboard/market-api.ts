@@ -124,6 +124,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["SPCX:NASDAQ"],
   },
+  INTC: {
+    symbol: "INTC",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/INTC:NASDAQ?hl=en",
+    title: "Google Finance · INTC (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["INTC:NASDAQ"],
+  },
   WDC: {
     symbol: "WDC",
     currency: "USD",

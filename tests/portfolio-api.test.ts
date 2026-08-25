@@ -243,6 +243,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     META: oldQuote("META", 550, "USD"),
     AVGO: oldQuote("AVGO", 389.75, "USD"),
     SPCX: oldQuote("SPCX", 140, "USD"),
+    INTC: oldQuote("INTC", 86.14, "USD"),
     AAPL: oldQuote("AAPL", 305, "USD"),
     NVDA: oldQuote("NVDA", 206, "USD"),
     MU: oldQuote("MU", 812, "USD"),
@@ -259,6 +260,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
       META: "No new quote",
       AVGO: "No new quote",
       SPCX: "No new quote",
+      INTC: "No new quote",
       WDC: "No new quote",
       AAPL: "No new quote",
       NVDA: "No new quote",
@@ -277,6 +279,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.equal(merged.quotes.AAPL.price, 305);
   assert.equal(merged.quotes.NVDA.price, 206);
   assert.equal(merged.quotes.MU.price, 812);
+  assert.equal(merged.quotes.INTC.price, 86.14);
   assert.equal(merged.quotes.SCB.price, 156);
   assert.equal(merged.quotes.KBANK.price, 231);
   assert.equal(merged.quotes.USDTHB.price, 33.3);
@@ -284,6 +287,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.deepEqual(merged.retainedKeys, [
     "QQQI",
     "SPCX",
+    "INTC",
     "WDC",
     "META",
     "AVGO",

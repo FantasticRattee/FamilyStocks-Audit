@@ -83,13 +83,14 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
     createHoldingEdits(snapshot),
   );
 
-  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "INTC", "USDTHB"]);
   assert.deepEqual(plan.stocks, [
     { ticker: "QQQI", marketKey: "QQQI", currency: "USD" },
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
     { ticker: "META", marketKey: "META", currency: "USD" },
     { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
     { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
+    { ticker: "INTC", marketKey: "INTC", currency: "USD" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
@@ -114,7 +115,7 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
     holdings: [
       ...snapshot.holdings,
       usdHolding,
-      ...["AAPL", "NVDA", "MU"].map((ticker) => ({ ...usdHolding, ticker })),
+      ...["AAPL", "NVDA", "MU", "INTC"].map((ticker) => ({ ...usdHolding, ticker })),
     ],
   };
 
@@ -129,6 +130,7 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
     "META",
     "AVGO",
     "SPCX",
+    "INTC",
     "AAPL",
     "NVDA",
     "MU",
@@ -140,6 +142,7 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
     { ticker: "META", marketKey: "META", currency: "USD" },
     { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
     { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
+    { ticker: "INTC", marketKey: "INTC", currency: "USD" },
     { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
     { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
     { ticker: "MU", marketKey: "MU", currency: "USD" },
@@ -161,7 +164,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
 
   assert.equal(plan.unmappedTickers.CASH, undefined);
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
-  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "USDTHB"]);
+  assert.deepEqual(plan.symbols, ["QQQI", "GOOGL", "META", "AVGO", "SPCX", "INTC", "USDTHB"]);
 });
 
 test("applies valid live quotes only to the display scenario and refreshes USD/THB", async () => {
@@ -229,7 +232,17 @@ test("applies valid live quotes only to the display scenario and refreshes USD/T
             liveScenario.fx),
       0,
     );
-  assert.equal(result.totals.personalMarketValue, 0);
+  const expectedPersonalMarketValue = result.holdings
+    .filter((holding) => holding.category === "personal")
+    .reduce(
+      (total, holding) =>
+        total +
+        holding.quantity *
+          (liveScenario.prices[holding.ticker] ?? holding.importedPriceThb / snapshot.defaultFx) *
+          liveScenario.fx,
+      0,
+    );
+  assert.ok(Math.abs(result.totals.personalMarketValue - expectedPersonalMarketValue) < 0.000001);
   assert.ok(Math.abs(result.totals.sharedMarketValue - expectedSharedMarketValue) < 0.000001);
 });
 

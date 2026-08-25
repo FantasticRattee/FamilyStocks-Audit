@@ -721,14 +721,22 @@ export function parseWorkbook(input: ArrayBuffer, filename: string): DashboardSn
 }
 
 export function createScenario(snapshot: DashboardSnapshot): Scenario {
-  const prices = Object.fromEntries(
-    snapshot.holdings.map((holding) => [
-      holding.ticker,
+  const prices: Record<string, number> = {};
+  for (const holding of snapshot.holdings) {
+    const importedNativePrice =
       holding.currency === "USD"
         ? holding.importedPriceThb / snapshot.defaultFx
-        : holding.importedPriceThb,
-    ]),
-  );
+        : holding.importedPriceThb;
+    const existing = prices[holding.ticker];
+    if (existing === undefined) {
+      prices[holding.ticker] = importedNativePrice;
+    } else if (Math.abs(existing - importedNativePrice) > 1e-9) {
+      // A pooled row and an owner-specific overlay may share a ticker but have
+      // different audit marks. Let calculateDashboard use each holding's own
+      // imported mark until a live quote intentionally overrides the ticker.
+      delete prices[holding.ticker];
+    }
+  }
   const dividendDps = Object.fromEntries(
     snapshot.dividend.lines.map((line) => [line.ticker, line.dps]),
   );

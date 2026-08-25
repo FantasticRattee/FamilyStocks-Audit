@@ -2,9 +2,8 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **15 Aug 2026**. Rattee added THB50,000 of
-> external capital and the pooled portfolio used that contribution plus its
-> remaining cash to buy AVGO 6.9162 shares. The live-production status is
+> Latest canonical reconciliation: **24 Aug 2026**. Rattee's new SPCX 2-share
+> and INTC 8-share lots are active owner-specific overlays; the live-production status is
 > recorded after the canonical import in `../Handoff.md`.
 
 ## Start here
@@ -45,11 +44,12 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 20 Aug SPCX extension and Rattee cash reconciled
+## Current canonical state — 24 Aug Rattee overlays and pooled assets
 
-From **5 Aug 2026**, current holdings and cash are a single pooled portfolio.
-Historic owner/unit records remain in the ledger, but do not determine active
-ownership, future realized P&L, or future dividend allocation.
+From **5 Aug 2026**, pooled holdings and cash use the total-capital allocation.
+Explicitly confirmed owner-specific active overlays are tracked in the same
+portfolio proof and added in full to the named owner's current equity.
+Historic owner/unit records remain in the ledger for traceability.
 
 | Shareholder | Total contributed capital | Allocation |
 |---|---:|---:|
@@ -64,19 +64,23 @@ ownership, future realized P&L, or future dividend allocation.
 | GOOGL | 40 | imported audit mark THB11,390.82516 |
 | META | 20 | imported audit mark THB19,384.75422 |
 | AVGO | 6.9162 | imported audit mark THB12,960.7465 |
-| SPCX | 67 | 65 @ USD140.00 plus 2 @ USD132.79; new lot uses approved FX 33.254 |
+| SPCX | 65 pooled + 2 Rattee overlay | pooled USD140.00; overlay USD132.79 × approved FX 33.254 |
+| INTC | 8 Rattee overlay | USD86.14 × approved FX 33.254 |
 | CASH | THB1,257.24 | pooled broker cash after Rattee-funded SPCX buy, no quote request |
 
 `Transactions/SPCX_2026-08-19_buy.jpg` records Mom's SPCX buy of 65 @ USD140.00
 with a USD9,105.56 broker total and THB299,999.83 settlement. The follow-up
-`Transactions/SPCX_2026-08-20_buy_2.jpg` records Rattee's 2 @ USD132.79,
-USD267.71 broker total, funded from existing cash. The screenshot does not
-show THB settlement FX, so the workbook uses the approved 33.254 reference;
-the THB outflow is THB8,902.43. No new capital is added. Workbook totals at
-the saved audit mark are market value THB3,414,471.71, unrealized P&L
--THB27,553.99, cumulative realized P&L THB512,769.77 and total P&L
-THB485,215.78. QQQI and SPCX distribution remain excluded from the Thai-bank
-forecast until verified dividend assumptions are added.
+`Transactions/IMG_3380.PNG` records Rattee's INTC buy of 8 @ USD86.14,
+USD691.25 broker total, funded by a QQQI dividend. The receipt amount/date is
+not separately evidenced, so no dividend receipt row is fabricated. The
+approved 33.254 reference gives THB22,986.83 cost. `IMG_3381.PNG` provides
+cash-management context. The 20 Aug SPCX 2-share row is a Rattee overlay,
+while the original 65-share pooled lot remains unchanged. Full workbook
+totals at the saved audit mark are market value THB3,450,177.44, pooled shared
+value THB3,418,429.85, unrealized P&L -THB14,835.09, cumulative realized P&L
+THB512,769.77 and total P&L THB497,934.68. QQQI and SPCX distributions remain
+excluded from the Thai-bank forecast until verified dividend assumptions are
+added.
 
 ## Live synchronization verified — 21 Aug 2026
 
@@ -248,7 +252,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry
@@ -302,7 +306,7 @@ update the shared portfolio rows in PostgreSQL.
    cash value are correct.
 4. Click `Refresh market prices` after the import. Confirm every active
    market-priced ticker has a source link/timestamp (GOOGL, META, AAPL, NVDA,
-   MU, and SPCX use Google Finance; SCB and KBANK use SET); CASH is retained at its
+   MU, SPCX, and INTC use Google Finance; SCB and KBANK use SET); CASH is retained at its
    imported amount.
 5. Verify `/api/portfolio` and the visible dashboard agree. Check a second
    device/browser if the goal is to confirm shared persistence.
@@ -333,7 +337,7 @@ Ticker | Owner/Account | Entry Price | Units
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
 tickers are `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`,
-`SCB`, `KBANK`, and `CASH`;
+`INTC`, `SCB`, `KBANK`, and `CASH`;
 `CASH` is only valid for `Shared`. A canonical workbook may retain other
 tickers in its historical `Transactions` ledger, but they must not become
 active holdings unless active ticker support is deliberately added. Dashboard
