@@ -8,6 +8,13 @@
 
 ## Start here
 
+The 7 Sep 2026 presentation update replaces the portfolio composition R3F
+ring with a responsive SVG donut (maximum 360px, 1:1 aspect ratio). It uses
+the same market-value weights and combined ticker quantities. Selection is
+available on chart segments and list rows; cash below 0.1% stays selectable
+through the list. This change requires only a code deployment, with no
+workbook import or market refresh.
+
 | Question | Correct place to look |
 |---|---|
 | What is the audited accounting record? | `../Portfolio_Accounting.xlsx` |

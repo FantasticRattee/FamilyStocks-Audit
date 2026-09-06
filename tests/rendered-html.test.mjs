@@ -242,10 +242,10 @@ test("applies the approved Ghibli Countryside Ledger theme across the full dashb
   assert.match(styles, /--forest-canopy:\s*#294c38/i);
   assert.match(styles, /\.ghibli-countryside-ledger\s+\.panel::before/i);
   assert.match(styles, /\.ghibli-countryside-ledger\s+\.table-wrap/i);
-  assert.match(styles, /\.ghibli-countryside-ledger\s+\.allocation-fallback-ring/i);
+  assert.match(styles, /\.composition-chart-stage/i);
   assert.match(dashboard, /PAINTED_CLAY_MATERIAL/);
   assert.match(dashboard, /GHIBLI_SCENE_LIGHTS/);
-  assert.match(dashboard, /roughness=\{PAINTED_CLAY_MATERIAL\.roughness\}/);
+  assert.match(dashboard, /PAINTED_CLAY_MATERIAL\.roughness/);
   assert.match(dashboard, /hemisphereLight[^\n]*GHIBLI_SCENE_LIGHTS\.sky/i);
   assert.match(readme, /Ghibli Countryside Ledger/i);
 });
@@ -278,10 +278,6 @@ test("defines a compact, no-overflow layout for phone-sized Family Wealth views"
   );
   assert.match(
     styles,
-    /@media \(max-width: 390px\)\s*\{[\s\S]*?\.composition-3d-stage\s*\{[\s\S]*?min-height:\s*270px/i,
-  );
-  assert.match(
-    styles,
     /@media \(max-width: 520px\)\s*\{[\s\S]*?\.wealth-hero-artwork\s*\{[^}]*width:\s*100%/i,
   );
   assert.match(
@@ -295,51 +291,45 @@ test("defines a compact, no-overflow layout for phone-sized Family Wealth views"
   assert.match(styles, /\.tabs::-webkit-scrollbar\s*\{[^}]*display:\s*none/i);
 });
 
-test("server-renders Plan A as an accessible interactive 3D allocation ring", async () => {
+test("renders one proportional 2D donut with all tickers and no overlapping canvas", async () => {
   const response = await render();
   assert.equal(response.status, 200);
-
   const html = await response.text();
-  assert.match(html, /Interactive 3D portfolio composition ring/i);
-  assert.doesNotMatch(html, /Hover, tap, or focus a ticker/i);
-  assert.match(html, /aria-label="Select .* allocation/i);
-  assert.match(html, /shared-pool-badge/i);
-  assert.doesNotMatch(html, /class="ticker-donut"/i);
+  const composition = html.match(/<article class="panel composition-panel"[\s\S]*?<\/article>/)?.[0];
+  assert.ok(composition);
+  assert.match(composition, /Interactive portfolio allocation donut/);
+  assert.match(composition, /viewBox="0 0 200 200"/);
+  assert.doesNotMatch(composition, /<canvas|allocation-fallback-ring|composition-3d-stage/);
+  const arcs = [...composition.matchAll(/<circle[^>]*class="allocation-arc[^"]*"[^>]*>/g)];
+  assert.equal(arcs.length, 7);
+  let cumulativeRatio = 0;
+  for (const [arc] of arcs) {
+    const ratio = Number(arc.match(/data-ratio="([^"]+)"/)[1]);
+    const [length, gap] = arc.match(/stroke-dasharray="([^"]+)"/)[1].split(" ").map(Number);
+    const offset = Number(arc.match(/stroke-dashoffset="([^"]+)"/)[1]);
+    assert.ok(Math.abs(length - ratio) < 1e-12);
+    assert.ok(Math.abs(length + gap - 1) < 1e-12);
+    assert.ok(Math.abs(offset + cumulativeRatio) < 1e-12);
+    assert.match(arc, /stroke-linecap="butt"/);
+    assert.match(arc, /role="button"/);
+    assert.match(arc, /tabindex="0"/);
+    cumulativeRatio += ratio;
+  }
+  assert.ok(Math.abs(cumulativeRatio - 1) < 1e-12);
+  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="SPCX"')).length, 1);
+  assert.match(composition, /67 units/);
+  assert.match(composition, /&lt;0\.1%/);
+  assert.doesNotMatch(composition, /Hover, tap, or focus a ticker/);
 });
 
-test("keeps the approved R3F runtime, demand rendering, and motion fallback", async () => {
-  const [dashboard, styles, packageJson] = await Promise.all([
+test("retains demand-rendered R3F ownership bars and reduced-motion support", async () => {
+  const [dashboard, styles] = await Promise.all([
     readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-    readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
-
   assert.match(dashboard, /@react-three\/fiber/);
-  assert.match(dashboard, /@react-three\/drei/);
   assert.match(dashboard, /frameloop="demand"/);
-  assert.match(dashboard, /shadows="basic"/);
-  assert.match(dashboard, /onPointerOver/);
-  assert.match(dashboard, /onFocus/);
-  assert.match(dashboard, /<button\s+className=\{`allocation-fallback-ring/);
-  assert.match(dashboard, /onClick=\{activateNextAllocation\}/);
-  assert.match(dashboard, /fallback=\{null\}/);
-  assert.doesNotMatch(dashboard, /3D preview unavailable/);
-  assert.match(
-    dashboard,
-    /className=\{`composition-3d-stage \$\{canvasReady \? "canvas-ready" : ""\}`\}/,
-  );
-  assert.match(
-    styles,
-    /\.composition-3d-stage canvas\s*\{[^}]*touch-action:\s*pan-y/i,
-  );
-  assert.match(
-    styles,
-    /\.composition-3d-stage:not\(\.canvas-ready\) canvas\s*\{[^}]*pointer-events:\s*none/i,
-  );
   assert.match(styles, /prefers-reduced-motion:\s*reduce/i);
-  assert.match(packageJson, /"@react-three\/fiber"/);
-  assert.match(packageJson, /"@react-three\/drei"/);
-  assert.match(packageJson, /"three"/);
 });
 
 test("keeps pooled allocation in 3D while P&L and dividend use normal bars", async () => {

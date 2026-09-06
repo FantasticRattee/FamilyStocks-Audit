@@ -1551,7 +1551,7 @@ select:focus-visible {
 }
 
 .composition-panel {
-  min-height: 560px !important;
+  min-height: 0 !important;
   overflow: hidden;
   background:
     radial-gradient(circle at 22% 40%, rgba(101, 151, 170, 0.09), transparent 19rem),
@@ -1577,114 +1577,87 @@ select:focus-visible {
 
 .composition-experience {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.85fr);
   gap: 18px;
   align-items: stretch;
 }
 
-.composition-3d-stage {
-  position: relative;
-  min-height: 410px;
-  overflow: hidden;
-  isolation: isolate;
-  border: 1px solid #dce2d6;
+.composition-chart-stage {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  min-width: 0;
+  width: 100%;
+  padding: clamp(10px, 2vw, 24px);
+  border: 1px solid var(--line);
   border-radius: 20px;
-  background:
-    radial-gradient(ellipse at 50% 45%, rgba(255, 250, 240, 0.98), rgba(232, 242, 239, 0.72) 42%, transparent 72%),
-    linear-gradient(155deg, #f3f8f2, #f4eedf);
+  background: rgba(255, 250, 234, 0.5);
 }
 
-.composition-3d-stage::after {
-  position: absolute;
-  z-index: 0;
-  right: -45px;
-  bottom: -75px;
-  width: 260px;
-  height: 210px;
-  border: 1px solid rgba(101, 151, 170, 0.13);
-  border-radius: 50%;
-  content: "";
+.composition-donut {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1;
 }
 
-.composition-3d-stage canvas {
-  position: absolute !important;
-  z-index: 2;
-  inset: 0;
+.allocation-donut-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
   touch-action: pan-y;
 }
 
-.composition-3d-stage:not(.canvas-ready) canvas {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.allocation-fallback-ring {
-  appearance: none;
-  position: absolute;
-  z-index: 1;
-  top: 48%;
-  left: 50%;
-  width: min(64%, 270px);
-  aspect-ratio: 1;
-  border: 0;
-  border-radius: 50%;
-  padding: 0;
-  opacity: 0.78;
+.allocation-arc {
   cursor: pointer;
-  filter: drop-shadow(0 18px 18px rgba(16, 49, 52, 0.17));
-  mask: radial-gradient(circle, transparent 0 42%, #000 43% 100%);
-  transform: translate(-50%, -50%) rotate(-24deg) scaleY(0.68);
-  transition: opacity 180ms ease;
+  pointer-events: stroke;
+  opacity: 0.74;
+  transition: opacity 160ms ease;
 }
 
-.allocation-fallback-ring.canvas-ready {
-  opacity: 0;
-  pointer-events: none;
+.allocation-arc.active,
+.allocation-arc:hover,
+.allocation-arc:focus-visible {
+  opacity: 1;
 }
 
-.allocation-fallback-ring:focus-visible {
-  outline: 3px solid rgba(26, 123, 116, 0.45);
-  outline-offset: 5px;
+.allocation-arc:focus-visible {
+  outline: none;
+  stroke: var(--navy);
 }
 
-.composition-center-card {
+.composition-donut-readout {
   position: absolute;
-  z-index: 3;
-  top: 49%;
-  left: 50%;
-  display: grid;
-  width: 170px;
-  min-height: 92px;
-  place-content: center;
-  gap: 4px;
-  border: 1px solid rgba(204, 216, 210, 0.92);
-  border-radius: 18px;
-  background: rgba(255, 253, 249, 0.92);
-  box-shadow: 0 13px 32px rgba(17, 47, 57, 0.14);
+  inset: 27%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
   text-align: center;
   pointer-events: none;
-  transform: translate(-50%, -50%);
-  backdrop-filter: blur(7px);
-}
-
-.composition-center-card strong {
   color: var(--navy);
-  font-size: clamp(1.05rem, 2vw, 1.36rem);
-  letter-spacing: -0.045em;
 }
 
-.composition-center-card span {
-  color: #728187;
-  font-size: 0.57rem;
-  font-weight: 820;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.composition-donut-readout > span {
+  font-size: clamp(0.72rem, 1.3vw, 0.95rem);
+  font-weight: 750;
+  letter-spacing: 0.08em;
 }
 
-.composition-center-card small {
-  color: var(--teal-deep);
-  font-size: 0.64rem;
-  font-weight: 820;
+.composition-donut-readout > strong {
+  font-size: clamp(1.4rem, 3.2vw, 2.3rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.composition-donut-readout > small {
+  font-size: clamp(0.66rem, 1.2vw, 0.85rem);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .allocation-detail-card {
@@ -2870,32 +2843,12 @@ td strong {
     var(--paper-highlight);
 }
 
-.ghibli-countryside-ledger .composition-3d-stage,
 .ghibli-countryside-ledger .allocation-detail-card {
   border-color: rgba(126, 132, 91, 0.3);
   background:
     radial-gradient(ellipse at 48% 38%, rgba(255, 249, 224, 0.98), rgba(222, 237, 218, 0.75) 45%, transparent 75%),
     linear-gradient(155deg, #edf3df, #f7edcf);
   box-shadow: inset 0 0 30px rgba(84, 111, 76, 0.055);
-}
-
-.ghibli-countryside-ledger .composition-3d-stage::after {
-  border-color: rgba(92, 137, 114, 0.15);
-  background: radial-gradient(circle, rgba(169, 206, 208, 0.09), transparent 68%);
-}
-
-.ghibli-countryside-ledger .allocation-fallback-ring {
-  opacity: 0.86;
-  filter: saturate(0.82) contrast(0.94) drop-shadow(0 18px 17px rgba(44, 67, 40, 0.2));
-}
-
-.ghibli-countryside-ledger .composition-center-card {
-  border-color: rgba(118, 129, 91, 0.36);
-  border-radius: 20px 16px 21px 15px;
-  background:
-    repeating-linear-gradient(8deg, rgba(97, 86, 47, 0.018) 0 1px, transparent 1px 5px),
-    rgba(255, 250, 234, 0.94);
-  box-shadow: 0 14px 30px rgba(53, 74, 47, 0.16);
 }
 
 .ghibli-countryside-ledger .allocation-detail-card {
@@ -3204,10 +3157,6 @@ td strong {
     grid-template-columns: 1fr;
   }
 
-  .composition-3d-stage {
-    min-height: 350px;
-  }
-
   .dividend-distribution-panel {
     grid-column: auto;
   }
@@ -3302,15 +3251,6 @@ td strong {
 
   .composition-total-chip {
     display: none;
-  }
-
-  .composition-3d-stage {
-    min-height: 310px;
-  }
-
-  .composition-center-card {
-    width: 148px;
-    min-height: 82px;
   }
 
   .pnl-axis {
@@ -3424,17 +3364,6 @@ td strong {
     gap: 14px;
   }
 
-  .composition-3d-stage {
-    min-height: 270px;
-    border-radius: 17px;
-  }
-
-  .composition-center-card {
-    width: 132px;
-    min-height: 76px;
-    border-radius: 15px;
-  }
-
   .allocation-detail-card {
     border-radius: 15px;
     padding: 14px;
@@ -3480,7 +3409,7 @@ td strong {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .allocation-fallback-ring,
+  .allocation-arc,
   .allocation-detail-list button,
   .compact-r3f-fallback,
   .bar3d-css-fallback,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ContactShadows, useCursor } from "@react-three/drei";
+import { useCursor } from "@react-three/drei";
 import {
   Canvas,
   type ThreeEvent,
@@ -526,251 +526,78 @@ function CompactBarField3D({
   );
 }
 
-function AllocationSegment({
-  startAngle,
-  endAngle,
-  color,
-  isActive,
-  prefersReducedMotion,
-  onActivate,
-}: {
-  startAngle: number;
-  endAngle: number;
-  color: string;
-  isActive: boolean;
-  prefersReducedMotion: boolean;
-  onActivate: () => void;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const invalidate = useThree((state) => state.invalidate);
-  const middleAngle = (startAngle + endAngle) / 2;
-  const directionX = Math.cos(middleAngle);
-  const directionY = Math.sin(middleAngle);
-  useCursor(isHovered);
+const formatAllocationPct = (ratio: number) =>
+  ratio > 0 && ratio < 0.001 ? "<0.1%" : formatPct(ratio, 1);
 
-  const geometry = useMemo(() => {
-    const outerRadius = 2.05;
-    const innerRadius = 1.16;
-    const angularGap = Math.min(0.022, (endAngle - startAngle) * 0.12);
-    const start = startAngle + angularGap / 2;
-    const end = endAngle - angularGap / 2;
-    const shape = new THREE.Shape();
-
-    shape.moveTo(Math.cos(start) * outerRadius, Math.sin(start) * outerRadius);
-    shape.absarc(0, 0, outerRadius, start, end, false);
-    shape.lineTo(Math.cos(end) * innerRadius, Math.sin(end) * innerRadius);
-    shape.absarc(0, 0, innerRadius, end, start, true);
-    shape.closePath();
-
-    const nextGeometry = new THREE.ExtrudeGeometry(shape, {
-      depth: 0.28,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.045,
-      bevelThickness: 0.045,
-      curveSegments: 48,
-    });
-    nextGeometry.translate(0, 0, -0.14);
-    nextGeometry.computeVertexNormals();
-    return nextGeometry;
-  }, [endAngle, startAngle]);
-
-  useEffect(() => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    if (prefersReducedMotion) {
-      const offset = isActive ? 0.16 : 0;
-      mesh.position.set(
-        directionX * offset,
-        directionY * offset,
-        isActive ? 0.12 : 0,
-      );
-    }
-    invalidate();
-  }, [directionX, directionY, invalidate, isActive, prefersReducedMotion]);
-
-  useFrame((_, delta) => {
-    const mesh = meshRef.current;
-    if (!mesh || prefersReducedMotion) return;
-
-    const offset = isActive ? 0.16 : 0;
-    const targetX = directionX * offset;
-    const targetY = directionY * offset;
-    const targetZ = isActive ? 0.12 : 0;
-    mesh.position.x = THREE.MathUtils.damp(mesh.position.x, targetX, 8, delta);
-    mesh.position.y = THREE.MathUtils.damp(mesh.position.y, targetY, 8, delta);
-    mesh.position.z = THREE.MathUtils.damp(mesh.position.z, targetZ, 8, delta);
-
-    if (
-      Math.abs(mesh.position.x - targetX) > 0.001 ||
-      Math.abs(mesh.position.y - targetY) > 0.001 ||
-      Math.abs(mesh.position.z - targetZ) > 0.001
-    ) {
-      invalidate();
-    }
-  });
-
-  return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      castShadow
-      receiveShadow
-      onClick={(event: ThreeEvent<MouseEvent>) => {
-        event.stopPropagation();
-        onActivate();
-      }}
-      onPointerOver={(event: ThreeEvent<PointerEvent>) => {
-        event.stopPropagation();
-        setIsHovered(true);
-        onActivate();
-      }}
-      onPointerOut={() => setIsHovered(false)}
-    >
-      <meshStandardMaterial
-        color={color}
-        emissive={isActive ? color : "#000000"}
-        emissiveIntensity={
-          isActive ? PAINTED_CLAY_MATERIAL.selectedEmissiveIntensity : 0
-        }
-        metalness={PAINTED_CLAY_MATERIAL.metalness}
-        roughness={PAINTED_CLAY_MATERIAL.roughness}
-      />
-    </mesh>
-  );
-}
-
-function PortfolioRingScene({
-  allocations,
-  activeIndex,
-  onActivate,
-  prefersReducedMotion,
-}: {
-  allocations: TickerAllocation[];
-  activeIndex: number;
-  onActivate: (index: number) => void;
-  prefersReducedMotion: boolean;
-}) {
-  const segments = useMemo(
-    () =>
-      allocations.map((allocation, index) => {
-        const priorRatio = sum(
-          allocations.slice(0, index).map((prior) => prior.ratio),
-        );
-        const startAngle = -Math.PI / 2 + priorRatio * Math.PI * 2;
-        const endAngle = startAngle + allocation.ratio * Math.PI * 2;
-        return { ...allocation, startAngle, endAngle };
-      }),
-    [allocations],
-  );
-
-  return (
-    <>
-      <ambientLight intensity={1.05} />
-      <hemisphereLight args={[GHIBLI_SCENE_LIGHTS.sky, GHIBLI_SCENE_LIGHTS.ground, 1.55]} />
-      <directionalLight
-        castShadow
-        position={[-3.5, 5.5, 7]}
-        intensity={3.05}
-        color={GHIBLI_SCENE_LIGHTS.sun}
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <pointLight
-        position={[4.5, -1.5, 4]}
-        intensity={10}
-        color={GHIBLI_SCENE_LIGHTS.rim}
-      />
-      <group rotation={[-0.69, 0.05, -0.08]} position={[0, 0.1, 0]}>
-        {segments.map((segment, index) => (
-          <AllocationSegment
-            key={segment.ticker}
-            startAngle={segment.startAngle}
-            endAngle={segment.endAngle}
-            color={segment.color}
-            isActive={index === activeIndex}
-            prefersReducedMotion={prefersReducedMotion}
-            onActivate={() => onActivate(index)}
-          />
-        ))}
-      </group>
-      <ContactShadows
-        position={[0, -1.72, -0.2]}
-        opacity={0.27}
-        scale={6.4}
-        blur={2.8}
-        far={4.2}
-        resolution={512}
-      />
-    </>
-  );
-}
-
-function PortfolioComposition3D({
+function PortfolioComposition({
   allocations,
   totalValue,
-  fallbackStyle,
 }: {
   allocations: TickerAllocation[];
   totalValue: number;
-  fallbackStyle: CSSProperties;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const activeAllocation = allocations[activeIndex] ?? allocations[0];
-  const activateNextAllocation = () => {
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const activeAllocation =
+    allocations.find((item) => item.ticker === selectedTicker) ?? allocations[0];
+  const segments = allocations.map((allocation, index) => ({
+    ...allocation,
+    offset: sum(allocations.slice(0, index).map((prior) => prior.ratio)),
+  }));
+  const selectNext = (direction: number) => {
     if (!allocations.length) return;
-    setActiveIndex((currentIndex) => (currentIndex + 1) % allocations.length);
+    const index = allocations.findIndex((item) => item.ticker === activeAllocation?.ticker);
+    setSelectedTicker(allocations[(index + direction + allocations.length) % allocations.length].ticker);
   };
 
   return (
     <div className="composition-experience">
-      <div
-        className={`composition-3d-stage ${canvasReady ? "canvas-ready" : ""}`}
-        role="group"
-        aria-label="Interactive 3D portfolio composition ring"
-      >
-        <button
-          className={`allocation-fallback-ring ${canvasReady ? "canvas-ready" : ""}`}
-          type="button"
-          style={fallbackStyle}
-          onClick={activateNextAllocation}
-          aria-label={
-            activeAllocation
-              ? `Select next allocation. Current allocation is ${activeAllocation.displayTicker} at ${formatPct(activeAllocation.ratio, 1)}`
-              : "Portfolio allocation ring"
-          }
-          aria-hidden={canvasReady}
-          tabIndex={canvasReady ? -1 : 0}
-        />
-        {allocations.length ? (
-          <Canvas
-            aria-hidden="true"
-            shadows="basic"
-            dpr={[1, 1.5]}
-            frameloop="demand"
-            camera={{ position: [0, 1.05, 7.1], fov: 34 }}
-            onCreated={() => setCanvasReady(true)}
-            fallback={null}
-          >
-            <PortfolioRingScene
-              allocations={allocations}
-              activeIndex={activeIndex}
-              onActivate={setActiveIndex}
-              prefersReducedMotion={prefersReducedMotion}
-            />
-          </Canvas>
-        ) : null}
-        <div className="composition-center-card" aria-hidden="true">
-          <strong>{formatThb(totalValue)}</strong>
-          <span>Total value</span>
-          {activeAllocation ? (
-            <small>
-              {activeAllocation.displayTicker} · {formatPct(activeAllocation.ratio, 1)}
-            </small>
-          ) : null}
+      <div className="composition-chart-stage" role="group" aria-label="Interactive portfolio allocation donut">
+        <div className="composition-donut">
+          <svg viewBox="0 0 200 200" className="allocation-donut-svg" aria-label="Portfolio allocation by market value">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--line)" strokeWidth="28" />
+            {segments.filter((segment) => segment.ratio > 0).map((segment) => (
+              <circle
+                key={segment.ticker}
+                className={segment.ticker === activeAllocation?.ticker ? "allocation-arc active" : "allocation-arc"}
+                cx="100"
+                cy="100"
+                r="80"
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="28"
+                strokeLinecap="butt"
+                pathLength="1"
+                strokeDasharray={`${segment.ratio} ${1 - segment.ratio}`}
+                strokeDashoffset={-segment.offset}
+                transform="rotate(-90 100 100)"
+                data-ticker={segment.ticker}
+                data-ratio={segment.ratio}
+                role="button"
+                tabIndex={0}
+                aria-pressed={segment.ticker === activeAllocation?.ticker}
+                aria-label={`Select ${segment.displayTicker}, ${formatAllocationPct(segment.ratio)}, ${formatThb(segment.marketValue)}`}
+                onClick={() => setSelectedTicker(segment.ticker)}
+                onMouseEnter={() => setSelectedTicker(segment.ticker)}
+                onFocus={() => setSelectedTicker(segment.ticker)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedTicker(segment.ticker);
+                  } else if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                    event.preventDefault();
+                    selectNext(event.key === "ArrowRight" ? 1 : -1);
+                  }
+                }}
+              >
+                <title>{`${segment.displayTicker}: ${formatAllocationPct(segment.ratio)} · ${formatThb(segment.marketValue)}`}</title>
+              </circle>
+            ))}
+          </svg>
+          <div className="composition-donut-readout" aria-hidden="true">
+            <span>{activeAllocation?.displayTicker ?? "Portfolio"}</span>
+            <strong>{activeAllocation ? formatAllocationPct(activeAllocation.ratio) : "0%"}</strong>
+            <small>{formatThb(activeAllocation?.marketValue ?? totalValue)}</small>
+          </div>
         </div>
       </div>
 
@@ -783,32 +610,28 @@ function PortfolioComposition3D({
           <small>{allocations.length} tickers</small>
         </div>
         <div className="allocation-detail-list">
-          {allocations.map((allocation, index) => (
+          {allocations.map((allocation) => (
             <button
-              className={index === activeIndex ? "active" : ""}
+              className={allocation.ticker === activeAllocation?.ticker ? "active" : ""}
               key={allocation.ticker}
               type="button"
-              aria-pressed={index === activeIndex}
-              aria-label={`Select ${allocation.displayTicker} allocation ${formatPct(allocation.ratio, 1)}, ${formatThb(allocation.marketValue)}, ${
-                allocation.ticker === "CASH"
-                  ? "cash balance"
-                  : `${formatQty(allocation.quantity)} units`
+              aria-pressed={allocation.ticker === activeAllocation?.ticker}
+              aria-label={`Select ${allocation.displayTicker} allocation ${formatAllocationPct(allocation.ratio)}, ${formatThb(allocation.marketValue)}, ${
+                allocation.ticker === "CASH" ? "cash balance" : `${formatQty(allocation.quantity)} units`
               }`}
-              onClick={() => setActiveIndex(index)}
-              onMouseEnter={() => setActiveIndex(index)}
-              onFocus={() => setActiveIndex(index)}
+              onClick={() => setSelectedTicker(allocation.ticker)}
+              onMouseEnter={() => setSelectedTicker(allocation.ticker)}
+              onFocus={() => setSelectedTicker(allocation.ticker)}
             >
               <i style={{ backgroundColor: allocation.color }} aria-hidden="true" />
               <span>
                 <strong>{allocation.displayTicker}</strong>
                 <small>{formatThb(allocation.marketValue)}</small>
                 <small className="allocation-holding-meta">
-                  {allocation.ticker === "CASH"
-                    ? "Cash balance"
-                    : `${formatQty(allocation.quantity)} units`}
+                  {allocation.ticker === "CASH" ? "Cash balance" : `${formatQty(allocation.quantity)} units`}
                 </small>
               </span>
-              <b>{formatPct(allocation.ratio, 1)}</b>
+              <b>{formatAllocationPct(allocation.ratio)}</b>
             </button>
           ))}
         </div>
@@ -818,7 +641,7 @@ function PortfolioComposition3D({
         </div>
         <span className="sr-only" aria-live="polite">
           {activeAllocation
-            ? `${activeAllocation.displayTicker} selected, ${formatPct(activeAllocation.ratio, 1)} of portfolio`
+            ? `${activeAllocation.displayTicker} selected, ${formatAllocationPct(activeAllocation.ratio)} of portfolio, ${formatThb(activeAllocation.marketValue)}`
             : "No ticker selected"}
         </span>
       </aside>
@@ -1006,6 +829,8 @@ export function Dashboard() {
     PORTFOLIO_THEME.gold,
     PORTFOLIO_THEME.loss,
     PORTFOLIO_THEME.denim,
+    "#9582a3",
+    "#8d9390",
   ];
   const tickerAllocations = tickerBreakdown.map((item, index) => ({
     ticker: item.ticker,
@@ -1015,16 +840,6 @@ export function Dashboard() {
     ratio: item.marketValue / Math.max(result.totals.marketValue, 1),
     color: tickerColors[index % tickerColors.length],
   }));
-  const tickerRingStops = tickerAllocations
-    .map((item, index) => {
-      const start = sum(tickerAllocations.slice(0, index).map((prior) => prior.ratio));
-      const end = start + item.ratio;
-      return `${item.color} ${start * 100}% ${end * 100}%`;
-    })
-    .join(", ");
-  const tickerRingFallbackStyle = {
-    background: `conic-gradient(${tickerRingStops || "#dfe5e4 0% 100%"})`,
-  } as CSSProperties;
   const pnlCeiling = Math.max(
     1,
     ...tickerBreakdown.map((item) => Math.abs(item.unrealizedPnl)),
@@ -1729,12 +1544,11 @@ export function Dashboard() {
                   title="Portfolio composition"
                   action={<span className="composition-total-chip">{formatThb(result.totals.marketValue)}</span>}
                 />
-                <PortfolioComposition3D
+                <PortfolioComposition
                   allocations={tickerAllocations}
                   totalValue={result.totals.marketValue}
-                  fallbackStyle={tickerRingFallbackStyle}
                 />
-                <p className="panel-note">All active assets are pooled and allocated by total contributed-capital percentage.</p>
+                <p className="panel-note">Share of total market value by ticker, including pooled assets, owner-specific positions, and cash.</p>
               </article>
 
               <article className="panel pnl-chart-panel" aria-label="Unrealized P&L by ticker">

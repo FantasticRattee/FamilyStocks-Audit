@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-08-25. Use with the `impact-check` skill before changing shared
+Updated: 2026-09-07. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -53,7 +53,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | Historical Analyzer chart axes, EOD range, or point inspection | `stock-chart.ts`, `stock-chart-range.ts`, `StockAnalyzerDashboard.tsx`, `globals.css`, chart/UI tests, Analyzer spec, README | X = chronological date/month/year; visible Y = price or P/E on the right; `1M`/`6M`/`YTD`/year ranges use EOD only; hover/tap shows sampled date/value plus price tag; no provider, database, or Excel request |
 | Edit/import access | `portfolio-api.ts`, `Dashboard.tsx`, `worker/index.ts`, route/render tests, README | Valid canonical/minimal import succeeds without a password; invalid data leaves shared state unchanged |
 | Railway runtime variables or process/port behavior | `worker/index.ts`, `.dev.vars.example`, `package.json`, README | Local port 3001 only; production honors `PORT`; DB/provider keys remain server-side |
-| Mobile hero, R3F ring, 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Desktop and 393×852; WebGL and clickable fallback; labels do not overlap |
+| Mobile hero, 2D allocation donut, ownership 3D bars, theme, or fallback | `Dashboard.tsx`, `globals.css`, hero asset, rendered tests, responsive/theme specs | Donut stays square and within card at 320/393/779/1440px; arc weights total 100%; pointer/keyboard selection; no duplicate canvas/fallback in composition |
 
 ## Internal flow
 

@@ -222,13 +222,17 @@ public source pages again.
 Secrets are read only by `worker/index.ts` from Worker bindings or Railway's
 Node runtime environment and are never bundled into browser JavaScript.
 
-## Mobile and 3D behavior
+## Mobile and chart behavior
 
 The same dashboard is preserved on phones and desktop. It is optimized for
 390×844 and remains usable down to 320×568. The family artwork fills the hero
-stage, horizontal navigation remains scrollable, and the interactive R3F
-allocation ring remains touch/click selectable. When WebGL is unavailable, a
-clickable visual fallback preserves the data interaction.
+stage and horizontal navigation remains scrollable. Portfolio composition
+uses a single SVG donut in a square viewport, capped at 360px. Arc lengths
+match unrounded market-value weights, including cash and combined owner rows
+for each ticker. Hover, click/tap, keyboard focus, and the allocation list
+select the same ticker without changing segment geometry. Small positive
+allocations display as <0.1% instead of 0.0%. The ownership comparison retains
+its existing R3F bars and fallback.
 
 The approved **Ghibli Countryside Ledger** presentation uses warm paper,
 forest green, watercolor sky, sunlight accents, and rough painted-clay R3F
