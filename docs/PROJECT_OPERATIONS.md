@@ -96,6 +96,11 @@ The configured Thai-bank forecast is zero, not a complete portfolio forecast.
 Current US tickers are excluded until verified DPS/withholding inputs exist;
 the UI explicitly flags that gap instead of implying no dividends exist.
 
+Current UI verification also checks fractional units, reference-FX precision,
+same-day execution ordering and each mobile card's bounding box. Grid panels
+use `min-width: 0` so wide holdings/dividend tables scroll inside the card
+rather than extending beyond the viewport.
+
 ## Historical canonical state — 24 Aug Rattee overlays and pooled assets
 
 From **5 Aug 2026**, pooled holdings and cash use the total-capital allocation.

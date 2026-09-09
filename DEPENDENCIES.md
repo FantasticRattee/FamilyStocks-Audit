@@ -129,6 +129,9 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - The ledger and sale-P&L views share `compareTransactionsNewestFirst` in
   `model.ts`: existing evidenced note times order same-date rows. Unknown
   times are not invented or persisted, and raw ledger rows are unchanged.
+- Mobile grid panels must retain `min-width: 0`; otherwise the tables' own
+  minimum widths expand the card and hide notes outside the clipped page.
+  Verify card bounds as well as document scroll width.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost
   basis using the stored default audit FX assumption.
 - Minimal import/export does not carry transactions, realized P&L, shareholder

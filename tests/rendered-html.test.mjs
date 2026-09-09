@@ -286,6 +286,7 @@ test("uses the family portrait across the full hero while reserving a legible co
 test("defines a compact, no-overflow layout for phone-sized Family Wealth views", async () => {
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
+  assert.ok(/^\.panel\s*\{[^}]*min-width:\s*0/m.test(styles), "Grid panels must shrink so wide tables scroll inside their cards");
   assert.match(styles, /\.dashboard-shell\s*\{[^}]*overflow-x:\s*clip/i);
   assert.match(
     styles,
