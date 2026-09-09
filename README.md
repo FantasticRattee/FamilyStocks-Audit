@@ -17,7 +17,7 @@ code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
 Railway PostgreSQL is the shared source of truth for:
 
 - current holdings, including any imported shared THB cash balance;
-- the latest successful `GOOGL`, `META`, `AAPL`, `NVDA`, `MU`, `SPCX`, `INTC`, `SCB`, `KBANK`,
+- the latest successful `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `SCB`, `KBANK`,
   and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
@@ -48,6 +48,14 @@ every active holding, aggregate cash, future realized P&L and future dividend
 forecast. Historic owner/unit notes remain in the ledger for traceability.
 Existing persisted market quotes are retained.
 
+The 9 Sep 2026 audit reconfirms one Shared pool for all current holdings,
+cash and unwithdrawn income. Contributor capital remains separately recorded.
+Per-owner displayed equity/profit estimates do not represent cash withdrawn
+or paid. Actual distributions require a separately agreed withdrawal/split.
+The dividend page flags current securities not covered by verified DPS and
+withholding assumptions; a zero configured forecast is not a claim that the
+whole portfolio pays no dividends.
+
 ### Minimal holdings workbook
 
 Import and export use exactly one sheet named `Holdings` with these four
@@ -60,11 +68,11 @@ columns in this order:
 | CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC and THB for SCB/KBANK/CASH.
+  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
 - Supported tickers are currently `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `SCB`, `KBANK`, and `CASH`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.
@@ -79,13 +87,19 @@ unchanged.
 Export creates a fresh minimal `Portfolio_Holdings_YYYY-MM-DD.xlsx`; it never
 overwrites the canonical audit workbook.
 
+For canonical imports, the adapter preserves audited THB cost basis by
+expressing per-unit import cost at the stored default audit FX. It can differ
+from the historical executed USD fill, especially for mixed-FX lots. Exact
+fills, broker totals and fees/rounding notes remain in the canonical
+Transactions ledger. Fractional quantities such as VOO 18.60 are retained.
+
 ## Market refresh
 
-`Refresh market prices` is public and manual. Each click fetches the thirteen
+`Refresh market prices` is public and manual. Each click fetches the fourteen
 allow-listed market keys from free public sources without an API key:
 
 - Google Finance public quote pages: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, and `USDTHB`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO` (NYSEARCA), and `USDTHB`.
 - Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared

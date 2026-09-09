@@ -26,6 +26,7 @@ export const SUPPORTED_HOLDING_TICKERS = {
   SPCX: { currency: "USD", marketKey: "SPCX" },
   INTC: { currency: "USD", marketKey: "INTC" },
   WDC: { currency: "USD", marketKey: "WDC" },
+  VOO: { currency: "USD", marketKey: "VOO" },
   SCB: { currency: "THB", marketKey: "SCB" },
   KBANK: { currency: "THB", marketKey: "KBANK" },
   CASH: { currency: "THB", marketKey: null },

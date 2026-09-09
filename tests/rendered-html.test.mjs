@@ -163,7 +163,7 @@ test("renders the transaction ledger newest date first without mutating audit ro
   assert.match(transactionFilter, /\.filter\(\(transaction\) =>/);
   assert.match(
     transactionFilter,
-    /\.sort\(\(left, right\) => right\.date\.localeCompare\(left\.date\)\)/,
+    /\.sort\(compareTransactionsNewestFirst\)/,
   );
   assert.doesNotMatch(transactionFilter, /snapshot\.transactions\.sort\(/);
 });
@@ -178,6 +178,21 @@ test("explains the total-capital pooled allocation consistently across all audit
   assert.match(dashboard, /owner-specific active overlay/i);
   assert.doesNotMatch(dashboard, /Free Cash %/);
   assert.match(dashboard, /<option value="TRANSFER">TRANSFER<\/option>/);
+});
+
+test("distinguishes retained pooled profit from paid distributions and incomplete forecasts", async () => {
+  const dashboard = await readFile(
+    new URL("../app/dashboard/Dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(dashboard, /aria-label="Pooled capital and retained profit policy"/);
+  assert.match(dashboard, /กำไรที่ยังไม่ถอนคงอยู่ในกองกลาง/);
+  assert.match(dashboard, /ไม่ใช่ยอดถอนหรือจ่ายกำไร/);
+  assert.match(dashboard, /ส่วนของ Rattee \(ประมาณการ\)/);
+  assert.match(dashboard, /activeTickersWithoutDividendAssumptions/);
+  assert.match(dashboard, /ยังไม่มีสมมติฐาน DPS และภาษีที่ยืนยัน/);
+  assert.match(dashboard, /fxFormatter\.format\(transaction\.fx\)/);
 });
 
 test("renders shareholder metrics as rows and owners as columns", async () => {
@@ -301,7 +316,9 @@ test("renders one proportional 2D donut with all tickers and no overlapping canv
   assert.match(composition, /viewBox="0 0 200 200"/);
   assert.doesNotMatch(composition, /<canvas|allocation-fallback-ring|composition-3d-stage/);
   const arcs = [...composition.matchAll(/<circle[^>]*class="allocation-arc[^"]*"[^>]*>/g)];
-  assert.equal(arcs.length, 7);
+  assert.equal(arcs.length, 6);
+  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="VOO"')).length, 1);
+  assert.equal(arcs.some(([arc]) => /data-ticker="(?:META|INTC)"/.test(arc)), false);
   let cumulativeRatio = 0;
   for (const [arc] of arcs) {
     const ratio = Number(arc.match(/data-ratio="([^"]+)"/)[1]);
@@ -362,7 +379,7 @@ test("sizes the P&L chart from its active ticker count", async () => {
   const html = await response.text();
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:7"/i);
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:6"/i);
   assert.match(
     styles,
     /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*44px\)/i,
@@ -381,6 +398,12 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
   assert.match(html, /class="allocation-holding-meta"[^>]*>Cash balance/i);
   assert.match(html, /class="pnl-value-pair"/i);
   assert.match(html, /class="pnl-cost-basis"[^>]*>Cost ฿[\d,]+/i);
+});
+
+test("preserves fractional holding precision in the rendered allocation", async () => {
+  const html = await (await render()).text();
+  assert.ok(html.includes("6.9162 units"), "AVGO units must not be rounded to 6.92");
+  assert.ok(html.includes("18.6 units"), "VOO fractional units must remain visible");
 });
 
 test("renders pooled and owner-specific active holdings together", async () => {

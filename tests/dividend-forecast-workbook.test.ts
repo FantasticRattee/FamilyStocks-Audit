@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -56,9 +57,37 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   );
   assert.equal(dividends.D42?.f, "IFERROR(D41/B42,0)");
 
+  for (const [address, expected] of [
+    ["B32", 1550000],
+    ["B33", 300000],
+    ["B34", 1464606.003945636],
+    ["B35", 3314606.003945636],
+    ["B42", 3314606.003945636],
+  ] as const) {
+    assert.ok(Math.abs((dividends[address]?.v ?? Number.NaN) - expected) < 0.000001, address);
+  }
+
   assert.ok(Math.abs((dividends.D35?.v ?? Number.NaN) - 0) < 0.01);
   assert.ok(Math.abs((dividends.F35?.v ?? Number.NaN) - 0) < 0.01);
 
   assert.equal(dividends.D6?.v, 71688);
   assert.equal(dividends.F6?.v, 64519.2);
+});
+
+test("preserves the April dividend section values and formulas through the September update", async () => {
+  const workbook = await readWorkbook();
+  const dividends = workbook.Sheets.Dividends;
+  const cells = [];
+  for (let row = 1; row <= 28; row += 1) {
+    for (let column = 0; column < 6; column += 1) {
+      const address = XLSX.utils.encode_cell({ r: row - 1, c: column });
+      const cell = dividends[address];
+      cells.push([address, cell?.v ?? null, cell?.f ?? null]);
+    }
+  }
+  // Frozen from A1:F28 of the pre-update canonical workbook; styling is excluded.
+  assert.equal(
+    createHash("sha256").update(JSON.stringify(cells)).digest("hex"),
+    "62c2f98a37e691b907720303d6571dd86a4b45b2af88240085e550fd99067d69",
+  );
 });

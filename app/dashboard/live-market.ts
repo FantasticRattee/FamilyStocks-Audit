@@ -19,6 +19,7 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   SPCX: { marketKey: "SPCX", currency: "USD" },
   INTC: { marketKey: "INTC", currency: "USD" },
   WDC: { marketKey: "WDC", currency: "USD" },
+  VOO: { marketKey: "VOO", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };

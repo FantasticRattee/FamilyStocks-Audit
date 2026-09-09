@@ -94,6 +94,49 @@ test("accepts an INTC holding and Rattee-specific SPCX overlay", () => {
   );
 });
 
+test("imports a fractional shared VOO holding as a USD native-price position", () => {
+  const parsed = parseMinimalHoldingsWorkbook(
+    workbookBytes([
+      [...MINIMAL_HOLDINGS_HEADERS],
+      ["VOO", "Shared", 700.84, 18.6],
+    ]),
+    "voo-holding.xlsx",
+  );
+
+  assert.deepEqual(parsed.holdings, [
+    { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
+  ]);
+
+  const snapshot = buildDashboardSnapshotFromSharedPortfolio(
+    parsed.holdings,
+    settings,
+    parsed.filename,
+  );
+  assert.deepEqual(snapshot.holdings[0], {
+    ticker: "VOO",
+    account: "Shared-USD",
+    owner: null,
+    category: "shared",
+    currency: "USD",
+    quantity: 18.6,
+    avgCostThb: 700.84 * settings.defaultFx,
+    importedPriceThb: 700.84 * settings.defaultFx,
+    costBasis: 18.6 * 700.84 * settings.defaultFx,
+  });
+});
+
+test("round-trips fractional VOO through the minimal export adapter", () => {
+  const voo: SharedHoldingInput[] = [
+    { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
+  ];
+  const exported = exportMinimalHoldingsWorkbook(voo, {
+    exportedAt: "2026-09-10T00:00:00.000Z",
+  });
+  const imported = parseMinimalHoldingsWorkbook(exported.bytes, exported.filename);
+
+  assert.deepEqual(imported.holdings, voo);
+});
+
 const canonicalAuditWorkbook = new URL(
   "../../Portfolio_Accounting.xlsx",
   import.meta.url,
@@ -115,33 +158,67 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
     [
       ["QQQI", "Shared", 1190],
-      ["GOOGL", "Shared", 40],
-      ["META", "Shared", 20],
+      ["GOOGL", "Shared", 43],
       ["AVGO", "Shared", 6.9162],
-      ["SPCX", "Shared", 65],
+      ["SPCX", "Shared", 67],
       ["CASH", "Shared", 1],
-      ["SPCX", "Rattee", 2],
-      ["INTC", "Rattee", 8],
+      ["VOO", "Shared", 18.6],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings?.asOfDate, "24 Aug 2026");
+  assert.equal(parsed.settings.asOfDate, "9 Sep 2026");
+  assert.equal(parsed.settings.defaultFx, 33.254);
+  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 562899.5073999737) < 0.000001);
+  assert.ok(Math.abs(
+    parsed.settings.shareholders.reduce((total, holder) => total + holder.sharedCapital, 0) -
+      3314606.003945636,
+  ) < 0.000001);
   assert.ok(
     Math.abs(
-      (parsed.settings?.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
-        1_459_606.003945636,
+      (parsed.settings.shareholders.find((holder) => holder.owner === "Rattee")?.totalInvested ?? 0) -
+        1_464_606.003945636,
     ) < 0.01,
   );
-  assert.equal(parsed.settings?.transactions.at(-4)?.date, "2026-08-19");
-  assert.equal(parsed.settings?.transactions.at(-4)?.side, "BUY");
-  assert.equal(parsed.settings?.transactions.at(-4)?.ticker, "SPCX");
-  assert.equal(parsed.settings?.transactions.at(-4)?.account, "Shared-US");
-  assert.equal(parsed.settings?.transactions.at(-2)?.date, "2026-08-20");
-  assert.equal(parsed.settings?.transactions.at(-2)?.ticker, "SPCX");
-  assert.equal(parsed.settings?.transactions.at(-2)?.account, "Personal-US (Rattee)");
-  assert.equal(parsed.settings?.transactions.at(-1)?.date, "2026-08-24");
-  assert.equal(parsed.settings?.transactions.at(-1)?.ticker, "INTC");
+  const historical = parsed.settings.transactions.filter((transaction) => transaction.date <= "2026-08-24");
+  assert.equal(historical.at(-4)?.date, "2026-08-19");
+  assert.equal(historical.at(-4)?.side, "BUY");
+  assert.equal(historical.at(-4)?.ticker, "SPCX");
+  assert.equal(historical.at(-4)?.account, "Shared-US");
+  assert.equal(historical.at(-2)?.date, "2026-08-20");
+  assert.equal(historical.at(-2)?.ticker, "SPCX");
+  assert.equal(historical.at(-2)?.account, "Personal-US (Rattee)");
+  assert.equal(historical.at(-1)?.date, "2026-08-24");
+  assert.equal(historical.at(-1)?.ticker, "INTC");
+  const latest = parsed.settings.transactions.at(-1);
+  assert.equal(latest?.date, "2026-09-09");
+  assert.equal(latest?.ticker, "VOO");
+  assert.equal(latest?.quantity, 18.6);
+  assert.equal(latest?.priceNative, 700.84);
+  assert.equal(latest?.grossNative, 13037.73);
+
+  const cash = parsed.holdings.find((holding) => holding.ticker === "CASH");
+  const voo = parsed.holdings.find((holding) => holding.ticker === "VOO");
+  assert.ok(cash);
+  assert.ok(voo);
+  assert.ok(Math.abs(cash.entryPrice - 640.64247) < 0.000001);
+  assert.ok(Math.abs(voo.entryPrice * voo.units - 13037.73) < 0.000001);
+  assert.ok(voo.entryPrice > 700.84);
+  const exported = exportMinimalHoldingsWorkbook(parsed.holdings);
+  assert.deepEqual(
+    parseMinimalHoldingsWorkbook(exported.bytes, exported.filename).holdings,
+    parsed.holdings,
+  );
+  const snapshot = buildDashboardSnapshotFromSharedPortfolio(
+    parsed.holdings,
+    parsed.settings,
+    parsed.filename,
+  );
+  assert.ok(snapshot.holdings.every((holding) => holding.category === "shared" && holding.owner === null));
+  assert.ok(Math.abs(
+    (snapshot.holdings.find((holding) => holding.ticker === "VOO")?.costBasis ?? 0) -
+      13037.73 * 33.254,
+  ) < 0.000001);
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {
@@ -187,6 +264,7 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
+      { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
       { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
     ]),
     [
@@ -194,6 +272,7 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: "NVDA", ownerAccount: "Mom", entryPrice: 206.73, units: 45 },
       { ticker: "MU", ownerAccount: "Mom", entryPrice: 812, units: 4 },
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
+      { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
       { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
     ],
   );

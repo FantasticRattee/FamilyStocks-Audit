@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-09-07. Use with the `impact-check` skill before changing shared
+Updated: 2026-09-10. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -99,7 +99,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
 - Shared market keys: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`,
-  `AVGO`, `SPCX`, `INTC`, `SCB`, `KBANK`, `USDTHB`.
+  `AVGO`, `SPCX`, `INTC`, `VOO`, `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -118,10 +118,17 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
 - Active holdings currently accepted are QQQI, GOOGL, WDC, META, AAPL, NVDA,
-  MU, AVGO, SPCX, INTC, SCB, KBANK, and shared CASH. Historical ledger rows
+  MU, AVGO, SPCX, INTC, VOO, SCB, KBANK, and shared CASH. Historical ledger rows
   may still include inactive tickers such as V. Personal active overlays are
   represented by `Rattee`, `Mom`, or `Ryu` owner accounts and are added to the
   named owner's equity rather than the pooled allocation.
+- The 9 Sep canonical update has no active personal overlays. All current
+  assets are Shared; capital records stay contributor-specific. Projected
+  owner values are not paid profits. VOO uses Google Finance NYSEARCA/USD
+  and the same quote persistence allow-list as other active US holdings.
+- The ledger and sale-P&L views share `compareTransactionsNewestFirst` in
+  `model.ts`: existing evidenced note times order same-date rows. Unknown
+  times are not invented or persisted, and raw ledger rows are unchanged.
 - GOOGL entry price is native USD; the compatibility adapter converts its cost
   basis using the stored default audit FX assumption.
 - Minimal import/export does not carry transactions, realized P&L, shareholder

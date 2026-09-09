@@ -2,9 +2,10 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **24 Aug 2026**. Rattee's new SPCX 2-share
-> and INTC 8-share lots are active owner-specific overlays; the live-production status is
-> recorded after the canonical import in `../Handoff.md`.
+> Latest canonical reconciliation: **9 Sep 2026**. All active assets are Shared;
+> contributor capital remains separate and unwithdrawn profits remain pooled.
+> Actual deployment/import verification is recorded in the workspace-root
+> `Handoff.md` and must be checked against production `/api/portfolio`.
 
 ## Start here
 
@@ -51,7 +52,51 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 24 Aug Rattee overlays and pooled assets
+## Current canonical state — 9 Sep 2026
+
+User-confirmed policy: all current assets, cash and unwithdrawn income belong
+to Shared. Record each person's contributed capital separately. Owner equity,
+sale-P&L share and dividend-share figures are illustrative at current capital
+percentages; they do not record a withdrawal or an agreed profit payment.
+Keep all historical transaction-owner notes and the April dividend history.
+
+| Contributor | Total capital THB | Reference percentage |
+|---|---:|---:|
+| Mom | 1,550,000.00 | 46.762722% |
+| Rattee | 1,464,606.003945636 | 44.186428% |
+| Ryu | 300,000.00 | 9.050849% |
+| Total | 3,314,606.003945636 | 100% |
+
+| Active Shared asset | Units / balance |
+|---|---:|
+| QQQI | 1,190 |
+| GOOGL | 43 |
+| AVGO | 6.9162 |
+| SPCX | 67 |
+| VOO | 18.60 |
+| CASH | THB640.64247 |
+
+The 20 Aug Rattee THB10,000 deposit was already included. Add only the
+missing 25 Aug THB5,000 deposit, then the 25 Aug INTC one-share buy and
+9 Sep INTC nine-share sale, GOOGL three-share buy, META twenty-share sale,
+and VOO 18.60-share buy. META and INTC are closed in active holdings but
+remain in the ledger. There are 108 parsed transactions.
+
+New sale gains are THB5,355.22416 (INTC) and THB44,774.51576 (META), total
+THB50,129.73992. Cumulative realized P&L is THB562,899.5073999737. Broker
+totals control cash/cost; VOO's USD2.106 implied fees/rounding difference is
+not a verified fee breakdown. USD/THB 33.254 is explicitly approved as a
+carried accounting reference, not actual settlement FX. Cash remains a
+roll-forward rather than a newly confirmed broker cash snapshot.
+
+At carried audit marks, value is THB3,487,962.691553695, unrealized P&L
+THB-32,179.57548163811 and total P&L THB530,719.9319183356. Live quotes
+will differ after refresh; quantities, costs, capital and realized P&L must not.
+The configured Thai-bank forecast is zero, not a complete portfolio forecast.
+Current US tickers are excluded until verified DPS/withholding inputs exist;
+the UI explicitly flags that gap instead of implying no dividends exist.
+
+## Historical canonical state — 24 Aug Rattee overlays and pooled assets
 
 From **5 Aug 2026**, pooled holdings and cash use the total-capital allocation.
 Explicitly confirmed owner-specific active overlays are tracked in the same
@@ -277,7 +322,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry
@@ -362,7 +407,7 @@ Ticker | Owner/Account | Entry Price | Units
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
 tickers are `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`,
-`INTC`, `SCB`, `KBANK`, and `CASH`;
+`INTC`, `VOO`, `SCB`, `KBANK`, and `CASH`;
 `CASH` is only valid for `Shared`. A canonical workbook may retain other
 tickers in its historical `Transactions` ledger, but they must not become
 active holdings unless active ticker support is deliberately added. Dashboard

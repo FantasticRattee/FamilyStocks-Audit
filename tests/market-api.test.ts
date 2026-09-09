@@ -65,6 +65,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("INTC")) {
         return new Response(googleQuotePage("INTC:NASDAQ", "$86.14"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("VOO")) {
+        return new Response(googleModernQuotePage("VOO:NYSEARCA", "700.84"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
       }
@@ -85,6 +88,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.deepEqual(
     calls.map((call) => call.hostname).sort(),
     [
+      "www.google.com",
       "www.google.com",
       "www.google.com",
       "www.google.com",
@@ -123,6 +127,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.INTC?.price, 86.14);
   assert.equal(body.quotes.INTC?.exchange, "NASDAQ");
   assert.equal(body.quotes.WDC?.exchange, "NASDAQ");
+  assert.equal(body.quotes.VOO?.price, 700.84);
+  assert.equal(body.quotes.VOO?.exchange, "NYSEARCA");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
   assert.equal(body.quotes.SCB?.price, 158.5);
   assert.equal(body.quotes.SCB?.source, "SET public quote");
@@ -139,6 +145,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
     "https://www.google.com/finance/quote/SPCX:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/INTC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/WDC:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/VOO:NYSEARCA?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
     "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",
@@ -169,6 +176,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
           "QQQI",
           "SPCX",
           "WDC",
+          "VOO",
           "USDTHB",
           "SCB",
           "KBANK",
@@ -191,6 +199,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
       if (url.pathname.includes("QQQI")) return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.25"));
       if (url.pathname.includes("SPCX")) return new Response(googleModernQuotePage("SPCX:NASDAQ", "140.50"));
       if (url.pathname.includes("WDC")) return new Response(googleModernQuotePage("WDC:NASDAQ", "438.25"));
+      if (url.pathname.includes("VOO")) return new Response(googleModernQuotePage("VOO:NYSEARCA", "700.84"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.75"));
       if (url.pathname.endsWith("/SCB/price")) return new Response(setQuotePage("SCB", 159));
       return new Response(setQuotePage("KBANK", 232));
@@ -213,6 +222,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "SCB",
     "SPCX",
     "USDTHB",
+    "VOO",
     "WDC",
   ]);
   const body = (await response.json()) as { cooldownActive?: boolean; refreshedKeys: string[] };
@@ -227,6 +237,7 @@ test("always fetches and persists a fresh public quote instead of reusing a cool
     "QQQI",
     "SPCX",
     "WDC",
+    "VOO",
     "USDTHB",
     "SCB",
     "KBANK",
@@ -246,6 +257,7 @@ test("returns per-key failures from a public source without overwriting the othe
       if (url.pathname.includes("MU")) return new Response(googleQuotePage("MU:NASDAQ", "$812.00"));
       if (url.pathname.includes("QQQI")) return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.20"));
       if (url.pathname.includes("WDC")) return new Response(googleModernQuotePage("WDC:NASDAQ", "437.00"));
+      if (url.pathname.includes("VOO")) return new Response(googleModernQuotePage("VOO:NYSEARCA", "700.84"));
       if (url.pathname.includes("USD-THB")) return new Response(googleQuotePage("USD-THB", "32.50"));
       if (url.pathname.endsWith("/SCB/price")) return new Response("source unavailable", { status: 503 });
       return new Response(setQuotePage("KBANK", 231));

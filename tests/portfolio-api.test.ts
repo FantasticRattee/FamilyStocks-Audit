@@ -247,6 +247,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     AAPL: oldQuote("AAPL", 305, "USD"),
     NVDA: oldQuote("NVDA", 206, "USD"),
     MU: oldQuote("MU", 812, "USD"),
+    VOO: oldQuote("VOO", 700, "USD"),
     SCB: oldQuote("SCB", 156, "THB"),
     KBANK: oldQuote("KBANK", 231, "THB"),
     USDTHB: oldQuote("USDTHB", 33.3, "THB"),
@@ -265,6 +266,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
       AAPL: "No new quote",
       NVDA: "No new quote",
       MU: "No new quote",
+      VOO: "No new quote",
       SCB: "No new quote",
       KBANK: "No new quote",
       USDTHB: "No new quote",
@@ -294,11 +296,82 @@ test("partial refresh updates successes and explicitly retains prior database qu
     "AAPL",
     "NVDA",
     "MU",
+    "VOO",
     "SCB",
     "KBANK",
     "USDTHB",
   ]);
   assert.deepEqual(merged.failures, {});
+});
+
+test("persists a VOO quote through the PostgreSQL market-key allow-list", async () => {
+  const persistedKeys: string[] = [];
+  const vooQuoteTimestamp = "2026-09-10T00:00:00.000Z";
+  const vooQuote: MarketQuoteSnapshot = {
+    symbol: "VOO",
+    price: 700.84,
+    currency: "USD",
+    exchange: "NYSEARCA",
+    marketState: "DELAYED",
+    quoteTimestamp: vooQuoteTimestamp,
+    source: "Google Finance",
+    freshness: "delayed",
+  };
+  const fakeClient = {
+    async query(sql: string, params?: unknown[]) {
+      if (
+        sql === "BEGIN" ||
+        sql === "COMMIT" ||
+        sql === "ROLLBACK" ||
+        sql.includes("pg_advisory_xact_lock")
+      ) {
+        return { rows: [] };
+      }
+      if (sql.includes("INSERT INTO market_quotes")) {
+        persistedKeys.push(String(params?.[0]));
+        return { rows: [] };
+      }
+      if (sql.includes("FROM market_quotes")) {
+        return {
+          rows: [
+            {
+              market_key: "VOO",
+              symbol: "VOO",
+              price: 700.84,
+              currency: "USD",
+              exchange: "NYSEARCA",
+              market_state: "DELAYED",
+              quote_timestamp: vooQuoteTimestamp,
+              source: "Google Finance",
+              freshness: "delayed",
+              sources: [],
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected test query: ${sql}`);
+    },
+    release() {},
+  };
+  const fakePool = {
+    async query() {
+      return { rows: [] };
+    },
+    async connect() {
+      return fakeClient;
+    },
+  };
+  const repository = new PostgresPortfolioRepository(fakePool as never);
+
+  const persisted = await repository.persistMarketRefresh({
+    quotes: { VOO: vooQuote },
+    failures: {},
+    fetchedAt: vooQuoteTimestamp,
+  });
+
+  assert.deepEqual(persistedKeys, ["VOO"]);
+  assert.deepEqual(persisted.refreshedKeys, ["VOO"]);
+  assert.equal(persisted.quotes.VOO?.exchange, "NYSEARCA");
 });
 
 test("retries PostgreSQL schema setup after a transient first failure", async () => {

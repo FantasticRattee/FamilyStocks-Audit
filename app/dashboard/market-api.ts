@@ -144,6 +144,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["WDC:NASDAQ"],
   },
+  VOO: {
+    symbol: "VOO",
+    currency: "USD",
+    exchange: "NYSEARCA",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/VOO:NYSEARCA?hl=en",
+    title: "Google Finance · VOO (NYSEARCA)",
+    parser: "google",
+    googlePageTitles: ["VOO:NYSEARCA"],
+  },
   USDTHB: {
     symbol: "USDTHB",
     currency: "THB",

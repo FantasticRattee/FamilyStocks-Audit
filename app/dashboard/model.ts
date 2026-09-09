@@ -91,6 +91,19 @@ export type SalePnlSummary = {
 
 export const POOLED_SALE_PNL_START_DATE = "2026-08-05";
 
+/** Display ordering only: use an evidenced clock time from the broker note.
+ * Rows without a clock time remain undated within that day and sort after
+ * timed rows. No timestamp or raw ledger row is changed or persisted.
+ */
+export const compareTransactionsNewestFirst = (left: Transaction, right: Transaction) => {
+  const dateOrder = right.date.localeCompare(left.date);
+  if (dateOrder !== 0) return dateOrder;
+  const clock = /\b(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\b/;
+  const leftTime = left.note.match(clock)?.[0] ?? "";
+  const rightTime = right.note.match(clock)?.[0] ?? "";
+  return rightTime.localeCompare(leftTime);
+};
+
 const findRatteePoolPercent = (shareholders: Shareholder[]) =>
   shareholders.find((shareholder) => shareholder.owner.trim().toLowerCase() === "rattee")
     ?.poolPercent ?? 0;
@@ -108,6 +121,7 @@ export const deriveSalePnlSummary = (
   const ratteePoolPercent = findRatteePoolPercent(shareholders);
   const rows = transactions
     .filter((transaction) => transaction.side.toUpperCase() === "SELL")
+    .sort(compareTransactionsNewestFirst)
     .map((transaction) => {
       const allocationMode = transaction.date >= pooledStartDate ? "pooled" : "historical";
       const classification: SalePnlClassification =
@@ -131,8 +145,7 @@ export const deriveSalePnlSummary = (
             : null,
         allocationMode,
       } satisfies SalePnlRow;
-    })
-    .sort((left, right) => right.date.localeCompare(left.date));
+    });
   const totalGainsThb = rows.reduce(
     (total, row) => total + Math.max(row.realizedPnlThb, 0),
     0,

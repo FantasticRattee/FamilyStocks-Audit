@@ -42,6 +42,7 @@ import {
 import {
   calculateDashboard,
   calculateShareholderEquityRows,
+  compareTransactionsNewestFirst,
   createScenario,
   deriveSalePnlSummary,
   type DashboardSnapshot,
@@ -145,6 +146,9 @@ const decimalFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const fxFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 6,
+});
 
 const INITIAL_SNAPSHOT = INITIAL_DASHBOARD_SNAPSHOT;
 
@@ -171,7 +175,7 @@ const formatPct = (value: number, digits = 2) =>
   `${(value * 100).toFixed(digits)}%`;
 
 const formatQty = (value: number) =>
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 }).format(value);
 
 const formatDate = (date: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date || "—";
@@ -780,6 +784,8 @@ export function Dashboard() {
   });
   const editableDirty = scenarioDirty || tickerEditsDirty;
   const activeHoldings = result.holdings;
+  const allAssetsPooled = activeHoldings.length > 0
+    && activeHoldings.every((holding) => holding.account.startsWith("Shared"));
   const editableHoldings = Array.from(
     new Map(result.holdings.map((holding) => [holding.ticker, holding])).values(),
   ).filter((holding) => holding.ticker !== "CASH");
@@ -884,6 +890,12 @@ export function Dashboard() {
     return { ...line, dps, gross, wht, net: gross - wht };
   });
   const currentCapitalForecast = snapshot.dividend.basis === "current-capital";
+  const activeTickersWithoutDividendAssumptions = Array.from(new Set(
+    activeHoldings
+      .filter((holding) => holding.ticker !== "CASH" && holding.quantity > 0)
+      .map((holding) => holding.ticker)
+      .filter((ticker) => !snapshot.dividend.lines.some((line) => line.ticker === ticker)),
+  ));
 
   const accountOptions = Array.from(
     new Set(snapshot.transactions.map((transaction) => transaction.account)),
@@ -905,7 +917,7 @@ export function Dashboard() {
         (accountFilter === "ALL" || transaction.account === accountFilter)
       );
     })
-    .sort((left, right) => right.date.localeCompare(left.date));
+    .sort(compareTransactionsNewestFirst);
   const salePnlSummary = useMemo(
     () => deriveSalePnlSummary(snapshot.transactions, snapshot.shareholders),
     [snapshot.shareholders, snapshot.transactions],
@@ -1411,7 +1423,7 @@ export function Dashboard() {
           <div>
             <span>Portfolio current value</span>
             <strong>{formatThb(result.totals.marketValue)}</strong>
-            <small>All active assets are pooled</small>
+            <small>{allAssetsPooled ? "All active assets are pooled" : "Pooled and owner-specific assets"}</small>
           </div>
           <div>
             <span>Total capital · fixed</span>
@@ -1424,6 +1436,13 @@ export function Dashboard() {
             <small>All active positions + cash at current value</small>
           </div>
         </section>
+
+        {allAssetsPooled ? (
+          <p className="panel-note" aria-label="Pooled capital and retained profit policy">
+            เงินทุนบันทึกแยกตามผู้ร่วมลงทุน กำไรที่ยังไม่ถอนคงอยู่ในกองกลาง
+            ตัวเลขรายคนเป็นประมาณการตามสัดส่วนทุน ไม่ใช่ยอดถอนหรือจ่ายกำไร
+          </p>
+        ) : null}
 
         {activeTab === "overview" ? (
           <>
@@ -1702,6 +1721,7 @@ export function Dashboard() {
             </div>
             <p className="panel-note">
               Allocated Current Equity = pooled assets × total contributed-capital percentage + full value of any owner-specific active overlay. Historic owner notes remain audit history only.
+              {allAssetsPooled ? " ปัจจุบันไม่มีล็อตส่วนตัว ยอดรายคนใช้ดูประมาณการเท่านั้น การแบ่งจ่ายจะบันทึกเมื่อมีการถอนจริงและยืนยันสัดส่วนแล้ว" : null}
             </p>
           </section>
         ) : null}
@@ -1709,7 +1729,7 @@ export function Dashboard() {
         {activeTab === "holdings" ? (
           <section className="holdings-layout">
             <article className="panel">
-              <SectionTitle eyebrow="HOLDINGS" title="Current assets · Pooled + owner-specific overlays" />
+              <SectionTitle eyebrow="HOLDINGS" title={allAssetsPooled ? "Current assets · Shared pool" : "Current assets · Pooled + owner-specific overlays"} />
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -1752,6 +1772,12 @@ export function Dashboard() {
 
         {activeTab === "dividends" ? (
           <>
+            {currentCapitalForecast && activeTickersWithoutDividendAssumptions.length > 0 ? (
+              <p className="panel-note warning" aria-label="Incomplete dividend forecast">
+                ยังไม่มีสมมติฐาน DPS และภาษีที่ยืนยันสำหรับ {activeTickersWithoutDividendAssumptions.join(", ")}
+                {" — "}ยอดด้านล่างครอบคลุมเฉพาะรายการที่ตั้งค่าใน audit ไม่ได้แปลว่าทั้งพอร์ตไม่มีปันผล และยังไม่ใช่ยอดแบ่งจ่ายจริง
+              </p>
+            ) : null}
             <section className="dividend-flow">
               <div>
                 <span>{currentCapitalForecast ? "Gross forecast" : "Gross dividend"}</span>
@@ -1912,7 +1938,7 @@ export function Dashboard() {
                       </td>
                       <td>{formatQty(transaction.quantity)}</td>
                       <td>{transaction.currency === "USD" ? `$${decimalFormatter.format(transaction.priceNative)}` : formatThb(transaction.priceNative, 2)}</td>
-                      <td>{transaction.fx ? decimalFormatter.format(transaction.fx) : "—"}</td>
+                      <td>{transaction.fx ? fxFormatter.format(transaction.fx) : "—"}</td>
                       <td>{formatThb(transaction.costProceedsThb)}</td>
                       <td className={pnlClass(transaction.realizedPnlThb)}>
                         {formatThb(transaction.realizedPnlThb)}
@@ -1966,7 +1992,7 @@ export function Dashboard() {
                     <th>ยอดขายสุทธิ</th>
                     <th>ต้นทุนที่ขาย</th>
                     <th>กำไร/ขาดทุนรวม</th>
-                    <th>ส่วนของ Rattee</th>
+                    <th>ส่วนของ Rattee (ประมาณการ)</th>
                     <th>สถานะ</th>
                   </tr>
                 </thead>
@@ -2013,6 +2039,7 @@ export function Dashboard() {
             </div>
             <p className="panel-note warning">
               ส่วนของ Rattee แสดงเฉพาะ SELL ตั้งแต่ 5 Aug 2026 ตามสัดส่วน Total Capital ปัจจุบัน ({formatPct(salePnlSummary.ratteePoolPercent)}). รายการก่อนหน้านั้นคงเป็น Historical เพื่อไม่ย้อนแก้ owner record เดิม.
+              ตัวเลขนี้เป็นประมาณการ ไม่ใช่ประวัติการถอนหรือแบ่งจ่ายกำไรจริง
             </p>
           </section>
         ) : null}
