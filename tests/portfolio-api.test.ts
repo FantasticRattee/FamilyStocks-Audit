@@ -248,6 +248,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     NVDA: oldQuote("NVDA", 206, "USD"),
     MU: oldQuote("MU", 812, "USD"),
     VOO: oldQuote("VOO", 700, "USD"),
+    ASML: oldQuote("ASML", 1592.46, "USD"),
     SCB: oldQuote("SCB", 156, "THB"),
     KBANK: oldQuote("KBANK", 231, "THB"),
     USDTHB: oldQuote("USDTHB", 33.3, "THB"),
@@ -267,6 +268,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
       NVDA: "No new quote",
       MU: "No new quote",
       VOO: "No new quote",
+      ASML: "No new quote",
       SCB: "No new quote",
       KBANK: "No new quote",
       USDTHB: "No new quote",
@@ -282,6 +284,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
   assert.equal(merged.quotes.NVDA.price, 206);
   assert.equal(merged.quotes.MU.price, 812);
   assert.equal(merged.quotes.INTC.price, 86.14);
+  assert.equal(merged.quotes.ASML.price, 1592.46);
   assert.equal(merged.quotes.SCB.price, 156);
   assert.equal(merged.quotes.KBANK.price, 231);
   assert.equal(merged.quotes.USDTHB.price, 33.3);
@@ -297,6 +300,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     "NVDA",
     "MU",
     "VOO",
+    "ASML",
     "SCB",
     "KBANK",
     "USDTHB",

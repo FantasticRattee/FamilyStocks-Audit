@@ -40,8 +40,8 @@ test("keeps the configured SCB and KBANK forecast at zero for the new pooled aud
       ["KBANK", 0, 12],
     ],
   );
-  closeTo(snapshot.dividend.costBasis, 3314606.003945636);
-  closeTo(result.dividend.currentCapital, 3314606.003945636);
+  closeTo(snapshot.dividend.costBasis, 3634606.003945636);
+  closeTo(result.dividend.currentCapital, 3634606.003945636);
   closeTo(result.dividend.gross, 0);
   closeTo(result.dividend.net, 0);
   closeTo(snapshot.historicalDividend.net, 64519.2);
@@ -49,11 +49,11 @@ test("keeps the configured SCB and KBANK forecast at zero for the new pooled aud
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
   assert.ok(mom);
   closeTo(mom.net, 0);
-  closeTo(mom.capitalPercent, 1550000 / 3314606.003945636, 0.000001);
+  closeTo(mom.capitalPercent, 1870000 / 3634606.003945636, 0.000001);
   const rattee = result.dividend.byOwner.find((owner) => owner.owner === "Rattee");
   assert.ok(rattee);
   closeTo(rattee.capital, 1464606.003945636);
-  closeTo(rattee.capitalPercent, 1464606.003945636 / 3314606.003945636, 0.000001);
+  closeTo(rattee.capitalPercent, 1464606.003945636 / 3634606.003945636, 0.000001);
   closeTo(rattee.net, 0);
 });
 
@@ -66,12 +66,12 @@ test("recalculates a future pooled forecast when total contributed capital incre
 
   snapshot.shareholders[0].sharedCapital += 100000;
   const result = calculateDashboard(snapshot, createScenario(snapshot));
-  const expectedYield = 7560 / 3314606.003945636;
-  const expectedCapital = 3414606.003945636;
+  const expectedYield = 7560 / 3634606.003945636;
+  const expectedCapital = 3734606.003945636;
   const mom = result.dividend.byOwner.find((owner) => owner.owner === "Mom");
 
   assert.ok(result.dividend.gross > baseline.dividend.gross);
   closeTo(result.dividend.gross, expectedCapital * expectedYield);
   assert.ok(mom);
-  closeTo(mom.capitalPercent, 1650000 / expectedCapital, 0.000001);
+  closeTo(mom.capitalPercent, 1970000 / expectedCapital, 0.000001);
 });

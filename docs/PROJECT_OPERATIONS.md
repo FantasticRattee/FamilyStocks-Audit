@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **9 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **15 Sep 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,37 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 9 Sep 2026
+## Current canonical state — 15 Sep 2026
+
+The user confirmed Mom owns both new deposits (THB300,000 and THB20,000).
+All stocks, cash and unwithdrawn gains remain Shared. USD/THB 33.254 is an
+approved accounting reference, not newly evidenced settlement FX.
+
+| Contributor | Total capital THB | Reference percentage |
+|---|---:|---:|
+| Mom | 1,870,000.00 | 51.449868% |
+| Rattee | 1,464,606.003945636 | 40.296142% |
+| Ryu | 300,000.00 | 8.253990% |
+| Total | 3,634,606.003945636 | 100% |
+
+Active Shared holdings: ASML 6, QQQI 1,190, GOOGL 46, SPCX 67, VOO 20.7758
+and CASH THB3,211.59261. AVGO, META and INTC are closed. Seven new ledger
+records (five trades and two Mom contributions) bring the total to 115;
+all 108 prior rows remain unchanged. ASML broker cost is USD9,541.72.
+AVGO realized loss is THB5,929.85328 and cumulative realized P&L is
+THB556,969.6541199738. No profit distribution or withdrawal is recorded.
+
+Exchange entries are not another cash flow. The THB-only screenshot balance
+does not establish total broker cash. At carried audit marks: value
+THB3,804,744.5718840463, unrealized P&L THB-29,467.84187128622, total P&L
+THB527,501.8122486875. Historical April dividends remain unchanged;
+US forecast assumptions are still explicitly unconfigured.
+
+ASML uses Google Finance NASDAQ/USD and the shared quote persistence
+allow-list. Deploy this support before importing the updated workbook.
+Verify all six tabs and unchanged CASH after the subsequent market refresh.
+
+## Historical canonical state — 9 Sep 2026
 
 User-confirmed policy: all current assets, cash and unwithdrawn income belong
 to Shared. Record each person's contributed capital separately. Owner equity,
@@ -327,7 +357,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry
@@ -412,7 +442,7 @@ Ticker | Owner/Account | Entry Price | Units
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
 tickers are `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`,
-`INTC`, `VOO`, `SCB`, `KBANK`, and `CASH`;
+`INTC`, `VOO`, `ASML`, `SCB`, `KBANK`, and `CASH`;
 `CASH` is only valid for `Shared`. A canonical workbook may retain other
 tickers in its historical `Transactions` ledger, but they must not become
 active holdings unless active ticker support is deliberately added. Dashboard

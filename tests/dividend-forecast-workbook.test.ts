@@ -58,11 +58,11 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   assert.equal(dividends.D42?.f, "IFERROR(D41/B42,0)");
 
   for (const [address, expected] of [
-    ["B32", 1550000],
+    ["B32", 1870000],
     ["B33", 300000],
     ["B34", 1464606.003945636],
-    ["B35", 3314606.003945636],
-    ["B42", 3314606.003945636],
+    ["B35", 3634606.003945636],
+    ["B42", 3634606.003945636],
   ] as const) {
     assert.ok(Math.abs((dividends[address]?.v ?? Number.NaN) - expected) < 0.000001, address);
   }

@@ -403,8 +403,8 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
 
 test("preserves fractional holding precision in the rendered allocation", async () => {
   const html = await (await render()).text();
-  assert.ok(html.includes("6.9162 units"), "AVGO units must not be rounded to 6.92");
-  assert.ok(html.includes("18.6 units"), "VOO fractional units must remain visible");
+  assert.ok(html.includes("6 units"), "ASML units must be shown");
+  assert.ok(html.includes("20.7758 units"), "VOO fractional units must remain visible");
 });
 
 test("renders pooled and owner-specific active holdings together", async () => {

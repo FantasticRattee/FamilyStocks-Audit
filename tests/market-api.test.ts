@@ -68,6 +68,9 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("VOO")) {
         return new Response(googleModernQuotePage("VOO:NYSEARCA", "700.84"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("ASML")) {
+        return new Response(googleModernQuotePage("ASML:NASDAQ", "1592.46"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("USD-THB")) {
         return new Response(googleQuotePage("USD-THB", "32.50"));
       }
@@ -88,6 +91,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.deepEqual(
     calls.map((call) => call.hostname).sort(),
     [
+      "www.google.com",
       "www.google.com",
       "www.google.com",
       "www.google.com",
@@ -129,6 +133,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.WDC?.exchange, "NASDAQ");
   assert.equal(body.quotes.VOO?.price, 700.84);
   assert.equal(body.quotes.VOO?.exchange, "NYSEARCA");
+  assert.equal(body.quotes.ASML?.price, 1592.46);
+  assert.equal(body.quotes.ASML?.exchange, "NASDAQ");
   assert.equal(body.quotes.USDTHB?.price, 32.5);
   assert.equal(body.quotes.SCB?.price, 158.5);
   assert.equal(body.quotes.SCB?.source, "SET public quote");
@@ -146,6 +152,7 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
     "https://www.google.com/finance/quote/INTC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/WDC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/VOO:NYSEARCA?hl=en",
+    "https://www.google.com/finance/quote/ASML:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/USD-THB?hl=en",
     "https://www.set.or.th/en/market/product/stock/quote/SCB/price",
     "https://www.set.or.th/en/market/product/stock/quote/KBANK/price",

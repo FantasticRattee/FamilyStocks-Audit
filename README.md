@@ -17,7 +17,7 @@ code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
 Railway PostgreSQL is the shared source of truth for:
 
 - current holdings, including any imported shared THB cash balance;
-- the latest successful `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `SCB`, `KBANK`,
+- the latest successful `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `SCB`, `KBANK`,
   and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
@@ -68,11 +68,11 @@ columns in this order:
 | CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO and THB for SCB/KBANK/CASH.
+  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
 - Supported tickers are currently `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `SCB`, `KBANK`, and `CASH`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.
@@ -99,7 +99,7 @@ Transactions ledger. Fractional quantities such as VOO 18.60 are retained.
 allow-listed market keys from free public sources without an API key:
 
 - Google Finance public quote pages: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO` (NYSEARCA), and `USDTHB`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `ASML` (NASDAQ), `VOO` (NYSEARCA), and `USDTHB`.
 - Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared

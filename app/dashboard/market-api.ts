@@ -154,6 +154,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["VOO:NYSEARCA"],
   },
+  ASML: {
+    symbol: "ASML",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/ASML:NASDAQ?hl=en",
+    title: "Google Finance · ASML (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["ASML:NASDAQ"],
+  },
   USDTHB: {
     symbol: "USDTHB",
     currency: "THB",

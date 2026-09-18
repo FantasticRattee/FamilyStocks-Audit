@@ -14,6 +14,7 @@ export const SHARED_MARKET_KEYS = [
   "NVDA",
   "MU",
   "VOO",
+  "ASML",
   "SCB",
   "KBANK",
   "USDTHB",
