@@ -269,6 +269,10 @@ test("partial refresh updates successes and explicitly retains prior database qu
       MU: "No new quote",
       VOO: "No new quote",
       ASML: "No new quote",
+      KLAC: "No new quote",
+      FN: "No new quote",
+      AMAT: "No new quote",
+      CRWV: "No new quote",
       SCB: "No new quote",
       KBANK: "No new quote",
       USDTHB: "No new quote",
@@ -305,7 +309,42 @@ test("partial refresh updates successes and explicitly retains prior database qu
     "KBANK",
     "USDTHB",
   ]);
-  assert.deepEqual(merged.failures, {});
+  assert.deepEqual(merged.failures, {
+    KLAC: "No new quote",
+    FN: "No new quote",
+    AMAT: "No new quote",
+    CRWV: "No new quote",
+  });
+});
+
+test("persists the 19 Sep pooled holdings through the market-key allow-list", () => {
+  const quote = (symbol: string): MarketQuoteSnapshot => ({
+    symbol,
+    price: 100,
+    currency: "USD",
+    exchange: symbol === "FN" ? "NYSE" : "NASDAQ",
+    marketState: "DELAYED",
+    quoteTimestamp: "2026-09-20T00:00:00.000Z",
+    source: "Google Finance",
+    freshness: "delayed",
+  });
+
+  const merged = mergePersistedMarketQuotes({}, {
+    quotes: {
+      KLAC: quote("KLAC"),
+      FN: quote("FN"),
+      AMAT: quote("AMAT"),
+      CRWV: quote("CRWV"),
+    },
+    failures: {},
+  });
+
+  assert.deepEqual(merged.refreshedKeys, ["KLAC", "FN", "AMAT", "CRWV"]);
+  assert.deepEqual(Object.keys(merged.quotes), ["KLAC", "FN", "AMAT", "CRWV"]);
+  assert.equal(merged.failures.KLAC, undefined);
+  assert.equal(merged.failures.FN, undefined);
+  assert.equal(merged.failures.AMAT, undefined);
+  assert.equal(merged.failures.CRWV, undefined);
 });
 
 test("persists a VOO quote through the PostgreSQL market-key allow-list", async () => {
