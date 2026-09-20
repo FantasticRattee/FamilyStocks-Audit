@@ -21,6 +21,10 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   WDC: { marketKey: "WDC", currency: "USD" },
   VOO: { marketKey: "VOO", currency: "USD" },
   ASML: { marketKey: "ASML", currency: "USD" },
+  KLAC: { marketKey: "KLAC", currency: "USD" },
+  FN: { marketKey: "FN", currency: "USD" },
+  AMAT: { marketKey: "AMAT", currency: "USD" },
+  CRWV: { marketKey: "CRWV", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };

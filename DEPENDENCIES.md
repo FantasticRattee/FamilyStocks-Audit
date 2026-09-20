@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-09-17. Use with the `impact-check` skill before changing shared
+Updated: 2026-09-20. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -99,7 +99,8 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
   entry price and units.
 - Shared market keys: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`,
-  `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `SCB`, `KBANK`, `USDTHB`.
+  `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`, `CRWV`,
+  `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -118,17 +119,19 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
 - Active holdings currently accepted are QQQI, GOOGL, WDC, META, AAPL, NVDA,
-  MU, AVGO, SPCX, INTC, VOO, ASML, SCB, KBANK, and shared CASH. Historical ledger rows
-  may still include inactive tickers such as V. Personal active overlays are
-  represented by `Rattee`, `Mom`, or `Ryu` owner accounts and are added to the
-  named owner's equity rather than the pooled allocation.
-- The 15 Sep canonical update has no active personal overlays. All current
+  MU, AVGO, SPCX, INTC, VOO, ASML, KLAC, FN, AMAT, CRWV, SCB, KBANK, and
+  shared CASH. Historical ledger rows may still include inactive tickers such
+  as V. Personal active overlays are represented by `Rattee`, `Mom`, or `Ryu`
+  owner accounts and are added to the named owner's equity rather than the
+  pooled allocation.
+- The 19 Sep canonical update has no active personal overlays. All current
   assets are Shared; capital records stay contributor-specific. Projected
-  owner values are not paid profits. VOO uses Google Finance NYSEARCA/USD
-  and the same quote persistence allow-list as other active US holdings.
-  ASML uses NASDAQ/USD. Mom added THB320,000; ASML is 6, GOOGL 46, VOO
-  20.7758 and AVGO is closed. The ledger contains 115 rows. Verify capital
-  and cash independently of live quote refresh.
+  owner values are not paid profits. VOO uses Google Finance NYSEARCA/USD;
+  ASML, KLAC, AMAT and CRWV use NASDAQ/USD; FN uses NYSE/USD. Mom capital is
+  THB1,870,000; active holdings are ASML 6, QQQI 1,190, GOOGL 30, VOO 11,
+  KLAC 53, FN 13, AMAT 10.4, CRWV 50 and CASH THB4,805.78937. SPCX is
+  closed. The ledger contains 125 rows. Verify capital and cash independently
+  of live quote refresh.
 - The ledger and sale-P&L views share `compareTransactionsNewestFirst` in
   `model.ts`: existing evidenced note times order same-date rows. Unknown
   times are not invented or persisted, and raw ledger rows are unchanged.

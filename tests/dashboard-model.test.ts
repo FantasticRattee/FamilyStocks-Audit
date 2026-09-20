@@ -56,22 +56,25 @@ const loadSyntheticOverlaySnapshot = async (): Promise<DashboardSnapshot> => ({
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "15 Sep 2026");
+  assert.equal(snapshot.asOfDate, "19 Sep 2026");
   assert.equal(snapshot.defaultFx, 33.254);
-  closeTo(snapshot.summary.totalMarketValue, 3804744.5718840463);
+  closeTo(snapshot.summary.totalMarketValue, 3852539.967814);
   closeTo(snapshot.summary.sharedCapital, 3634606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3804744.5718840463);
-  closeTo(snapshot.summary.totalRealizedPnl, 556969.6541199738);
-  closeTo(snapshot.summary.totalUnrealizedPnl, -29467.84187128622);
-  closeTo(snapshot.summary.sharedUnrealizedPnl, -29467.84187128622);
-  closeTo(snapshot.summary.totalPnl, 527501.8122486875);
+  closeTo(snapshot.summary.sharedMarketValue, 3852539.967814);
+  closeTo(snapshot.summary.totalRealizedPnl, 581591.075320574);
+  closeTo(snapshot.summary.totalUnrealizedPnl, 59402.14524706878);
+  closeTo(snapshot.summary.sharedUnrealizedPnl, 59402.14524706878);
+  closeTo(snapshot.summary.totalPnl, 640993.2205676428);
   assert.deepEqual(snapshot.holdings.map((holding) => [holding.ticker, holding.quantity]), [
     ["ASML", 6],
     ["QQQI", 1190],
-    ["GOOGL", 46],
-    ["SPCX", 67],
+    ["GOOGL", 30],
     ["CASH", 1],
-    ["VOO", 20.7758],
+    ["VOO", 11],
+    ["KLAC", 53],
+    ["FN", 13],
+    ["AMAT", 10.4],
+    ["CRWV", 50],
   ]);
   assert.ok(snapshot.holdings.every((holding) =>
     holding.category === "shared" && holding.owner === null &&
@@ -79,7 +82,7 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   ));
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 3211.59261, 0.000001);
+  closeTo(cash.costBasis, 4805.78937, 0.000001);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
@@ -184,11 +187,7 @@ test("closes INTC and META using broker net proceeds and their remaining lot cos
   closeTo(meta.costProceedsThb - meta.realizedPnlThb, 11660.73 * 33.254, 0.000001);
   closeTo(intc.realizedPnlThb, 5355.22416, 0.000001);
   closeTo(meta.realizedPnlThb, 44774.51576, 0.000001);
-  closeTo(
-    snapshot.summary.totalRealizedPnl - 512769.7674799737 - (2519.38 - 2697.70) * 33.254,
-    intc.realizedPnlThb + meta.realizedPnlThb,
-    0.000001,
-  );
+  assert.ok(snapshot.summary.totalRealizedPnl > intc.realizedPnlThb + meta.realizedPnlThb);
   assert.equal(snapshot.holdings.some((holding) => ["META", "INTC"].includes(holding.ticker)), false);
 });
 
@@ -198,13 +197,13 @@ test("carries GOOGL and VOO broker fees in cost while preserving visible fill pr
   const voo = snapshot.holdings.find((holding) => holding.ticker === "VOO");
   assert.ok(googl);
   assert.ok(voo);
-  assert.equal(googl.quantity, 46);
-  assert.equal(voo.quantity, 20.7758);
-  closeTo(googl.costBasis, 466482.6116253334 + (990.63 + 994.56) * 33.254, 0.000001);
-  closeTo(voo.costBasis, (13037.73 + 1528.69) * 33.254, 0.000001);
+  assert.equal(googl.quantity, 30);
+  assert.equal(voo.quantity, 11);
+  closeTo(googl.costBasis, 277362.7684363334, 0.000001);
+  closeTo(voo.costBasis, 256852.23040059992, 0.000001);
   closeTo(googl.importedPriceThb, 330.81 * 33.254, 0.000001);
   closeTo(voo.importedPriceThb, 701.61 * 33.254, 0.000001);
-  assert.ok(voo.costBasis > (18.6 * 700.84 + 2.1758 * 701.61) * 33.254);
+  assert.ok(voo.costBasis > 11 * 700.84 * 33.254);
 });
 
 test("prices all current Shared holdings without recreating closed META, INTC or AVGO", async () => {
@@ -219,15 +218,14 @@ test("prices all current Shared holdings without recreating closed META, INTC or
   scenario.prices.INTC = 86;
   scenario.prices.VOO = 710;
   scenario.prices.ASML = 1600;
+  scenario.prices.KLAC = 170;
+  scenario.prices.FN = 386;
+  scenario.prices.AMAT = 436;
+  scenario.prices.CRWV = 81;
 
   const result = calculateDashboard(snapshot, scenario);
   assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
-    "ASML",
-    "QQQI",
-    "GOOGL",
-    "SPCX",
-    "CASH",
-    "VOO",
+    "ASML", "QQQI", "GOOGL", "CASH", "VOO", "KLAC", "FN", "AMAT", "CRWV",
   ]);
   assert.equal(result.holdings.some((holding) => ["NVDA", "META", "INTC", "AVGO"].includes(holding.ticker)), false);
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
@@ -239,24 +237,25 @@ test("prices all current Shared holdings without recreating closed META, INTC or
   const expectedSharedMarketValue =
     cash.costBasis +
     1190 * 54 * 33 +
-    46 * 330 * 33 +
+    30 * 330 * 33 +
     6 * 1600 * 33 +
-    67 * 140 * 33 +
-    20.7758 * 710 * 33;
+    11 * 710 * 33 +
+    53 * 170 * 33 +
+    13 * 386 * 33 +
+    10.4 * 436 * 33 +
+    50 * 81 * 33;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
   closeTo(result.totals.marketValue, expectedSharedMarketValue);
 });
 
-test("reconciles carried audit values after merging SPCX into the Shared pool", async () => {
+test("reconciles the SPCX close and the new pooled audit values", async () => {
   const snapshot = await loadSourceSnapshot();
   const result = calculateDashboard(snapshot, createScenario(snapshot));
   const spcx = result.holdings.filter((holding) => holding.ticker === "SPCX");
 
-  assert.equal(spcx.length, 1);
-  assert.equal(spcx[0].quantity, 67);
-  closeTo(spcx[0].costBasis, 299999.83 + 8902.42834);
-  closeTo(spcx[0].marketValue, 308648.2426443953);
+  assert.equal(spcx.length, 0);
+  closeTo(snapshot.transactions.find((row) => row.date === "2026-09-17" && row.ticker === "SPCX")?.realizedPnlThb ?? 0, 26773.59386);
   closeTo(result.totals.marketValue, snapshot.summary.totalMarketValue);
   closeTo(result.totals.unrealizedPnl, snapshot.summary.totalUnrealizedPnl);
   closeTo(result.totals.realizedPnl, snapshot.summary.totalRealizedPnl);

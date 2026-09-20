@@ -159,17 +159,20 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
     [
       ["ASML", "Shared", 6],
       ["QQQI", "Shared", 1190],
-      ["GOOGL", "Shared", 46],
-      ["SPCX", "Shared", 67],
+      ["GOOGL", "Shared", 30],
       ["CASH", "Shared", 1],
-      ["VOO", "Shared", 20.7758],
+      ["VOO", "Shared", 11],
+      ["KLAC", "Shared", 53],
+      ["FN", "Shared", 13],
+      ["AMAT", "Shared", 10.4],
+      ["CRWV", "Shared", 50],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings.asOfDate, "15 Sep 2026");
+  assert.equal(parsed.settings.asOfDate, "19 Sep 2026");
   assert.equal(parsed.settings.defaultFx, 33.254);
-  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 556969.6541199738) < 0.000001);
+  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 581591.075320574) < 0.000001);
   assert.ok(Math.abs(
     parsed.settings.shareholders.reduce((total, holder) => total + holder.sharedCapital, 0) -
       3634606.003945636,
@@ -191,18 +194,18 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.equal(historical.at(-1)?.date, "2026-08-24");
   assert.equal(historical.at(-1)?.ticker, "INTC");
   const latest = parsed.settings.transactions.at(-1);
-  assert.equal(latest?.date, "2026-09-15");
-  assert.equal(latest?.ticker, "ASML");
-  assert.equal(latest?.quantity, 1);
-  assert.equal(latest?.priceNative, 1592.46);
-  assert.equal(latest?.grossNative, 1594.59);
+  assert.equal(latest?.date, "2026-09-19");
+  assert.equal(latest?.ticker, "KLAC");
+  assert.equal(latest?.quantity, 3);
+  assert.equal(latest?.priceNative, 173.93);
+  assert.equal(latest?.grossNative, 523.92);
 
   const cash = parsed.holdings.find((holding) => holding.ticker === "CASH");
   const voo = parsed.holdings.find((holding) => holding.ticker === "VOO");
   assert.ok(cash);
   assert.ok(voo);
-  assert.ok(Math.abs(cash.entryPrice - 3211.59261) < 0.000001);
-  assert.ok(Math.abs(voo.entryPrice * voo.units - (13037.73 + 1528.69)) < 0.000001);
+  assert.ok(Math.abs(cash.entryPrice - 4805.78937) < 0.000001);
+  assert.ok(Math.abs(voo.entryPrice * voo.units - 256852.23040059992 / 33.254) < 0.000001);
   assert.ok(voo.entryPrice > 700.84);
   const exported = exportMinimalHoldingsWorkbook(parsed.holdings);
   assert.deepEqual(
@@ -217,7 +220,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.ok(snapshot.holdings.every((holding) => holding.category === "shared" && holding.owner === null));
   assert.ok(Math.abs(
     (snapshot.holdings.find((holding) => holding.ticker === "VOO")?.costBasis ?? 0) -
-      (13037.73 + 1528.69) * 33.254,
+      256852.23040059992,
   ) < 0.000001);
 });
 

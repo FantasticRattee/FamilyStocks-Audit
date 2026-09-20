@@ -17,10 +17,10 @@ test("preserves the 108 ledger records audited before the new evidence", async (
   assert.equal(createHash("sha256").update(JSON.stringify(old)).digest("hex"), "d4eaf77f4c9b518229bfd2f181b4d6c0f0b60c004640322271b9943f4450a978");
 });
 
-test("adds both Mom deposits once and all five Shared trades with the approved reference FX", async () => {
+test("keeps the prior September additions and records the new Shared trades", async () => {
   const snapshot = await load();
-  assert.equal(snapshot.transactions.length, 115);
-  const added = snapshot.transactions.filter(row => row.date > "2026-09-09");
+  assert.equal(snapshot.transactions.length, 125);
+  const added = snapshot.transactions.filter(row => row.date > "2026-09-09" && row.date <= "2026-09-15");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-10","AVGO","SELL",6.9162,364.59,2519.38,33.254],
     ["2026-09-10","VOO","BUY",2.1758,701.61,1528.69,33.254],
@@ -39,13 +39,32 @@ test("adds both Mom deposits once and all five Shared trades with the approved r
   close(snapshot.shareholders.find(row=>row.owner==="Ryu")!.sharedCapital,300000);
 });
 
+test("records all ten trades from the 17–19 September evidence as Shared", async () => {
+  const snapshot = await load();
+  const added = snapshot.transactions.filter(row => row.date >= "2026-09-17");
+  assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
+    ["2026-09-17","SPCX","SELL",67,150.75,10094.30,33.254],
+    ["2026-09-18","AMAT","BUY",4,418.22,1675.01,33.254],
+    ["2026-09-18","KLAC","BUY",50,169.17,8462.78,33.254],
+    ["2026-09-19","VOO","SELL",5.7758,701.45,4049.23,33.254],
+    ["2026-09-19","CRWV","BUY",50,80.76,4042.28,33.254],
+    ["2026-09-19","VOO","SELL",4,701.50,2803.81,33.254],
+    ["2026-09-19","AMAT","BUY",6.4,436.74,2797.29,33.254],
+    ["2026-09-19","GOOGL","SELL",16,351.50,5621.75,33.254],
+    ["2026-09-19","FN","BUY",13,385.98,5019.87,33.254],
+    ["2026-09-19","KLAC","BUY",3,173.93,523.92,33.254],
+  ]);
+  assert.ok(added.every(row => row.account === "Shared-US"));
+  close(snapshot.summary.sharedCapital, 3634606.003945636);
+});
+
 test("closes AVGO against the pre-sale cost and rolls pooled cash without double-counting exchanges", async () => {
   const snapshot=await load();
   const sale=snapshot.transactions.find(row=>row.date==="2026-09-10"&&row.ticker==="AVGO"&&row.side==="SELL")!;
   close(sale.costProceedsThb,2519.38*33.254);
   close(sale.realizedPnlThb,(2519.38-2697.70)*33.254);
   assert.ok(!snapshot.holdings.some(row=>row.ticker==="AVGO"));
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,640.64247+320000+(2519.38-1528.69-994.56-9541.72)*33.254);
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,4805.78937);
   close(snapshot.holdings.find(row=>row.ticker==="ASML")!.costBasis,9541.72*33.254);
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
