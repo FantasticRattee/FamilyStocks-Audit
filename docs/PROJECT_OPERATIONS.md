@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **15 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **19 Sep 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -80,9 +80,14 @@ US forecast assumptions are still explicitly unconfigured.
 
 ASML, KLAC, AMAT and CRWV use Google Finance NASDAQ/USD, while FN uses
 Google Finance NYSE/USD. The four new mappings are part of the shared quote
-persistence allow-list. Deploy this support before importing the updated
-workbook. Verify all six tabs and unchanged CASH after the subsequent market
-refresh.
+persistence allow-list. The support is deployed in GitHub `main` commit
+`1c7ed81` after the accounting commits `924ec64` and `1330ba6`. The canonical
+workbook was imported into Railway PostgreSQL at
+`2026-09-20T09:43:06.334Z` UTC with content hash
+`48d2f3f9b815853618cd63d6a9101ed7b85a0b29a596817745648f4c033a1873`.
+The subsequent production market refresh at `2026-09-20T09:51:10.711Z` UTC
+completed with no failures and persisted KLAC, FN, AMAT and CRWV quotes. Verify
+all six tabs and unchanged CASH after future refreshes.
 
 ## Historical canonical state — 9 Sep 2026
 
