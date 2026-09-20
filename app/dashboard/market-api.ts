@@ -164,6 +164,7 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["ASML:NASDAQ"],
   },
+  // Active pooled holdings added in the 19 Sep 2026 audit update.
   KLAC: {
     symbol: "KLAC",
     currency: "USD",
