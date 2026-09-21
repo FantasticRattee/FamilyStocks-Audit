@@ -317,8 +317,8 @@ test("renders one proportional 2D donut with all tickers and no overlapping canv
   assert.match(composition, /viewBox="0 0 200 200"/);
   assert.doesNotMatch(composition, /<canvas|allocation-fallback-ring|composition-3d-stage/);
   const arcs = [...composition.matchAll(/<circle[^>]*class="allocation-arc[^"]*"[^>]*>/g)];
-  assert.equal(arcs.length, 4);
-  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="VOO"')).length, 1);
+  assert.equal(arcs.length, 1);
+  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="CASH"')).length, 1);
   assert.equal(arcs.some(([arc]) => /data-ticker="(?:META|INTC)"/.test(arc)), false);
   assert.equal(arcs.some(([arc]) => /data-ticker="(?:ASML|KLAC|FN|AMAT|CRWV)"/.test(arc)), false);
   let cumulativeRatio = 0;
@@ -336,7 +336,7 @@ test("renders one proportional 2D donut with all tickers and no overlapping canv
   }
   assert.ok(Math.abs(cumulativeRatio - 1) < 1e-12);
   assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="SPCX"')).length, 0);
-  assert.match(composition, /data-ticker="GOOGL"/);
+  assert.match(composition, /data-ticker="CASH"/);
   assert.doesNotMatch(composition, /Hover, tap, or focus a ticker/);
 });
 
@@ -380,7 +380,7 @@ test("sizes the P&L chart from its active ticker count", async () => {
   const html = await response.text();
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:4"/i);
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:1"/i);
   assert.match(
     styles,
     /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*44px\)/i,
@@ -401,11 +401,10 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
   assert.match(html, /class="pnl-cost-basis"[^>]*>Cost ฿[\d,]+/i);
 });
 
-test("preserves active holding quantities in the rendered allocation", async () => {
+test("preserves the pooled cash balance after the full stock exit", async () => {
   const html = await (await render()).text();
-  assert.ok(html.includes("1,190 units"), "QQQI units must be shown");
-  assert.ok(html.includes("11 units"), "VOO units must remain visible");
-  assert.ok(!html.includes("ASML"), "closed ASML must not be rendered as active");
+  assert.ok(html.includes("Cash balance"), "cash balance must be shown");
+  assert.ok(html.includes("100.0%"), "cash must represent the full portfolio");
 });
 
 test("renders pooled and owner-specific active holdings together", async () => {

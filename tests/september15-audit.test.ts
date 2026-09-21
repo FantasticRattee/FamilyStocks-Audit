@@ -19,7 +19,7 @@ test("preserves the 108 ledger records audited before the new evidence", async (
 
 test("keeps the prior September additions and records the new Shared trades", async () => {
   const snapshot = await load();
-  assert.equal(snapshot.transactions.length, 130);
+  assert.equal(snapshot.transactions.length, 133);
   const added = snapshot.transactions.filter(row => row.date > "2026-09-09" && row.date <= "2026-09-15");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-10","AVGO","SELL",6.9162,364.59,2519.38,33.254],
@@ -39,7 +39,7 @@ test("keeps the prior September additions and records the new Shared trades", as
   close(snapshot.shareholders.find(row=>row.owner==="Ryu")!.sharedCapital,300000);
 });
 
-test("records all fifteen trades from the 17–21 September evidence as Shared", async () => {
+test("records all eighteen trades from the 17–22 September evidence as Shared", async () => {
   const snapshot = await load();
   const added = snapshot.transactions.filter(row => row.date >= "2026-09-17");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
@@ -58,6 +58,9 @@ test("records all fifteen trades from the 17–21 September evidence as Shared",
     ["2026-09-21","FN","SELL",13,395.72,5141.96,33.254],
     ["2026-09-21","KLAC","SELL",53,181.32,9604.91,33.254],
     ["2026-09-21","ASML","SELL",6,1695,10167.33,33.254],
+    ["2026-09-22","VOO","SELL",11,712.7,7837.15,33.254],
+    ["2026-09-22","QQQI","SELL",1190,55.46,65897.95,33.254],
+    ["2026-09-22","GOOGL","SELL",30,355.72,10668.46,33.254],
   ]);
   assert.ok(added.every(row => row.account === "Shared-US"));
   close(snapshot.summary.sharedCapital, 3634606.003945636);
@@ -69,8 +72,8 @@ test("closes AVGO against the pre-sale cost and rolls pooled cash without double
   close(sale.costProceedsThb,2519.38*33.254);
   close(sale.realizedPnlThb,(2519.38-2697.70)*33.254);
   assert.ok(!snapshot.holdings.some(row=>row.ticker==="AVGO"));
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,1129555.49883);
-  assert.ok(!snapshot.holdings.some(row=>["ASML","KLAC","FN","AMAT","CRWV"].includes(row.ticker)));
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,3936311.48307);
+  assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["CASH"]);
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
   const recent=snapshot.transactions.filter(row=>row.date==="2026-09-15").sort(compareTransactionsNewestFirst);

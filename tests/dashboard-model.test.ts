@@ -56,20 +56,17 @@ const loadSyntheticOverlaySnapshot = async (): Promise<DashboardSnapshot> => ({
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "21 Sep 2026");
+  assert.equal(snapshot.asOfDate, "22 Sep 2026");
   assert.equal(snapshot.defaultFx, 33.254);
-  closeTo(snapshot.summary.totalMarketValue, 3900611.65137);
+  closeTo(snapshot.summary.totalMarketValue, 3936311.48307);
   closeTo(snapshot.summary.sharedCapital, 3634606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3900611.65137);
-  closeTo(snapshot.summary.totalRealizedPnl, 640122.1058005738);
-  closeTo(snapshot.summary.totalUnrealizedPnl, 48932.7983430663);
-  closeTo(snapshot.summary.sharedUnrealizedPnl, 48932.7983430663);
-  closeTo(snapshot.summary.totalPnl, 689054.9041436401);
+  closeTo(snapshot.summary.sharedMarketValue, 3936311.48307);
+  closeTo(snapshot.summary.totalRealizedPnl, 724754.7358436405);
+  closeTo(snapshot.summary.totalUnrealizedPnl, 0);
+  closeTo(snapshot.summary.sharedUnrealizedPnl, 0);
+  closeTo(snapshot.summary.totalPnl, 724754.7358436405);
   assert.deepEqual(snapshot.holdings.map((holding) => [holding.ticker, holding.quantity]), [
-    ["QQQI", 1190],
-    ["GOOGL", 30],
     ["CASH", 1],
-    ["VOO", 11],
   ]);
   assert.ok(snapshot.holdings.every((holding) =>
     holding.category === "shared" && holding.owner === null &&
@@ -77,7 +74,7 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   ));
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 1129555.49883, 0.000001);
+  closeTo(cash.costBasis, 3936311.48307, 0.000001);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
@@ -190,18 +187,13 @@ test("carries GOOGL and VOO broker fees in cost while preserving visible fill pr
   const snapshot = await loadSourceSnapshot();
   const googl = snapshot.holdings.find((holding) => holding.ticker === "GOOGL");
   const voo = snapshot.holdings.find((holding) => holding.ticker === "VOO");
-  assert.ok(googl);
-  assert.ok(voo);
-  assert.equal(googl.quantity, 30);
-  assert.equal(voo.quantity, 11);
-  closeTo(googl.costBasis, 277362.7684363334, 0.000001);
-  closeTo(voo.costBasis, 256852.23040059992, 0.000001);
-  closeTo(googl.importedPriceThb, 330.81 * 33.254, 0.000001);
-  closeTo(voo.importedPriceThb, 701.61 * 33.254, 0.000001);
-  assert.ok(voo.costBasis > 11 * 700.84 * 33.254);
+  assert.equal(googl, undefined);
+  assert.equal(voo, undefined);
+  assert.equal(snapshot.holdings.length, 1);
+  closeTo(snapshot.holdings[0]?.costBasis ?? 0, 3936311.48307, 0.000001);
 });
 
-test("prices only the remaining current Shared holdings after the 21 Sep exits", async () => {
+test("prices only the remaining pooled cash after the 22 Sep full exit", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
   scenario.fx = 33;
@@ -219,9 +211,7 @@ test("prices only the remaining current Shared holdings after the 21 Sep exits",
   scenario.prices.CRWV = 81;
 
   const result = calculateDashboard(snapshot, scenario);
-  assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
-    "QQQI", "GOOGL", "CASH", "VOO",
-  ]);
+  assert.deepEqual(result.holdings.map((holding) => holding.ticker), ["CASH"]);
   assert.equal(result.holdings.some((holding) => ["NVDA", "META", "INTC", "AVGO"].includes(holding.ticker)), false);
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
@@ -229,11 +219,7 @@ test("prices only the remaining current Shared holdings after the 21 Sep exits",
     result.holdings.find((holding) => holding.ticker === "CASH")?.marketValue ?? 0,
     cash.costBasis,
   );
-  const expectedSharedMarketValue =
-    cash.costBasis +
-    1190 * 54 * 33 +
-    30 * 330 * 33 +
-    11 * 710 * 33;
+  const expectedSharedMarketValue = cash.costBasis;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
   closeTo(result.totals.marketValue, expectedSharedMarketValue);

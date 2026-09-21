@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **21 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **22 Sep 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,29 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 21 Sep 2026
+## Current canonical state — 22 Sep 2026
+
+The 22 Sep 2026 InnovestX evidence records three additional Shared full exits.
+The second supplied image duplicates the 21 Sep evidence already in the ledger
+and is preserved without creating duplicate rows. The user confirmed no new
+capital or withdrawal, so capital contributions and pooled percentages remain
+unchanged. Broker totals are net sale proceeds and the carried accounting FX
+remains 33.254.
+
+| Trade | Units | Fill | Broker net USD |
+|---|---:|---:|---:|
+| VOO SELL | 11 | USD712.70 | 7,837.15 |
+| QQQI SELL | 1,190 | USD55.46 | 65,897.95 |
+| GOOGL SELL | 30 | USD355.72 | 10,668.46 |
+
+The only active Shared holding is CASH THB3,936,311.48307. The ledger has 133
+records. New realized P&L is THB84,632.630043067; cumulative realized P&L is
+THB724,754.735843641. At saved audit marks, market value is
+THB3,936,311.48307, unrealized P&L is THB0 and total P&L is
+THB724,754.735843641. The canonical workbook and embedded seed were updated;
+GitHub/Railway verification for this update is recorded in `Handoff.md`.
+
+## Historical canonical state — 21 Sep 2026
 
 The 21 Sep 2026 InnovestX evidence records five Shared full exits. The user
 confirmed that capital contributions and pooled percentages remain unchanged.
