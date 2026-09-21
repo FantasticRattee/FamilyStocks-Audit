@@ -19,7 +19,7 @@ test("preserves the 108 ledger records audited before the new evidence", async (
 
 test("keeps the prior September additions and records the new Shared trades", async () => {
   const snapshot = await load();
-  assert.equal(snapshot.transactions.length, 125);
+  assert.equal(snapshot.transactions.length, 130);
   const added = snapshot.transactions.filter(row => row.date > "2026-09-09" && row.date <= "2026-09-15");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-10","AVGO","SELL",6.9162,364.59,2519.38,33.254],
@@ -39,7 +39,7 @@ test("keeps the prior September additions and records the new Shared trades", as
   close(snapshot.shareholders.find(row=>row.owner==="Ryu")!.sharedCapital,300000);
 });
 
-test("records all ten trades from the 17–19 September evidence as Shared", async () => {
+test("records all fifteen trades from the 17–21 September evidence as Shared", async () => {
   const snapshot = await load();
   const added = snapshot.transactions.filter(row => row.date >= "2026-09-17");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
@@ -53,6 +53,11 @@ test("records all ten trades from the 17–19 September evidence as Shared", asy
     ["2026-09-19","GOOGL","SELL",16,351.50,5621.75,33.254],
     ["2026-09-19","FN","BUY",13,385.98,5019.87,33.254],
     ["2026-09-19","KLAC","BUY",3,173.93,523.92,33.254],
+    ["2026-09-21","CRWV","SELL",50,83.69,4180,33.254],
+    ["2026-09-21","AMAT","SELL",10.4,454.92,4728.79,33.254],
+    ["2026-09-21","FN","SELL",13,395.72,5141.96,33.254],
+    ["2026-09-21","KLAC","SELL",53,181.32,9604.91,33.254],
+    ["2026-09-21","ASML","SELL",6,1695,10167.33,33.254],
   ]);
   assert.ok(added.every(row => row.account === "Shared-US"));
   close(snapshot.summary.sharedCapital, 3634606.003945636);
@@ -64,8 +69,8 @@ test("closes AVGO against the pre-sale cost and rolls pooled cash without double
   close(sale.costProceedsThb,2519.38*33.254);
   close(sale.realizedPnlThb,(2519.38-2697.70)*33.254);
   assert.ok(!snapshot.holdings.some(row=>row.ticker==="AVGO"));
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,4805.78937);
-  close(snapshot.holdings.find(row=>row.ticker==="ASML")!.costBasis,9541.72*33.254);
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,1129555.49883);
+  assert.ok(!snapshot.holdings.some(row=>["ASML","KLAC","FN","AMAT","CRWV"].includes(row.ticker)));
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
   const recent=snapshot.transactions.filter(row=>row.date==="2026-09-15").sort(compareTransactionsNewestFirst);

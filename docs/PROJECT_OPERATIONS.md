@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **19 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **21 Sep 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,33 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 19 Sep 2026
+## Current canonical state — 21 Sep 2026
+
+The 21 Sep 2026 InnovestX evidence records five Shared full exits. The user
+confirmed that capital contributions and pooled percentages remain unchanged.
+Broker totals are net sale proceeds for this audit; implied charges/rounding
+residuals are not separately verified. The carried accounting FX remains
+33.254.
+
+| Trade | Units | Fill | Broker net USD |
+|---|---:|---:|---:|
+| CRWV SELL | 50 | USD83.69 | 4,180.00 |
+| AMAT SELL | 10.4 | USD454.92 | 4,728.79 |
+| FN SELL | 13 | USD395.72 | 5,141.96 |
+| KLAC SELL | 53 | USD181.32 | 9,604.91 |
+| ASML SELL | 6 | USD1,695.00 | 10,167.33 |
+
+Active Shared holdings are QQQI 1,190, GOOGL 30, VOO 11 and CASH
+THB1,129,555.49883. The ledger has 130 records. New realized P&L is
+THB58,531.03048; cumulative realized P&L is THB640,122.105800574. At saved
+audit marks, market value is THB3,900,611.65137, unrealized P&L is
+THB48,932.7983430663 and total P&L is THB689,054.90414364.
+
+The canonical workbook was backed up before editing and the embedded seed was
+regenerated. GitHub/Railway synchronization for this update is recorded in
+`Handoff.md` after deployment.
+
+## Historical canonical state — 19 Sep 2026
 
 The user confirmed Mom owns both new deposits (THB300,000 and THB20,000).
 All stocks, cash and unwithdrawn gains remain Shared. USD/THB 33.254 is an
