@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **22 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **29 Sep 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,53 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 22 Sep 2026
+## Current canonical state — 29 Sep 2026
+
+Three InnovestX transaction-history screenshots (`IMG_4050.PNG`,
+`IMG_4051.PNG`, `IMG_4052.PNG`) record eleven Shared trades from 24 to 29 Sep
+2026 (Thai broker time). The user explicitly confirmed on 29 Sep that all
+eleven are `Shared` and that contributed capital and pooled percentages are
+unchanged. The carried accounting FX remains the approved reference 33.254; it
+is not verified settlement FX. Broker totals are the printed totals; implied
+charges/rounding residuals are not a verified fee breakdown.
+
+| Time (Thai) | Trade | Units | Fill USD | Broker total USD |
+|---|---|---:|---:|---:|
+| 24 Sep 20:39:58 | GOOGL BUY | 45 | 338.80 | 15,249.85 |
+| 24 Sep 22:36:48 | AMZN BUY | 61 | 246.41 | 15,036.40 |
+| 25 Sep 00:33:11 | AVGO BUY | 35 | 349.91 | 12,249.85 |
+| 25 Sep 23:34:00 | MU BUY | 7 | 1,078.00 | 7,548.13 |
+| 25 Sep 23:50:28 | NVDA BUY | 80 | 224.90 | 17,998.85 |
+| 25 Sep 23:53:04 | SPCX BUY | 68 | 148.55 | 10,107.22 |
+| 26 Sep 00:06:03 | HPQ BUY | 235 | 31.53 | 7,429.67 |
+| 28 Sep 20:30:44 | HPQ SELL | 235 | 31.30 | 7,335.22 net |
+| 28 Sep 20:31:29 | MU BUY | 5 | 1,073.56 | 5,369.93 |
+| 28 Sep 20:38:45 | MU BUY | 4 | 1,068.61 | 4,276.57 |
+| 29 Sep 00:06:36 | SPCX BUY | 6.7628 | 146.80 | 994.90 |
+
+Buys total USD96,261.37 and the HPQ sale returns USD7,335.22 net, so pooled
+CASH falls by USD88,926.15 (THB2,957,150.1921) from THB3,936,311.48307 to
+**THB979,161.29097**. Active Shared holdings are GOOGL 45, AMZN 61, AVGO 35,
+MU 16, NVDA 80, SPCX 74.7628 and CASH. HPQ is a closed round trip: its sale
+realizes THB-3,140.8403 (cost = the 26 Sep buy only). Cumulative realized P&L
+is **THB721,613.8955436405**. The ledger has 144 records (133 prior rows
+unchanged, 11 new). At saved audit marks (latest evidenced fill x 33.254),
+market value is THB3,925,093.214246159, unrealized P&L THB-8,077.428523839917
+and total P&L THB713,536.4670198004. Capital is unchanged at
+THB3,634,606.003945636.
+
+AMZN is a new dashboard-supported ticker (Google Finance NASDAQ/USD, shared
+quote persistence allow-list). HPQ is intentionally ledger-only because it is
+closed. Older closed Holdings rows (ASML, VOO, KLAC, FN, AMAT, CRWV) were
+replaced to fit the fixed Holdings rows 4-12 that `Summary` formulas sum; QQQI
+remains as a closed row and all history stays in `Transactions`. The screenshot
+`Screenshot 2026-09-29 at 17.25.57.png` shows that the broker's transaction
+history prints slightly higher settled totals for the 21-22 Sep sales than the
+order-view totals recorded earlier (e.g. VOO 7,837.40 vs 7,837.15); those
+historical rows are not changed here and remain an open reconciliation item.
+GitHub/Railway verification for this update is recorded in `Handoff.md`.
+
+## Historical canonical state — 22 Sep 2026
 
 The 22 Sep 2026 InnovestX evidence records three additional Shared full exits.
 The second supplied image duplicates the 21 Sep evidence already in the ledger
@@ -412,7 +458,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry

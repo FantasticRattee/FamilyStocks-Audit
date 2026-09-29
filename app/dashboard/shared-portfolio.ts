@@ -32,6 +32,7 @@ export const SUPPORTED_HOLDING_TICKERS = {
   FN: { currency: "USD", marketKey: "FN" },
   AMAT: { currency: "USD", marketKey: "AMAT" },
   CRWV: { currency: "USD", marketKey: "CRWV" },
+  AMZN: { currency: "USD", marketKey: "AMZN" },
   SCB: { currency: "THB", marketKey: "SCB" },
   KBANK: { currency: "THB", marketKey: "KBANK" },
   CASH: { currency: "THB", marketKey: null },

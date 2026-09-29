@@ -156,13 +156,21 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.equal(parsed.filename, "Portfolio_Accounting.xlsx");
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
-    [["CASH", "Shared", 1]],
+    [
+      ["GOOGL", "Shared", 45],
+      ["AMZN", "Shared", 61],
+      ["AVGO", "Shared", 35],
+      ["CASH", "Shared", 1],
+      ["MU", "Shared", 16],
+      ["NVDA", "Shared", 80],
+      ["SPCX", "Shared", 74.7628],
+    ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings.asOfDate, "22 Sep 2026");
+  assert.equal(parsed.settings.asOfDate, "29 Sep 2026");
   assert.equal(parsed.settings.defaultFx, 33.254);
-  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 724754.7358436405) < 0.000001);
+  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 721613.8955436405) < 0.000001);
   assert.ok(Math.abs(
     parsed.settings.shareholders.reduce((total, holder) => total + holder.sharedCapital, 0) -
       3634606.003945636,
@@ -183,16 +191,34 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.equal(historical.at(-2)?.account, "Personal-US (Rattee)");
   assert.equal(historical.at(-1)?.date, "2026-08-24");
   assert.equal(historical.at(-1)?.ticker, "INTC");
+  const fullExit = parsed.settings.transactions.filter(
+    (transaction) => transaction.date === "2026-09-22" && transaction.ticker === "GOOGL",
+  );
+  assert.equal(fullExit.length, 1);
+  assert.equal(fullExit[0]?.side, "SELL");
+  assert.equal(fullExit[0]?.quantity, 30);
+  assert.equal(fullExit[0]?.priceNative, 355.72);
+  assert.equal(fullExit[0]?.grossNative, 10668.46);
   const latest = parsed.settings.transactions.at(-1);
-  assert.equal(latest?.date, "2026-09-22");
-  assert.equal(latest?.ticker, "GOOGL");
-  assert.equal(latest?.quantity, 30);
-  assert.equal(latest?.priceNative, 355.72);
-  assert.equal(latest?.grossNative, 10668.46);
+  assert.equal(latest?.date, "2026-09-29");
+  assert.equal(latest?.account, "Shared-US");
+  assert.equal(latest?.ticker, "SPCX");
+  assert.equal(latest?.side, "BUY");
+  assert.equal(latest?.quantity, 6.7628);
+  assert.equal(latest?.priceNative, 146.8);
+  assert.equal(latest?.grossNative, 994.9);
+  const hpqRoundTrip = parsed.settings.transactions.filter((transaction) => transaction.ticker === "HPQ");
+  assert.deepEqual(
+    hpqRoundTrip.map((transaction) => [transaction.date, transaction.side, transaction.quantity, transaction.grossNative]),
+    [
+      ["2026-09-26", "BUY", 235, 7429.67],
+      ["2026-09-28", "SELL", 235, 7335.22],
+    ],
+  );
 
   const cash = parsed.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.entryPrice - 3936311.48307) < 0.000001);
+  assert.ok(Math.abs(cash.entryPrice - 979161.29097) < 0.000001);
   const exported = exportMinimalHoldingsWorkbook(parsed.holdings);
   assert.deepEqual(
     parseMinimalHoldingsWorkbook(exported.bytes, exported.filename).holdings,
@@ -204,8 +230,12 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
     parsed.filename,
   );
   assert.ok(snapshot.holdings.every((holding) => holding.category === "shared" && holding.owner === null));
-  assert.deepEqual(snapshot.holdings.map((holding) => holding.ticker), ["CASH"]);
-  assert.ok(Math.abs(snapshot.holdings[0]?.costBasis - 3936311.48307) < 0.000001);
+  assert.deepEqual(
+    snapshot.holdings.map((holding) => holding.ticker),
+    ["GOOGL", "AMZN", "AVGO", "CASH", "MU", "NVDA", "SPCX"],
+  );
+  const snapshotCash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
+  assert.ok(Math.abs((snapshotCash?.costBasis ?? 0) - 979161.29097) < 0.000001);
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {
@@ -253,6 +283,7 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
       { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
       { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
+      { ticker: " amzn ", ownerAccount: "Shared", entryPrice: 246.41, units: 61 },
     ]),
     [
       { ticker: "AAPL", ownerAccount: "Mom", entryPrice: 305.64, units: 35 },
@@ -261,15 +292,16 @@ test("accepts approved active US tickers and rejects unsupported tickers or inva
       { ticker: "AVGO", ownerAccount: "Shared", entryPrice: 389.75, units: 6.9162 },
       { ticker: "VOO", ownerAccount: "Shared", entryPrice: 700.84, units: 18.6 },
       { ticker: "SPCX", ownerAccount: "Mom", entryPrice: 140, units: 65 },
+      { ticker: "AMZN", ownerAccount: "Shared", entryPrice: 246.41, units: 61 },
     ],
   );
 
   assert.throws(
     () =>
       validateSharedHoldings([
-        { ticker: "AMZN", ownerAccount: "Rattee", entryPrice: 200, units: 1 },
+        { ticker: "TSLA", ownerAccount: "Rattee", entryPrice: 200, units: 1 },
       ]),
-    /row 2.*AMZN.*supported/i,
+    /row 2.*TSLA.*supported/i,
   );
   assert.throws(
     () =>

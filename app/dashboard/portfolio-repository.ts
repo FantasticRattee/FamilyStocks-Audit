@@ -19,6 +19,7 @@ export const SHARED_MARKET_KEYS = [
   "FN",
   "AMAT",
   "CRWV",
+  "AMZN",
   "SCB",
   "KBANK",
   "USDTHB",

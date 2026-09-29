@@ -19,7 +19,7 @@ test("preserves the 108 ledger records audited before the new evidence", async (
 
 test("keeps the prior September additions and records the new Shared trades", async () => {
   const snapshot = await load();
-  assert.equal(snapshot.transactions.length, 133);
+  assert.equal(snapshot.transactions.length, 144);
   const added = snapshot.transactions.filter(row => row.date > "2026-09-09" && row.date <= "2026-09-15");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-10","AVGO","SELL",6.9162,364.59,2519.38,33.254],
@@ -41,7 +41,7 @@ test("keeps the prior September additions and records the new Shared trades", as
 
 test("records all eighteen trades from the 17–22 September evidence as Shared", async () => {
   const snapshot = await load();
-  const added = snapshot.transactions.filter(row => row.date >= "2026-09-17");
+  const added = snapshot.transactions.filter(row => row.date >= "2026-09-17" && row.date <= "2026-09-22");
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-17","SPCX","SELL",67,150.75,10094.30,33.254],
     ["2026-09-18","AMAT","BUY",4,418.22,1675.01,33.254],
@@ -66,14 +66,39 @@ test("records all eighteen trades from the 17–22 September evidence as Shared"
   close(snapshot.summary.sharedCapital, 3634606.003945636);
 });
 
+test("records the eleven Shared trades from the 24–29 September evidence without changing capital", async () => {
+  const snapshot = await load();
+  const added = snapshot.transactions.filter(row => row.date >= "2026-09-24");
+  assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
+    ["2026-09-24","GOOGL","BUY",45,338.8,15249.85,33.254],
+    ["2026-09-24","AMZN","BUY",61,246.41,15036.4,33.254],
+    ["2026-09-25","AVGO","BUY",35,349.91,12249.85,33.254],
+    ["2026-09-25","MU","BUY",7,1078,7548.13,33.254],
+    ["2026-09-25","NVDA","BUY",80,224.9,17998.85,33.254],
+    ["2026-09-25","SPCX","BUY",68,148.55,10107.22,33.254],
+    ["2026-09-26","HPQ","BUY",235,31.53,7429.67,33.254],
+    ["2026-09-28","HPQ","SELL",235,31.3,7335.22,33.254],
+    ["2026-09-28","MU","BUY",5,1073.56,5369.93,33.254],
+    ["2026-09-28","MU","BUY",4,1068.61,4276.57,33.254],
+    ["2026-09-29","SPCX","BUY",6.7628,146.8,994.9,33.254],
+  ]);
+  assert.ok(added.every(row => row.account === "Shared-US"));
+  assert.ok(added.every(row => row.order === "Limit"));
+  close(added.find(row => row.ticker === "HPQ" && row.side === "SELL")!.realizedPnlThb, -3140.8403);
+  close(snapshot.summary.sharedCapital, 3634606.003945636);
+});
+
 test("closes AVGO against the pre-sale cost and rolls pooled cash without double-counting exchanges", async () => {
   const snapshot=await load();
   const sale=snapshot.transactions.find(row=>row.date==="2026-09-10"&&row.ticker==="AVGO"&&row.side==="SELL")!;
   close(sale.costProceedsThb,2519.38*33.254);
   close(sale.realizedPnlThb,(2519.38-2697.70)*33.254);
-  assert.ok(!snapshot.holdings.some(row=>row.ticker==="AVGO"));
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,3936311.48307);
-  assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["CASH"]);
+  const avgo=snapshot.holdings.filter(row=>row.ticker==="AVGO");
+  assert.equal(avgo.length,1);
+  assert.equal(avgo[0].quantity,35);
+  close(avgo[0].costBasis,12249.85*33.254);
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,979161.29097);
+  assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["GOOGL","AMZN","AVGO","CASH","MU","NVDA","SPCX"]);
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
   const recent=snapshot.transactions.filter(row=>row.date==="2026-09-15").sort(compareTransactionsNewestFirst);

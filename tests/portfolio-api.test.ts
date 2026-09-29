@@ -314,6 +314,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     FN: "No new quote",
     AMAT: "No new quote",
     CRWV: "No new quote",
+    AMZN: "No persisted or newly refreshed market quote is available.",
   });
 });
 

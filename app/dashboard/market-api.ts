@@ -205,6 +205,17 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["CRWV:NASDAQ"],
   },
+  // Active pooled holding added in the 29 Sep 2026 audit update.
+  AMZN: {
+    symbol: "AMZN",
+    currency: "USD",
+    exchange: "NASDAQ",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/AMZN:NASDAQ?hl=en",
+    title: "Google Finance · AMZN (NASDAQ)",
+    parser: "google",
+    googlePageTitles: ["AMZN:NASDAQ"],
+  },
   USDTHB: {
     symbol: "USDTHB",
     currency: "THB",

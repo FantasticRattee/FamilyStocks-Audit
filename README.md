@@ -68,11 +68,12 @@ columns in this order:
 | CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML and THB for SCB/KBANK/CASH.
+  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
 - Supported tickers are currently `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `SCB`, `KBANK`, and `CASH`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`,
+  `CRWV`, `AMZN`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.

@@ -317,10 +317,12 @@ test("renders one proportional 2D donut with all tickers and no overlapping canv
   assert.match(composition, /viewBox="0 0 200 200"/);
   assert.doesNotMatch(composition, /<canvas|allocation-fallback-ring|composition-3d-stage/);
   const arcs = [...composition.matchAll(/<circle[^>]*class="allocation-arc[^"]*"[^>]*>/g)];
-  assert.equal(arcs.length, 1);
+  assert.equal(arcs.length, 7);
+  const arcTickers = arcs.map(([arc]) => arc.match(/data-ticker="([^"]+)"/)[1]);
+  assert.deepEqual([...arcTickers].sort(), ["AMZN", "AVGO", "CASH", "GOOGL", "MU", "NVDA", "SPCX"]);
   assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="CASH"')).length, 1);
   assert.equal(arcs.some(([arc]) => /data-ticker="(?:META|INTC)"/.test(arc)), false);
-  assert.equal(arcs.some(([arc]) => /data-ticker="(?:ASML|KLAC|FN|AMAT|CRWV)"/.test(arc)), false);
+  assert.equal(arcs.some(([arc]) => /data-ticker="(?:ASML|KLAC|FN|AMAT|CRWV|QQQI|VOO|HPQ)"/.test(arc)), false);
   let cumulativeRatio = 0;
   for (const [arc] of arcs) {
     const ratio = Number(arc.match(/data-ratio="([^"]+)"/)[1]);
@@ -335,7 +337,7 @@ test("renders one proportional 2D donut with all tickers and no overlapping canv
     cumulativeRatio += ratio;
   }
   assert.ok(Math.abs(cumulativeRatio - 1) < 1e-12);
-  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="SPCX"')).length, 0);
+  assert.equal(arcs.filter(([arc]) => arc.includes('data-ticker="SPCX"')).length, 1);
   assert.match(composition, /data-ticker="CASH"/);
   assert.doesNotMatch(composition, /Hover, tap, or focus a ticker/);
 });
@@ -380,7 +382,7 @@ test("sizes the P&L chart from its active ticker count", async () => {
   const html = await response.text();
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:1"/i);
+  assert.match(html, /class="pnl-compact-grid" style="--pnl-row-count:7"/i);
   assert.match(
     styles,
     /\.pnl-row-bars,[\s\S]*?height:\s*calc\(var\(--pnl-row-count,\s*3\)\s*\*\s*44px\)/i,
@@ -401,10 +403,14 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
   assert.match(html, /class="pnl-cost-basis"[^>]*>Cost ฿[\d,]+/i);
 });
 
-test("preserves the pooled cash balance after the full stock exit", async () => {
+test("keeps the pooled cash balance beside the six active US holdings after 29 Sep", async () => {
   const html = await (await render()).text();
   assert.ok(html.includes("Cash balance"), "cash balance must be shown");
-  assert.ok(html.includes("100.0%"), "cash must represent the full portfolio");
+  assert.match(html, /CASH: 24\.9% · ฿979,161/, "cash must be 24.9% of the portfolio (฿979,161)");
+  assert.equal(html.includes("100.0%"), false, "cash must no longer represent the full portfolio");
+  for (const units of ["45 units", "61 units", "35 units", "16 units", "80 units", "74.7628 units"]) {
+    assert.ok(html.includes(units), `active holding ${units} must be rendered`);
+  }
 });
 
 test("renders pooled and owner-specific active holdings together", async () => {

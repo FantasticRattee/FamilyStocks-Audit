@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-09-22. Use with the `impact-check` skill before changing shared
+Updated: 2026-09-29. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -100,7 +100,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   entry price and units.
 - Shared market keys: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`,
   `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`, `CRWV`,
-  `SCB`, `KBANK`, `USDTHB`.
+  `AMZN`, `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -119,18 +119,23 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
 - Active holdings currently accepted are QQQI, GOOGL, WDC, META, AAPL, NVDA,
-  MU, AVGO, SPCX, INTC, VOO, ASML, KLAC, FN, AMAT, CRWV, SCB, KBANK, and
-  shared CASH. Historical ledger rows may still include inactive tickers such
+  MU, AVGO, SPCX, INTC, VOO, ASML, KLAC, FN, AMAT, CRWV, AMZN, SCB, KBANK,
+  and shared CASH. Historical ledger rows may still include inactive tickers such
   as V. Personal active overlays are represented by `Rattee`, `Mom`, or `Ryu`
   owner accounts and are added to the named owner's equity rather than the
   pooled allocation.
-- The 22 Sep canonical update has no active personal overlays. All current
+- The 29 Sep canonical update has no active personal overlays. All current
   assets are Shared; capital records stay contributor-specific. Projected
-  owner values are not paid profits. The only active holding is CASH
-  THB3,936,311.48307. All stock positions are closed. The ledger contains
-  133 rows. Verify capital and cash independently of live quote refresh. The
-  next market refresh plan requests only USD/THB; historical inactive tickers
-  remain supported for ledger parsing and audit traceability.
+  owner values are not paid profits. Active holdings are GOOGL 45, AMZN 61,
+  AVGO 35, MU 16, NVDA 80, SPCX 74.7628 and CASH THB979,161.29097. HPQ was
+  bought and sold within the update (ledger-only, not a supported holding
+  ticker) and QQQI remains a closed Holdings row. The ledger contains 144
+  rows. AMZN was added to the supported-ticker contract, the audit market-key
+  map, the Google Finance NASDAQ quote map and the PostgreSQL quote
+  allow-list. Verify capital and cash independently of live quote refresh.
+  Historical inactive tickers remain supported for ledger parsing and audit
+  traceability. Holdings rows 4-12 are fixed because `Summary` sums them, so
+  older closed rows are replaced when a new update needs the space.
 - The ledger and sale-P&L views share `compareTransactionsNewestFirst` in
   `model.ts`: existing evidenced note times order same-date rows. Unknown
   times are not invented or persisted, and raw ledger rows are unchanged.
