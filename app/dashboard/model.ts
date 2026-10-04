@@ -104,6 +104,46 @@ export const compareTransactionsNewestFirst = (left: Transaction, right: Transac
   return rightTime.localeCompare(leftTime);
 };
 
+export type DividendReceiptRow = {
+  date: string;
+  account: string;
+  ticker: string;
+  currency: string;
+  grossNative: number;
+  deductionsNative: number;
+  netNative: number;
+  grossThb: number;
+  deductionsThb: number;
+  netThb: number;
+};
+
+export const deriveDividendReceiptHistory = (transactions: Transaction[]) => {
+  const grouped = new Map<string, DividendReceiptRow>();
+  for (const transaction of transactions) {
+    const side = transaction.side.toUpperCase();
+    if (side !== "DIVIDEND" && side !== "WHT_FEE") continue;
+    const currency = transaction.currency.toUpperCase();
+    const key = [transaction.date, transaction.account, transaction.ticker, currency].join("|");
+    const row = grouped.get(key) ?? {
+      date: transaction.date, account: transaction.account, ticker: transaction.ticker,
+      currency, grossNative: 0, deductionsNative: 0, netNative: 0,
+      grossThb: 0, deductionsThb: 0, netThb: 0,
+    };
+    if (side === "DIVIDEND") {
+      row.grossNative += transaction.grossNative;
+      row.grossThb += transaction.costProceedsThb;
+    } else {
+      row.deductionsNative += transaction.grossNative;
+      row.deductionsThb += Math.abs(transaction.costProceedsThb);
+    }
+    row.netNative = row.grossNative - row.deductionsNative;
+    row.netThb = row.grossThb - row.deductionsThb;
+    grouped.set(key, row);
+  }
+  const rows = [...grouped.values()].sort((left, right) => right.date.localeCompare(left.date));
+  return { rows, totalNetThb: rows.reduce((total, row) => total + row.netThb, 0) };
+};
+
 const findRatteePoolPercent = (shareholders: Shareholder[]) =>
   shareholders.find((shareholder) => shareholder.owner.trim().toLowerCase() === "rattee")
     ?.poolPercent ?? 0;

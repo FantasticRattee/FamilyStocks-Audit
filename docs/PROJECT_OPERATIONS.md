@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **29 Sep 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **5 Oct 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,42 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 29 Sep 2026
+## Current canonical state — 5 Oct 2026
+
+IMG_4153–IMG_4166 and `ScreenRecording_10-05-2026 01-06-58_1.MP4` add
+21 Shared trades and 12 cash events (dividends, WHT/fees, interest, fees).
+The video contains 1,490 frames; complete extraction/OCR and key-row visual
+checks support the cash reconciliation. Ten earlier sale settlement totals
+are corrected by USD4.32, preserving the prior values in notes. Ledger177,
+sales54, cumulative realized-sale P&L **THB739,859.0351836408**. Cash income
+is not capital or realized-sale P&L.
+
+| Current Shared holding | Units | Native broker cost | Audit mark |
+|---|---:|---:|---:|
+| QQQ | 133.5 | USD99,284.08 total | USD749.77 |
+| BLK | 19 | USD20,095.58 total | USD1,057.55 |
+| CASH | 1 | THB2,224.70482 | Same cash snapshot |
+
+Cash is **USD66.83 x 33.254 + THB2.34**, not a broker live-FX THB equivalent.
+The confirmed snapshot replaces the previously unverified roll-forward;
+historic opening cash remains insufficiently evidenced, with no fabricated
+balancing entry. Capital remains **THB3,634,606.003945636** (Mom1,870,000;
+Rattee1,464,606.003945636; Ryu300,000), no additions after15Sep.
+All assets and unwithdrawn income stay Shared; no profit distribution occurs.
+
+Actual US dividend receipts net: AugQQQI659.29, SepGOOGL7.48,
+SepQQQI641.19 USD; total **USD1,307.96 / THB43,494.90184**. The dividend page
+shows gross/WHT/net receipt history independently of the forecast and the
+unchanged historical April data. Standalone interest/fees stay in Transactions.
+Audit marks yield market value THB3,998,947.97705 and unrealized26,872.05859.
+
+Workbook remains six sheets; new Transactions154–186/TOTAL187, fixed
+Holdings4–12, evidence-based cash sourceD41:D44 and DividendsA53:H60 receipts.
+QQQ (NASDAQ/USD) and BLK (NYSE/USD) are supported in every import/quote map;
+the fallback seed is regenerated. Live deployment/import proof is recorded
+in workspace `Handoff.md` and `outputs/audit-2026-10-05/` after verification.
+
+## Historical canonical state — 29 Sep 2026
 
 Three InnovestX transaction-history screenshots (`IMG_4050.PNG`,
 `IMG_4051.PNG`, `IMG_4052.PNG`) record eleven Shared trades from 24 to 29 Sep
@@ -458,7 +493,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/QQQ/BLK/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry

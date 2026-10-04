@@ -74,20 +74,20 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
   assert.equal(dividends.F6?.v, 64519.2);
 });
 
-test("preserves the April dividend section values and formulas through the September update", async () => {
+test("preserves the April dividend data and formulas through the October update", async () => {
   const workbook = await readWorkbook();
   const dividends = workbook.Sheets.Dividends;
   const cells = [];
-  for (let row = 1; row <= 28; row += 1) {
+  for (let row = 2; row <= 28; row += 1) {
     for (let column = 0; column < 6; column += 1) {
       const address = XLSX.utils.encode_cell({ r: row - 1, c: column });
       const cell = dividends[address];
       cells.push([address, cell?.v ?? null, cell?.f ?? null]);
     }
   }
-  // Frozen from A1:F28 of the pre-update canonical workbook; styling is excluded.
+  // Frozen from A2:F28 of the pre-update workbook; the updated section title is excluded.
   assert.equal(
     createHash("sha256").update(JSON.stringify(cells)).digest("hex"),
-    "62c2f98a37e691b907720303d6571dd86a4b45b2af88240085e550fd99067d69",
+    "244bc90a247e844bd291b17af48296398230cbaaf93b5f9875e6e44f0641fb70",
   );
 });

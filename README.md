@@ -17,7 +17,7 @@ code-level change impact, use [DEPENDENCIES.md](DEPENDENCIES.md).
 Railway PostgreSQL is the shared source of truth for:
 
 - current holdings, including any imported shared THB cash balance;
-- the latest successful `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `SCB`, `KBANK`,
+- the latest successful `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`, `CRWV`, `AMZN`, `QQQ`, `BLK`, `SCB`, `KBANK`,
   and `USDTHB` quotes;
 - one persisted historical-analysis snapshot per requested U.S. ticker;
 - non-derived family, dividend, and audit settings;
@@ -56,6 +56,13 @@ The dividend page flags current securities not covered by verified DPS and
 withholding assumptions; a zero configured forecast is not a claim that the
 whole portfolio pays no dividends.
 
+The 5 Oct reconciliation records177 transactions and54 sales, with active
+Shared QQQ133.5 / BLK19 / CASH THB2,224.70482. Capital remains unchanged.
+Actual dividend receipts pair the ledger's DIVIDEND and WHT_FEE rows and
+display gross/deductions/net separately from sale P&L and future forecasts.
+The confirmed USD66.83 + THB2.34 cash snapshot uses accounting FX33.254;
+it replaces an unverified historical roll-forward without a balancing plug.
+
 ### Minimal holdings workbook
 
 Import and export use exactly one sheet named `Holdings` with these four
@@ -68,12 +75,12 @@ columns in this order:
 | CASH | Shared | 93086.66 | 1 |
 
 - `Entry Price` is the historical per-unit entry price in the ticker's native
-  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN and THB for SCB/KBANK/CASH.
+  currency: USD for QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/QQQ/BLK and THB for SCB/KBANK/CASH.
 - `Units` is the current quantity held.
 - Supported owner labels are `Shared`, `Mom`, `Rattee`, and `Ryu`.
 - Supported tickers are currently `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
   `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`,
-  `CRWV`, `AMZN`, `SCB`, `KBANK`, and `CASH`.
+  `CRWV`, `AMZN`, `QQQ`, `BLK`, `SCB`, `KBANK`, and `CASH`.
 - `CASH` is allowed only with the `Shared` owner/account. Its `Entry Price` is
   the full THB cash balance and `Units` is `1`; it is not a market-priced
   security and has no dividend eligibility.
@@ -96,11 +103,12 @@ Transactions ledger. Fractional quantities such as VOO 18.60 are retained.
 
 ## Market refresh
 
-`Refresh market prices` is public and manual. Each click fetches the fourteen
+`Refresh market prices` is public and manual. Each click fetches the 22
 allow-listed market keys from free public sources without an API key:
 
 - Google Finance public quote pages: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`,
-  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `ASML` (NASDAQ), `VOO` (NYSEARCA), and `USDTHB`.
+  `NVDA`, `MU`, `AVGO`, `SPCX`, `INTC`, `ASML`, `KLAC`, `AMAT`, `CRWV`,
+  `AMZN`, `QQQ` (NASDAQ), `FN`, `BLK` (NYSE), `VOO` (NYSEARCA), and `USDTHB`.
 - Official SET public quote pages: `SCB` and `KBANK`.
 
 - Successful quotes are saved to PostgreSQL and immediately become the shared

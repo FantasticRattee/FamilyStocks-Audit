@@ -44,6 +44,7 @@ import {
   calculateShareholderEquityRows,
   compareTransactionsNewestFirst,
   createScenario,
+  deriveDividendReceiptHistory,
   deriveSalePnlSummary,
   type DashboardSnapshot,
   type Scenario,
@@ -922,6 +923,10 @@ export function Dashboard() {
     () => deriveSalePnlSummary(snapshot.transactions, snapshot.shareholders),
     [snapshot.shareholders, snapshot.transactions],
   );
+  const dividendReceipts = useMemo(
+    () => deriveDividendReceiptHistory(snapshot.transactions),
+    [snapshot.transactions],
+  );
 
   const applyWorkbook = async (file: File) => {
     const requestId = ++workbookRequestIdRef.current;
@@ -1772,6 +1777,33 @@ export function Dashboard() {
 
         {activeTab === "dividends" ? (
           <>
+            {dividendReceipts.rows.length > 0 ? (
+              <section className="panel dividend-receipts-panel">
+                <SectionTitle
+                  eyebrow="RECEIVED DIVIDENDS"
+                  title="ปันผลที่เข้าบัญชีแล้ว"
+                  action={<span className="count-chip">Net {formatThb(dividendReceipts.totalNetThb, 2)}</span>}
+                />
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>วันที่เครดิต</th><th>หุ้น</th><th>ยอดเต็ม</th><th>WHT / Fee</th><th>รับสุทธิ</th><th>สุทธิที่ FX บัญชี</th></tr></thead>
+                    <tbody>
+                      {dividendReceipts.rows.map((receipt) => (
+                        <tr key={[receipt.date, receipt.account, receipt.ticker, receipt.currency].join("|")}>
+                          <td>{formatDate(receipt.date)}</td>
+                          <td><strong>{receipt.ticker}</strong><small className="cell-subtitle">{receipt.account}</small></td>
+                          <td>{formatNative(receipt.grossNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
+                          <td>{formatNative(receipt.deductionsNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
+                          <td>{formatNative(receipt.netNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
+                          <td>{formatThb(receipt.netThb, 2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="panel-note">เครดิตตามประวัติเงินสดของ broker; WHT / Fee เป็นยอดหักรวมตามหลักฐาน เงินที่ยังไม่ถอนคงอยู่ในกองกลาง และแยกจากกำไรขายหุ้นกับประมาณการปันผลด้านล่าง</p>
+              </section>
+            ) : null}
             {currentCapitalForecast && activeTickersWithoutDividendAssumptions.length > 0 ? (
               <p className="panel-note warning" aria-label="Incomplete dividend forecast">
                 ยังไม่มีสมมติฐาน DPS และภาษีที่ยืนยันสำหรับ {activeTickersWithoutDividendAssumptions.join(", ")}
@@ -1897,6 +1929,10 @@ export function Dashboard() {
                   <option value="BUY">BUY</option>
                   <option value="SELL">SELL</option>
                   <option value="TRANSFER">TRANSFER</option>
+                  <option value="DIVIDEND">DIVIDEND</option>
+                  <option value="WHT_FEE">WHT / FEE</option>
+                  <option value="INTEREST">INTEREST</option>
+                  <option value="FEE">FEE</option>
                 </select>
               </label>
               <label>

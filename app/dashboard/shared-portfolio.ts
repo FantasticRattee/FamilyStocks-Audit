@@ -23,6 +23,8 @@ export const SUPPORTED_HOLDING_TICKERS = {
   MU: { currency: "USD", marketKey: "MU" },
   AVGO: { currency: "USD", marketKey: "AVGO" },
   QQQI: { currency: "USD", marketKey: "QQQI" },
+  QQQ: { currency: "USD", marketKey: "QQQ" },
+  BLK: { currency: "USD", marketKey: "BLK" },
   SPCX: { currency: "USD", marketKey: "SPCX" },
   INTC: { currency: "USD", marketKey: "INTC" },
   WDC: { currency: "USD", marketKey: "WDC" },

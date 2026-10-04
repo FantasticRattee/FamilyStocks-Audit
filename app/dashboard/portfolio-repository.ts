@@ -4,6 +4,8 @@ export type MarketQuoteSnapshot = MarketQuote;
 
 export const SHARED_MARKET_KEYS = [
   "QQQI",
+  "QQQ",
+  "BLK",
   "SPCX",
   "INTC",
   "GOOGL",

@@ -16,6 +16,8 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   NVDA: { marketKey: "NVDA", currency: "USD" },
   MU: { marketKey: "MU", currency: "USD" },
   QQQI: { marketKey: "QQQI", currency: "USD" },
+  QQQ: { marketKey: "QQQ", currency: "USD" },
+  BLK: { marketKey: "BLK", currency: "USD" },
   SPCX: { marketKey: "SPCX", currency: "USD" },
   INTC: { marketKey: "INTC", currency: "USD" },
   WDC: { marketKey: "WDC", currency: "USD" },

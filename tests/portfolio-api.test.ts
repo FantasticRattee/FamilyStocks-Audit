@@ -310,6 +310,8 @@ test("partial refresh updates successes and explicitly retains prior database qu
     "USDTHB",
   ]);
   assert.deepEqual(merged.failures, {
+    QQQ: "No persisted or newly refreshed market quote is available.",
+    BLK: "No persisted or newly refreshed market quote is available.",
     KLAC: "No new quote",
     FN: "No new quote",
     AMAT: "No new quote",

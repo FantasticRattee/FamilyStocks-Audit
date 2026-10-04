@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-09-29. Use with the `impact-check` skill before changing shared
+Updated: 2026-10-05. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -46,6 +46,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
 | Canonical-audit or four-column workbook validation, owner aliases, ticker support, or export | `shared-portfolio.ts`, `Dashboard.tsx`, `portfolio-api.ts`, `postgres-portfolio-repository.ts`, workbook tests, README | Parse both formats; keep minimal export round trip; verify canonical import atomically updates holdings/settings; production import validates without a password gate |
 | Holdings/settings-to-dashboard calculations | `shared-portfolio.ts`, `model.ts`, `initial-shared-portfolio.ts`, calculation tests, accounting notes | Cost basis, category, native currency, allocation, owner equity, P&L, dividend forecast |
 | Derived sale P&L history or pooled allocation display | `Dashboard.tsx`, `model.ts`, `globals.css`, dashboard/model/render tests, `docs/specs/2026-08-07-sale-pnl-ledger-design.md` | SELL-only filtering; newest-first dates; proceeds minus realized P&L equals sold cost; post-5-Aug pooled allocation only; no mutation of workbook, PostgreSQL, or raw ledger |
+| Actual dividend receipts | `model.ts`, `Dashboard.tsx`, canonical Transactions/Dividends, receipt/audit tests | Pair DIVIDEND with WHT_FEE by date/ticker/account/currency; exclude sales, interest and standalone fees; show gross/deductions/net, separate from forecast |
 | PostgreSQL schema, seeding, transactions, or import metadata | `postgres-portfolio-repository.ts`, `portfolio-api.ts`, `worker/index.ts`, repository/API tests, README deployment | Empty-DB seed, rollback, restart persistence, second browser load |
 | Market keys, quote parsing, source requirements, or partial failure | `market-api.ts`, `portfolio-repository.ts`, `postgres-portfolio-repository.ts`, `live-market.ts`, `Dashboard.tsx`, market tests, README | Ten fresh Google Finance/SET public-page requests; no API key/cooldown; retain failed keys; source links; production refresh |
 | Historical Analyzer metric definitions, source parsing, or snapshot retention | `stock-analyzer.ts`, `stock-analyzer-provider.ts`, `stock-analyzer-api.ts`, `StockAnalyzerDashboard.tsx`, PostgreSQL repository, API/metric tests, README | 15-year history; adjusted averages; no look-ahead CAGR; negative P/E = N/M; failed provider refresh retains the last snapshot |
@@ -100,7 +101,7 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   entry price and units.
 - Shared market keys: `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`,
   `AVGO`, `SPCX`, `INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`, `CRWV`,
-  `AMZN`, `SCB`, `KBANK`, `USDTHB`.
+  `AMZN`, `QQQ`, `BLK`, `SCB`, `KBANK`, `USDTHB`.
 - `GET /api/portfolio`: holdings, settings, quote map, latest import metadata,
   and optional market sources.
 - Market refresh: quote map plus failures, refreshed/retained keys, fetched
@@ -119,20 +120,21 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   exchange feeds. Their values can be delayed or their HTML can change; a
   parsing failure retains the last verified shared quote.
 - Active holdings currently accepted are QQQI, GOOGL, WDC, META, AAPL, NVDA,
-  MU, AVGO, SPCX, INTC, VOO, ASML, KLAC, FN, AMAT, CRWV, AMZN, SCB, KBANK,
+  MU, AVGO, SPCX, INTC, VOO, ASML, KLAC, FN, AMAT, CRWV, AMZN, QQQ, BLK, SCB, KBANK,
   and shared CASH. Historical ledger rows may still include inactive tickers such
   as V. Personal active overlays are represented by `Rattee`, `Mom`, or `Ryu`
   owner accounts and are added to the named owner's equity rather than the
   pooled allocation.
-- The 29 Sep canonical update has no active personal overlays. All current
+- The 5 Oct canonical update has no active personal overlays. All current
   assets are Shared; capital records stay contributor-specific. Projected
-  owner values are not paid profits. Active holdings are GOOGL 45, AMZN 61,
-  AVGO 35, MU 16, NVDA 80, SPCX 74.7628 and CASH THB979,161.29097. HPQ was
-  bought and sold within the update (ledger-only, not a supported holding
-  ticker) and QQQI remains a closed Holdings row. The ledger contains 144
-  rows. AMZN was added to the supported-ticker contract, the audit market-key
-  map, the Google Finance NASDAQ quote map and the PostgreSQL quote
-  allow-list. Verify capital and cash independently of live quote refresh.
+  owner values are not paid profits. Active holdings are QQQ133.5, BLK19 and
+  CASH THB2,224.70482 (confirmed USD66.83/THB2.34, referenceFX33.254).
+  The ledger contains177 rows and54 sales. QQQ/BLK are added to the supported
+  ticker contract, audit market-key map, Google Finance NASDAQ/NYSE maps and
+  PostgreSQL allow-list. Actual receipts are derived separately from sale P&L
+  and forecasts. The confirmed cash snapshot replaces the unverified historic
+  roll-forward without a fabricated plug. Capital is unchanged, latest addition
+  15Sep. Verify capital and cash independently of live quote refresh.
   Historical inactive tickers remain supported for ledger parsing and audit
   traceability. Holdings rows 4-12 are fixed because `Summary` sums them, so
   older closed rows are replaced when a new update needs the space.

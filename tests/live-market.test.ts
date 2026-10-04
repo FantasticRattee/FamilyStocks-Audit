@@ -84,21 +84,13 @@ test("maps every active audited holding and USD/THB to provider-neutral refresh 
   );
 
   assert.deepEqual(plan.symbols, [
-    "GOOGL",
-    "AMZN",
-    "AVGO",
-    "MU",
-    "NVDA",
-    "SPCX",
+    "QQQ",
+    "BLK",
     "USDTHB",
   ]);
   assert.deepEqual(plan.stocks, [
-    { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
-    { ticker: "AMZN", marketKey: "AMZN", currency: "USD" },
-    { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
-    { ticker: "MU", marketKey: "MU", currency: "USD" },
-    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
-    { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
+    { ticker: "QQQ", marketKey: "QQQ", currency: "USD" },
+    { ticker: "BLK", marketKey: "BLK", currency: "USD" },
   ]);
   assert.deepEqual(plan.unmappedTickers, {});
 });
@@ -133,25 +125,23 @@ test("maps approved additional US holdings to Google Finance refresh keys", asyn
   );
 
   assert.deepEqual(plan.symbols, [
+    "QQQ",
+    "BLK",
     "GOOGL",
-    "AMZN",
-    "AVGO",
-    "MU",
-    "NVDA",
-    "SPCX",
     "AAPL",
+    "NVDA",
+    "MU",
     "INTC",
     "META",
     "USDTHB",
   ]);
   assert.deepEqual(plan.stocks, [
+    { ticker: "QQQ", marketKey: "QQQ", currency: "USD" },
+    { ticker: "BLK", marketKey: "BLK", currency: "USD" },
     { ticker: "GOOGL", marketKey: "GOOGL", currency: "USD" },
-    { ticker: "AMZN", marketKey: "AMZN", currency: "USD" },
-    { ticker: "AVGO", marketKey: "AVGO", currency: "USD" },
-    { ticker: "MU", marketKey: "MU", currency: "USD" },
-    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
-    { ticker: "SPCX", marketKey: "SPCX", currency: "USD" },
     { ticker: "AAPL", marketKey: "AAPL", currency: "USD" },
+    { ticker: "NVDA", marketKey: "NVDA", currency: "USD" },
+    { ticker: "MU", marketKey: "MU", currency: "USD" },
     { ticker: "INTC", marketKey: "INTC", currency: "USD" },
     { ticker: "META", marketKey: "META", currency: "USD" },
   ]);
@@ -198,7 +188,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 979161.29097) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 2224.70482) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,
@@ -208,12 +198,8 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   assert.equal(plan.unmappedTickers.CASH, undefined);
   assert.equal(plan.stocks.some((stock) => stock.ticker === "CASH"), false);
   assert.deepEqual(plan.symbols, [
-    "GOOGL",
-    "AMZN",
-    "AVGO",
-    "MU",
-    "NVDA",
-    "SPCX",
+    "QQQ",
+    "BLK",
     "USDTHB",
   ]);
 });

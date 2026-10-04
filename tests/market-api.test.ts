@@ -56,6 +56,12 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       if (url.hostname === "www.google.com" && url.pathname.includes("QQQI")) {
         return new Response(googleModernQuotePage("QQQI:NASDAQ", "55.20"));
       }
+      if (url.hostname === "www.google.com" && url.pathname.includes("/QQQ:NASDAQ")) {
+        return new Response(googleModernQuotePage("QQQ:NASDAQ", "749.58"));
+      }
+      if (url.hostname === "www.google.com" && url.pathname.includes("/BLK:NYSE")) {
+        return new Response(googleModernQuotePage("BLK:NYSE", "1086.31"));
+      }
       if (url.hostname === "www.google.com" && url.pathname.includes("SPCX")) {
         return new Response(googleModernQuotePage("SPCX:NASDAQ", "140.25"));
       }
@@ -124,6 +130,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
       "www.google.com",
       "www.google.com",
       "www.google.com",
+      "www.google.com",
+      "www.google.com",
       "www.set.or.th",
       "www.set.or.th",
     ],
@@ -145,6 +153,10 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
   assert.equal(body.quotes.MU?.exchange, "NASDAQ");
   assert.equal(body.quotes.QQQI?.price, 55.2);
   assert.equal(body.quotes.QQQI?.exchange, "NASDAQ");
+  assert.equal(body.quotes.QQQ?.price, 749.58);
+  assert.equal(body.quotes.QQQ?.exchange, "NASDAQ");
+  assert.equal(body.quotes.BLK?.price, 1086.31);
+  assert.equal(body.quotes.BLK?.exchange, "NYSE");
   assert.equal(body.quotes.SPCX?.price, 140.25);
   assert.equal(body.quotes.SPCX?.exchange, "NASDAQ");
   assert.equal(body.quotes.WDC?.price, 437);
@@ -179,6 +191,8 @@ test("refreshes configured Google Finance and SET public quotes without an OpenA
     "https://www.google.com/finance/quote/NVDA:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/MU:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/QQQI:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/QQQ:NASDAQ?hl=en",
+    "https://www.google.com/finance/quote/BLK:NYSE?hl=en",
     "https://www.google.com/finance/quote/SPCX:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/INTC:NASDAQ?hl=en",
     "https://www.google.com/finance/quote/WDC:NASDAQ?hl=en",
