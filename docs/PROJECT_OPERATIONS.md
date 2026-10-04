@@ -87,6 +87,21 @@ QQQ (NASDAQ/USD) and BLK (NYSE/USD) are supported in every import/quote map;
 the fallback seed is regenerated. Live deployment/import proof is recorded
 in workspace `Handoff.md` and `outputs/audit-2026-10-05/` after verification.
 
+### Production proof — 5 Oct 2026, 01:40 ICT
+
+Accounting commit `c473461` and receipt-typography commit `dfde392` are live;
+Railway deployment6845056205 succeeded and serves `Dashboard-BecMEUjq.js`.
+Canonical import at2026-10-04T18:40:15.356Z has3 holdings/177 transactions,
+content hash763a8732308e1c1189622e71477190d9aa35cb42ea7a56bb080e8c3c8ed9b470.
+Production holdings/settings deep-equal the workbook payload. Fresh public
+quotes refreshed22 keys without failures (QQQ749.58, BLK1059.63USD,
+liveUSDTHB33.5); CASH stays fixed2,224.70482THB. Independently calculated
+live value4,028,988.35482THB, unrealized56,912.43636 and realized739,859.03518
+match the UI. All six views were verified at1440/393px with no page overflow
+or runtime errors;3 actual receipt rows,54 sales and177 ledger rows are
+present. Unit86/rendered32, build/typecheck pass; lint only has the existing
+next/image warning. Local opening-cash limitations above remain explicit.
+
 ## Historical canonical state — 29 Sep 2026
 
 Three InnovestX transaction-history screenshots (`IMG_4050.PNG`,
