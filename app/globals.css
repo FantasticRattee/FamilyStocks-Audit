@@ -2291,6 +2291,7 @@ td strong {
 }
 
 .sale-pnl-account,
+.dividend-receipt-account,
 .sale-pnl-allocation {
   display: block;
   margin-top: 3px;

@@ -30,6 +30,15 @@ async function render() {
   return requestWorker("/", { headers: { accept: "text/html" } });
 }
 
+test("keeps received-dividend account notes below the ticker at phone widths", async () => {
+  const [dashboard, styles] = await Promise.all([
+    readFile(new URL("../app/dashboard/Dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(dashboard, /className="dividend-receipt-account"/);
+  assert.match(styles, /\.dividend-receipt-account,[^{}]*\{[^}]*display:\s*block/);
+});
+
 test("server-renders the stock-audit dashboard without a credential prompt", async () => {
   const response = await render();
   assert.equal(response.status, 200);

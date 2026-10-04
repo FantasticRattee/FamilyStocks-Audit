@@ -1791,7 +1791,7 @@ export function Dashboard() {
                       {dividendReceipts.rows.map((receipt) => (
                         <tr key={[receipt.date, receipt.account, receipt.ticker, receipt.currency].join("|")}>
                           <td>{formatDate(receipt.date)}</td>
-                          <td><strong>{receipt.ticker}</strong><small className="cell-subtitle">{receipt.account}</small></td>
+                          <td><strong>{receipt.ticker}</strong><small className="dividend-receipt-account">{receipt.account}</small></td>
                           <td>{formatNative(receipt.grossNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
                           <td>{formatNative(receipt.deductionsNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
                           <td>{formatNative(receipt.netNative, receipt.currency === "USD" ? "USD" : "THB")}</td>
