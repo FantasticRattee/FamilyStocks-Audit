@@ -11,7 +11,7 @@ const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - 
 
 test("records all 21 new Shared trades from the September/October broker evidence without duplicates", async () => {
   const snapshot = await load();
-  const added = snapshot.transactions.slice(144).filter(row => ["BUY", "SELL"].includes(row.side));
+  const added = snapshot.transactions.slice(144, 177).filter(row => ["BUY", "SELL"].includes(row.side));
   assert.deepEqual(added.map(row => [row.date, row.ticker, row.side, row.quantity, row.priceNative, row.grossNative]), [
     ["2026-09-29", "MU", "BUY", 5, 1078.45, 5394.38],
     ["2026-09-29", "MU", "BUY", 4, 1071, 4286.13],
@@ -43,7 +43,7 @@ test("records all 21 new Shared trades from the September/October broker evidenc
 
 test("uses MU's pre-sale weighted cost and preserves the closed VOO/SNDK round trips", async () => {
   const snapshot = await load();
-  const sales = snapshot.transactions.slice(144).filter(row => row.side === "SELL");
+  const sales = snapshot.transactions.slice(144, 177).filter(row => row.side === "SELL");
   const mu = sales.filter(row => row.ticker === "MU");
   close(mu[0].costProceedsThb - mu[0].realizedPnlThb, 55780.74 / 52 * 35 * 33.254);
   close(mu[1].costProceedsThb - mu[1].realizedPnlThb, 55780.74 / 52 * 17 * 33.254);
@@ -51,9 +51,9 @@ test("uses MU's pre-sale weighted cost and preserves the closed VOO/SNDK round t
   close(sales.find(row => row.ticker === "VOO")!.realizedPnlThb, -3.46 * 33.254);
   close(sales.find(row => row.ticker === "SNDK")!.realizedPnlThb, 9.08 * 33.254);
   close(sales.reduce((sum, row) => sum + row.realizedPnlThb, 0), 544.34 * 33.254);
-  close(snapshot.holdings.find(row => row.ticker === "QQQ")!.costBasis, 99284.08 * 33.254);
-  close(snapshot.holdings.find(row => row.ticker === "BLK")!.costBasis, 20095.58 * 33.254);
-  assert.deepEqual(snapshot.holdings.map(row => [row.ticker, row.quantity]), [["QQQ", 133.5], ["BLK", 19], ["CASH", 1]]);
+  const beforeNewTrades = snapshot.transactions.slice(0, 177);
+  close(beforeNewTrades.filter(row => row.ticker === "QQQ" && row.side === "BUY").reduce((sum, row) => sum + row.grossNative, 0), 99284.08);
+  close(beforeNewTrades.find(row => row.ticker === "BLK" && row.side === "BUY")!.grossNative, 20095.58);
 });
 
 test("separates cash income from sale P&L, keeps capital unchanged, and uses evidenced cash", async () => {
@@ -63,13 +63,13 @@ test("separates cash income from sale P&L, keeps capital unchanged, and uses evi
   assert.ok(events.every(row => row.realizedPnlThb === 0 && row.quantity === 0 && row.account === "Shared-US"));
   assert.ok(snapshot.transactions.filter(row => row.side === "TRANSFER").every(row => row.date <= "2026-09-15"));
   close(snapshot.summary.sharedCapital, 3634606.003945636);
-  close(snapshot.holdings.find(row => row.ticker === "CASH")!.costBasis, 66.83 * 33.254 + 2.34);
+  close(snapshot.holdings.find(row => row.ticker === "CASH")!.costBasis, 24.60 * 33.254 + 2.34);
   const receipts = deriveDividendReceiptHistory(snapshot.transactions);
   assert.deepEqual(receipts.rows.map(row => [row.date, row.ticker, row.netNative]), [
     ["2026-09-19", "QQQI", 641.19], ["2026-09-15", "GOOGL", 7.48], ["2026-08-22", "QQQI", 659.29],
   ]);
   close(receipts.totalNetThb, 43494.90184);
-  const history = deriveSalePnlSummary(snapshot.transactions, snapshot.shareholders);
+  const history = deriveSalePnlSummary(snapshot.transactions.slice(0, 177), snapshot.shareholders);
   assert.equal(history.rows.length, 54);
-  close(snapshot.summary.totalRealizedPnl, 739859.0351836405);
+  close(history.netRealizedPnlThb, 739859.0351836405);
 });

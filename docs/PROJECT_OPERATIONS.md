@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **5 Oct 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **7 Oct 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,30 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 5 Oct 2026
+## Current canonical state — 7 Oct 2026
+
+IMG_4230/4231 establish settled totals and IMG_4233/4234/4235 establish
+execution dates/units/prices. Add only3 Shared Market trades on6Oct:
+BLK SELL5 at1080.04 (net5397.95USD), SELL14 at1081.53 (net15138.97),
+QQQ BUY27 at762.11 (debit20579.15). Settled7Oct13:00 is not an execution
+date or another trade. Older visible rows are already in the ledger.
+
+BLK's1Oct cost20095.58USD includes charges. Cost sold5/19 then14/19 realizes
+441.34USD /14676.32036THB. Cumulative754535.3555436408THB,56 sales,
+180 ledger records. Active QQQ160.5 (cost119863.23USD, average746.81140)
+and CASH820.3884THB. Cash is a roll-forward: openingUSD66.83 +20536.92
+sale receipts -20579.15 purchase =calculatedUSD24.60; carriedTHB2.34;
+referenceFX33.254. It is not a new broker balance snapshot.
+
+Capital3,634,606.003945636THB and contributor percentages stay unchanged.
+No deposit, withdrawal or payout is added. All actual dividend history is
+unchanged; only QQQ remains active without verified forecast DPS/WHT.
+Saved audit value4,068,404.94177THB and unrealized81,652.70295 use fill762.11
+and referenceFX, not live quotes. Six sheets retained; new ledger187–189,
+TOTAL190, affected holdings/cash/formula views and embedded seed updated.
+Live proof is recorded in workspace Handoff and outputs/audit-2026-10-07.
+
+## Historical canonical state — 5 Oct 2026
 
 IMG_4153–IMG_4166 and `ScreenRecording_10-05-2026 01-06-58_1.MP4` add
 21 Shared trades and 12 cash events (dividends, WHT/fees, interest, fees).

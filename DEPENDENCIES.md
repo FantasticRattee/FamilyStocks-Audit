@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-10-05. Use with the `impact-check` skill before changing shared
+Updated: 2026-10-07. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -125,15 +125,18 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   as V. Personal active overlays are represented by `Rattee`, `Mom`, or `Ryu`
   owner accounts and are added to the named owner's equity rather than the
   pooled allocation.
-- The 5 Oct canonical update has no active personal overlays. All current
+- The 7 Oct canonical update has no active personal overlays. All current
   assets are Shared; capital records stay contributor-specific. Projected
-  owner values are not paid profits. Active holdings are QQQ133.5, BLK19 and
-  CASH THB2,224.70482 (confirmed USD66.83/THB2.34, referenceFX33.254).
-  The ledger contains177 rows and54 sales. QQQ/BLK are added to the supported
+  owner values are not paid profits. Active holdings are QQQ160.5 and
+  CASH THB820.3884 (calculated USD24.60 + carriedTHB2.34, referenceFX33.254).
+  BLK19 is closed through two6Oct sales. The ledger contains180 rows and56
+  sales. QQQ/BLK remain in the supported
   ticker contract, audit market-key map, Google Finance NASDAQ/NYSE maps and
   PostgreSQL allow-list. Actual receipts are derived separately from sale P&L
-  and forecasts. The confirmed cash snapshot replaces the unverified historic
-  roll-forward without a fabricated plug. Capital is unchanged, latest addition
+  and forecasts. Current cash rolls from the verified5Oct snapshot and three
+  new trades; it is not a new broker balance snapshot. The earlier historic
+  opening-cash limitation remains explicit without a fabricated plug.
+  Capital is unchanged, latest addition
   15Sep. Verify capital and cash independently of live quote refresh.
   Historical inactive tickers remain supported for ledger parsing and audit
   traceability. Holdings rows 4-12 are fixed because `Summary` sums them, so

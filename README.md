@@ -56,12 +56,13 @@ The dividend page flags current securities not covered by verified DPS and
 withholding assumptions; a zero configured forecast is not a claim that the
 whole portfolio pays no dividends.
 
-The 5 Oct reconciliation records177 transactions and54 sales, with active
-Shared QQQ133.5 / BLK19 / CASH THB2,224.70482. Capital remains unchanged.
+The 7 Oct reconciliation records180 transactions and56 sales, with active
+Shared QQQ160.5 / CASH THB820.3884. BLK19 is closed; capital is unchanged.
 Actual dividend receipts pair the ledger's DIVIDEND and WHT_FEE rows and
 display gross/deductions/net separately from sale P&L and future forecasts.
-The confirmed USD66.83 + THB2.34 cash snapshot uses accounting FX33.254;
-it replaces an unverified historical roll-forward without a balancing plug.
+Current calculatedUSD24.60 + carriedTHB2.34 cash uses accounting FX33.254.
+It rolls from the verified5Oct snapshot and three6Oct trades, without a
+balancing plug, and is not a new broker balance snapshot.
 
 ### Minimal holdings workbook
 

@@ -157,16 +157,15 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.deepEqual(
     parsed.holdings.map((holding) => [holding.ticker, holding.ownerAccount, holding.units]),
     [
-      ["QQQ", "Shared", 133.5],
-      ["BLK", "Shared", 19],
+      ["QQQ", "Shared", 160.5],
       ["CASH", "Shared", 1],
     ],
   );
   assert.ok(parsed.settings);
   assert.deepEqual(validatePortfolioSettings(parsed.settings), parsed.settings);
-  assert.equal(parsed.settings.asOfDate, "5 Oct 2026");
+  assert.equal(parsed.settings.asOfDate, "7 Oct 2026");
   assert.equal(parsed.settings.defaultFx, 33.254);
-  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 739859.0351836405) < 0.000001);
+  assert.ok(Math.abs(parsed.settings.totalRealizedPnl - 754535.3555436408) < 0.000001);
   assert.ok(Math.abs(
     parsed.settings.shareholders.reduce((total, holder) => total + holder.sharedCapital, 0) -
       3634606.003945636,
@@ -196,13 +195,13 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.equal(fullExit[0]?.priceNative, 355.72);
   assert.equal(fullExit[0]?.grossNative, 10668.81);
   const latest = parsed.settings.transactions.at(-1);
-  assert.equal(latest?.date, "2026-10-03");
+  assert.equal(latest?.date, "2026-10-06");
   assert.equal(latest?.account, "Shared-US");
-  assert.equal(latest?.ticker, "CASH");
-  assert.equal(latest?.side, "FEE");
-  assert.equal(latest?.quantity, 0);
-  assert.equal(latest?.priceNative, 0);
-  assert.equal(latest?.grossNative, 1);
+  assert.equal(latest?.ticker, "QQQ");
+  assert.equal(latest?.side, "BUY");
+  assert.equal(latest?.quantity, 27);
+  assert.equal(latest?.priceNative, 762.11);
+  assert.equal(latest?.grossNative, 20579.15);
   const hpqRoundTrip = parsed.settings.transactions.filter((transaction) => transaction.ticker === "HPQ");
   assert.deepEqual(
     hpqRoundTrip.map((transaction) => [transaction.date, transaction.side, transaction.quantity, transaction.grossNative]),
@@ -214,7 +213,7 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
 
   const cash = parsed.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.entryPrice - 2224.70482) < 0.000001);
+  assert.ok(Math.abs(cash.entryPrice - 820.3884) < 0.000001);
   const exported = exportMinimalHoldingsWorkbook(parsed.holdings);
   assert.deepEqual(
     parseMinimalHoldingsWorkbook(exported.bytes, exported.filename).holdings,
@@ -228,10 +227,10 @@ test("imports the canonical six-sheet audit workbook as a full portfolio update"
   assert.ok(snapshot.holdings.every((holding) => holding.category === "shared" && holding.owner === null));
   assert.deepEqual(
     snapshot.holdings.map((holding) => holding.ticker),
-    ["QQQ", "BLK", "CASH"],
+    ["QQQ", "CASH"],
   );
   const snapshotCash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
-  assert.ok(Math.abs((snapshotCash?.costBasis ?? 0) - 2224.70482) < 0.000001);
+  assert.ok(Math.abs((snapshotCash?.costBasis ?? 0) - 820.3884) < 0.000001);
 });
 
 test("uses exactly the approved four-column raw holdings contract", () => {

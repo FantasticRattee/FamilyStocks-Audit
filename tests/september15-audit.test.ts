@@ -19,7 +19,7 @@ test("preserves the 108 earlier ledger records with verified cash-settlement cor
 
 test("keeps the prior September additions and records the new Shared trades", async () => {
   const snapshot = await load();
-  assert.equal(snapshot.transactions.length, 177);
+  assert.equal(snapshot.transactions.length, 180);
   const added = snapshot.transactions.slice(108, 115);
   assert.deepEqual(added.map(row => [row.date,row.ticker,row.side,row.quantity,row.priceNative,row.grossNative,row.fx]), [
     ["2026-09-10","AVGO","SELL",6.9162,364.59,2519.38,33.254],
@@ -95,8 +95,8 @@ test("preserves historical AVGO P&L and uses the confirmed pooled cash snapshot"
   close(sale.realizedPnlThb,(2519.38-2697.70)*33.254);
   const avgo=snapshot.holdings.filter(row=>row.ticker==="AVGO");
   assert.equal(avgo.length,0);
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,2224.70482);
-  assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["QQQ","BLK","CASH"]);
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,820.3884);
+  assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["QQQ","CASH"]);
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
   const recent=snapshot.transactions.filter(row=>row.date==="2026-09-15" && ["BUY", "SELL", "TRANSFER"].includes(row.side)).sort(compareTransactionsNewestFirst);

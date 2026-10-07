@@ -56,19 +56,18 @@ const loadSyntheticOverlaySnapshot = async (): Promise<DashboardSnapshot> => ({
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "5 Oct 2026");
+  assert.equal(snapshot.asOfDate, "7 Oct 2026");
   assert.equal(snapshot.defaultFx, 33.254);
-  assert.equal(snapshot.transactions.length, 177);
-  closeTo(snapshot.summary.totalMarketValue, 3998947.97705);
+  assert.equal(snapshot.transactions.length, 180);
+  closeTo(snapshot.summary.totalMarketValue, 4068404.94177);
   closeTo(snapshot.summary.sharedCapital, 3634606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3998947.97705);
-  closeTo(snapshot.summary.totalRealizedPnl, 739859.0351836405);
-  closeTo(snapshot.summary.totalUnrealizedPnl, 26872.05859);
-  closeTo(snapshot.summary.sharedUnrealizedPnl, 26872.05859);
-  closeTo(snapshot.summary.totalPnl, 766731.0937736405);
+  closeTo(snapshot.summary.sharedMarketValue, 4068404.94177);
+  closeTo(snapshot.summary.totalRealizedPnl, 754535.3555436408);
+  closeTo(snapshot.summary.totalUnrealizedPnl, 81652.70295);
+  closeTo(snapshot.summary.sharedUnrealizedPnl, 81652.70295);
+  closeTo(snapshot.summary.totalPnl, 836188.0584936409);
   assert.deepEqual(snapshot.holdings.map((holding) => [holding.ticker, holding.quantity]), [
-    ["QQQ", 133.5],
-    ["BLK", 19],
+    ["QQQ", 160.5],
     ["CASH", 1],
   ]);
   assert.ok(snapshot.holdings.every((holding) =>
@@ -77,7 +76,7 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   ));
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 2224.70482, 0.000001);
+  closeTo(cash.costBasis, 820.3884, 0.000001);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
@@ -186,7 +185,7 @@ test("closes INTC and META using broker net proceeds and their remaining lot cos
   assert.equal(snapshot.holdings.some((holding) => ["META", "INTC"].includes(holding.ticker)), false);
 });
 
-test("carries pooled QQQ and BLK broker totals in cost while retaining earlier GOOGL fills", async () => {
+test("carries the increased pooled QQQ broker cost while retaining earlier GOOGL fills", async () => {
   const snapshot = await loadSourceSnapshot();
   const qqq = snapshot.holdings.find((holding) => holding.ticker === "QQQ");
   const blk = snapshot.holdings.find((holding) => holding.ticker === "BLK");
@@ -194,25 +193,24 @@ test("carries pooled QQQ and BLK broker totals in cost while retaining earlier G
     row.date === "2026-09-24" && row.ticker === "GOOGL" && row.side === "BUY",
   );
   assert.ok(qqq);
-  assert.ok(blk);
+  assert.equal(blk, undefined);
   assert.ok(googlBuy);
   // The visible fill price stays 338.80; the broker fee is carried in cost.
   assert.equal(googlBuy.priceNative, 338.8);
   assert.equal(googlBuy.grossNative, 15249.85);
   assert.ok(googlBuy.grossNative > googlBuy.quantity * googlBuy.priceNative);
   assert.equal(qqq.account, "Shared-US");
-  assert.equal(qqq.quantity, 133.5);
-  closeTo(qqq.costBasis, 99284.08 * 33.254, 0.000001);
-  closeTo(qqq.avgCostThb, (99284.08 * 33.254) / 133.5, 0.000001);
-  closeTo(qqq.importedPriceThb, 749.77 * 33.254, 0.000001);
-  closeTo(blk.costBasis, 20095.58 * 33.254, 0.000001);
-  assert.equal(snapshot.holdings.length, 3);
+  assert.equal(qqq.quantity, 160.5);
+  closeTo(qqq.costBasis, 119863.23 * 33.254, 0.000001);
+  closeTo(qqq.avgCostThb, (119863.23 * 33.254) / 160.5, 0.000001);
+  closeTo(qqq.importedPriceThb, 762.11 * 33.254, 0.000001);
+  assert.equal(snapshot.holdings.length, 2);
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 2224.70482, 0.000001);
+  closeTo(cash.costBasis, 820.3884, 0.000001);
 });
 
-test("prices the two active pooled holdings while preserving the confirmed cash snapshot", async () => {
+test("prices the active QQQ holding while preserving its audited cash roll-forward", async () => {
   const snapshot = await loadSourceSnapshot();
   const scenario = createScenario(snapshot);
   scenario.fx = 33;
@@ -236,7 +234,7 @@ test("prices the two active pooled holdings while preserving the confirmed cash 
 
   const result = calculateDashboard(snapshot, scenario);
   assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
-    "QQQ", "BLK", "CASH",
+    "QQQ", "CASH",
   ]);
   assert.equal(result.holdings.some((holding) => ["META", "INTC", "VOO", "QQQI", "HPQ"].includes(holding.ticker)), false);
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
@@ -246,8 +244,8 @@ test("prices the two active pooled holdings while preserving the confirmed cash 
     cash.costBasis,
   );
   const expectedInvestmentMarketValue =
-    (133.5 * 750 + 19 * 1100) * 33;
-  closeTo(expectedInvestmentMarketValue, 3993825, 0.000001);
+    160.5 * 750 * 33;
+  closeTo(expectedInvestmentMarketValue, 3972375, 0.000001);
   const expectedSharedMarketValue = expectedInvestmentMarketValue + cash.costBasis;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
@@ -270,15 +268,14 @@ test("reconciles the SPCX close and the new pooled audit values", async () => {
   closeTo(result.totals.totalPnl, snapshot.summary.totalPnl);
   closeTo(result.totals.personalMarketValue, 0);
 
-  closeTo(result.totals.marketValue, 3998947.97705, 0.000001);
-  closeTo(result.totals.unrealizedPnl, 26872.05859, 0.000001);
-  closeTo(result.totals.realizedPnl, 739859.0351836405, 0.000001);
-  closeTo(result.totals.totalPnl, 766731.0937736405, 0.000001);
+  closeTo(result.totals.marketValue, 4068404.94177, 0.000001);
+  closeTo(result.totals.unrealizedPnl, 81652.70295, 0.000001);
+  closeTo(result.totals.realizedPnl, 754535.3555436408, 0.000001);
+  closeTo(result.totals.totalPnl, 836188.0584936409, 0.000001);
 
   // Per-holding audit marks: [ticker, quantity, avg cost THB, price THB, market value THB, unrealized THB].
   const expectedMarks: Array<[string, number, number, number, number, number]> = [
-    ["QQQ", 133.5, 99284.08 * 33.254 / 133.5, 749.77 * 33.254, 133.5 * 749.77 * 33.254, (133.5 * 749.77 - 99284.08) * 33.254],
-    ["BLK", 19, 20095.58 * 33.254 / 19, 1057.55 * 33.254, 19 * 1057.55 * 33.254, (19 * 1057.55 - 20095.58) * 33.254],
+    ["QQQ", 160.5, 119863.23 * 33.254 / 160.5, 762.11 * 33.254, 160.5 * 762.11 * 33.254, (160.5 * 762.11 - 119863.23) * 33.254],
   ];
   for (const [ticker, quantity, avgCostThb, priceThb, marketValue, unrealizedPnl] of expectedMarks) {
     const holding = result.holdings.find((row) => row.ticker === ticker);
@@ -301,9 +298,9 @@ test("reconciles the SPCX close and the new pooled audit values", async () => {
 
   const owners = calculateShareholderEquityRows(snapshot, result);
   const expectedEquity: Record<string, number> = {
-    Mom: 3998947.97705 * 1870000 / 3634606.003945636,
-    Ryu: 3998947.97705 * 300000 / 3634606.003945636,
-    Rattee: 3998947.97705 * 1464606.003945636 / 3634606.003945636,
+    Mom: 4068404.94177 * 1870000 / 3634606.003945636,
+    Ryu: 4068404.94177 * 300000 / 3634606.003945636,
+    Rattee: 4068404.94177 * 1464606.003945636 / 3634606.003945636,
   };
   for (const owner of owners) {
     closeTo(owner.estimatedEquity, expectedEquity[owner.owner], 0.000001);
