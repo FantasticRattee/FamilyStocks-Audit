@@ -28,6 +28,7 @@ const AUDIT_TICKER_MARKET_KEYS: Record<
   AMAT: { marketKey: "AMAT", currency: "USD" },
   CRWV: { marketKey: "CRWV", currency: "USD" },
   AMZN: { marketKey: "AMZN", currency: "USD" },
+  ORCL: { marketKey: "ORCL", currency: "USD" },
   KBANK: { marketKey: "KBANK", currency: "THB" },
   SCB: { marketKey: "SCB", currency: "THB" },
 };

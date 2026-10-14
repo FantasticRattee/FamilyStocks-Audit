@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **7 Oct 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **14 Oct 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,32 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 7 Oct 2026
+## Current canonical state — 14 Oct 2026
+
+The845-frame14Oct video supplies12 new Shared Market executions12–14Oct
+and4 cash events. Prior180 records unchanged, new total196/sales59.
+QQQ sold160.5 then reopened82; NVDA buys62+20+50+5=137; ORCL75+35=110;
+MU13; ARM37 bought then17+20 sold in full. QQQ sale cost119863.23USD
+excludes the later82-share buy. ARM cost9485.90USD is split only over its
+preceding37-share lot. New sale loss222.28USD, cumulative747143.65642THB.
+
+Current costUSD: QQQ60999.03,NVDA30969.92,ORCL15335.17,MU12181.96.
+Cash snapshot181.47USD +96.41THB at referenceFX33.254 =6131.01338THB.
+USD rolls exactly including two positive1USD FEE_REFUND credits10Oct.
+THB has deposit100 and US Options Subscription fee105.93 on6Oct; the
+snapshot differs from the old roll-forward by100THB. User explicitly keeps
+registered contributor capital/percentages unchanged, records the deposit
+as unattributed pooled funding and uses the observed cash without a plug.
+No invented deposit/contributor or dividend/payout. April/US receipts unchanged.
+
+Six sheets retained, ledger190–205/TOTAL206, fixed Holdings4–12 and cash
+source/check40–52. ORCL is supported on GoogleFinanceNYSE/USD and in every
+import/market/persistence map. FEE_REFUND is a distinct ledger filter.
+Saved audit value3998314.94834THB and unrealized18793.83064 use last fills,
+not live quotes. Deployment/import/six-page proof is recorded in workspace
+Handoff and outputs/audit-2026-10-14 after final verification.
+
+## Historical canonical state — 7 Oct 2026
 
 IMG_4230/4231 establish settled totals and IMG_4233/4234/4235 establish
 execution dates/units/prices. Add only3 Shared Market trades on6Oct:
@@ -531,7 +556,7 @@ and redeploy; do not place it in source control.
 |---|---|
 | `GET /api/portfolio` | Load current holdings, settings, stored quotes and import metadata. |
 | `POST /api/portfolio/import` | Passwordless, transactional import of canonical audit or minimal holdings workbook. |
-| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/QQQ/BLK/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
+| `GET /api/market/refresh` | Refresh QQQI/GOOGL/WDC/META/AAPL/NVDA/MU/AVGO/SPCX/INTC/VOO/ASML/KLAC/FN/AMAT/CRWV/AMZN/ORCL/QQQ/BLK/USDTHB from Google Finance and SCB/KBANK from SET public pages. |
 | `/api/analyzer*` | Separate U.S.-stock historical-analysis surface; never changes portfolio accounting. |
 
 `Refresh market prices` changes valuation only. It never changes units, entry

@@ -35,6 +35,7 @@ export const SUPPORTED_HOLDING_TICKERS = {
   AMAT: { currency: "USD", marketKey: "AMAT" },
   CRWV: { currency: "USD", marketKey: "CRWV" },
   AMZN: { currency: "USD", marketKey: "AMZN" },
+  ORCL: { currency: "USD", marketKey: "ORCL" },
   SCB: { currency: "THB", marketKey: "SCB" },
   KBANK: { currency: "THB", marketKey: "KBANK" },
   CASH: { currency: "THB", marketKey: null },

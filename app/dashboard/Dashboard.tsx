@@ -1933,6 +1933,7 @@ export function Dashboard() {
                   <option value="WHT_FEE">WHT / FEE</option>
                   <option value="INTEREST">INTEREST</option>
                   <option value="FEE">FEE</option>
+                  <option value="FEE_REFUND">FEE REFUND</option>
                 </select>
               </label>
               <label>

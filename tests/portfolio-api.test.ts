@@ -317,6 +317,7 @@ test("partial refresh updates successes and explicitly retains prior database qu
     AMAT: "No new quote",
     CRWV: "No new quote",
     AMZN: "No persisted or newly refreshed market quote is available.",
+    ORCL: "No persisted or newly refreshed market quote is available.",
   });
 });
 

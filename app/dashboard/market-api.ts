@@ -236,6 +236,16 @@ const PUBLIC_MARKET_QUOTES = {
     parser: "google",
     googlePageTitles: ["AMZN:NASDAQ"],
   },
+  ORCL: {
+    symbol: "ORCL",
+    currency: "USD",
+    exchange: "NYSE",
+    provider: "Google Finance",
+    url: "https://www.google.com/finance/quote/ORCL:NYSE?hl=en",
+    title: "Google Finance · ORCL (NYSE)",
+    parser: "google",
+    googlePageTitles: ["ORCL:NYSE"],
+  },
   USDTHB: {
     symbol: "USDTHB",
     currency: "THB",
