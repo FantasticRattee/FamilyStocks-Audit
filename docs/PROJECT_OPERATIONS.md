@@ -2,7 +2,7 @@
 
 > **Purpose:** one practical map of the accounting workbook, GitHub codebase,
 > Railway production service, and the steps required to keep them synchronized.
-> Latest canonical reconciliation: **14 Oct 2026**. All active assets are Shared;
+> Latest canonical reconciliation: **20 Oct 2026**. All active assets are Shared;
 > contributor capital remains separate and unwithdrawn profits remain pooled.
 > Actual deployment/import verification is recorded in the workspace-root
 > `Handoff.md` and must be checked against production `/api/portfolio`.
@@ -52,7 +52,37 @@ flowchart LR
 | Railway PostgreSQL | imported live holdings/settings, persisted quotes, import metadata, Analyzer snapshots | The only historical accounting ledger |
 | Dashboard export | a one-sheet four-column transport file | A replacement for the six-sheet audit workbook |
 
-## Current canonical state — 14 Oct 2026
+## Current canonical state — 20 Oct 2026
+
+IMG_4640.jpg and the20Oct video are preserved under Transactions/. Native OCR
+covered all1034 decoded frames. New NVDA Market buy37 @221.12USD on15Oct
+02:26:36 debits8184.61USD. Existing137 shares retain33.254 acquisition FX;
+new lot uses user-approved33.6870. NVDA174 costs1305588.67675THB and
+39154.53USD. Other positions remain QQQ82,ORCL110,MU13,all Shared.
+
+External deposits250000THB14Oct17:38:04 and20000THB15Oct02:21:08 add
+270000 capital: Rattee170000/Ryu100000 combined, no invented per-credit
+split. Mom capital1870000 unchanged; Ryu400000/Rattee1634606.003945636;
+total3904606.003945636. Pooled percentages update from these totals.
+
+Missing6Oct22:10:21 deposit100THB is distinct from the already recorded
+22:10:59 deposit. Both are unattributed Shared funding, outside capital.
+The old100THB gap is resolved, not plugged. New cash rolls from14Oct actual
+USD181.47/THB96.41: FX converts270007.84THB into8015.17USD and the NVDA buy
+leaves12.03USD/88.57THB. CASH493.82461THB at33.6870. FX is an internal
+cash-source schedule, not another contribution or realized sale. Stated
+approximate FX/source amount difference0.80821THB is unclassified, not a fee.
+
+Ledger200/sales59; prior196 records unchanged, new rows206–209/TOTAL210.
+Realized747143.6564236404THB and actual dividend receipts43494.90184THB
+are unchanged. Holdings I/J explicitly hold native average cost/audit mark;
+D retains historical THB cost and E translates native audit price at the
+current valuation FX. Saved audit value4292531.25058THB/unrealized42932.36458
+is distinct from live quotes. Mixed-FX canonical metadata must preserve
+native costs and THB basis independently through import and scenario reset.
+Deployment/import/six-view desktop/mobile proof belongs in root Handoff.
+
+## Historical canonical state — 14 Oct 2026
 
 The845-frame14Oct video supplies12 new Shared Market executions12–14Oct
 and4 cash events. Prior180 records unchanged, new total196/sales59.
@@ -499,9 +529,9 @@ The workbook must keep exactly these six sheets:
 - SCB is a historical zero-quantity holding after the 27 Jul 2026 sale; retain
   its lots and sell rows for traceability.
 - From 5 Aug 2026, every active holding and the aggregate CASH row use one
-  Total Contributed Capital allocation: Mom 42.3785%, Rattee 47.4506%, Ryu
-  10.1708%. Do not re-create personal active positions unless the user changes
-  this policy explicitly.
+  Total Contributed Capital allocation. Recompute percentages from the current
+  verified contributor balances, not historical fixed percentages. Do not
+  re-create personal active positions unless the user changes this policy.
 - The current dividend forecast uses total contributed capital as its yield
   denominator. Past shareholder allocation remains historical evidence only.
 - A sale's realized P&L must use only purchase cost existing before that sale.
@@ -641,7 +671,8 @@ Ticker | Owner/Account | Entry Price | Units
 
 Supported owners are `Shared`, `Mom`, `Rattee`, and `Ryu`. Supported active
 tickers are `QQQI`, `GOOGL`, `WDC`, `META`, `AAPL`, `NVDA`, `MU`, `AVGO`, `SPCX`,
-`INTC`, `VOO`, `ASML`, `SCB`, `KBANK`, and `CASH`;
+`INTC`, `VOO`, `ASML`, `KLAC`, `FN`, `AMAT`, `CRWV`, `AMZN`, `ORCL`, `QQQ`,
+`BLK`, `SCB`, `KBANK`, and `CASH`;
 `CASH` is only valid for `Shared`. A canonical workbook may retain other
 tickers in its historical `Transactions` ledger, but they must not become
 active holdings unless active ticker support is deliberately added. Dashboard

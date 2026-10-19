@@ -50,6 +50,15 @@ export type SharedHoldingInput = {
   units: number;
 };
 
+export type AuditHoldingMetadata = {
+  ticker: SupportedHoldingTicker;
+  ownerAccount: SharedHoldingInput["ownerAccount"];
+  units: number;
+  entryPrice: number;
+  avgCostThb: number;
+  importedPriceNative: number;
+};
+
 export type PortfolioSettings = {
   schemaVersion: 1;
   asOfDate: string;
@@ -66,6 +75,7 @@ export type PortfolioSettings = {
   };
   historicalDividend: HistoricalDividend;
   transactions: Transaction[];
+  auditHoldings?: AuditHoldingMetadata[];
 };
 
 export const CANONICAL_AUDIT_SHEET_NAMES = [
@@ -216,6 +226,55 @@ const validateDividendLine = (value: unknown, label: string) => {
   };
 };
 
+const validateOptionalAuditHoldings = (value: unknown): AuditHoldingMetadata[] => {
+  if (!Array.isArray(value)) {
+    throw new Error("Audit settings auditHoldings must be an array when provided.");
+  }
+  if (value.length > 1000) {
+    throw new Error("Audit settings auditHoldings cannot contain more than 1000 entries.");
+  }
+
+  const candidates = value.map((raw, index): AuditHoldingMetadata => {
+    const label = `Audit settings auditHoldings[${index}]`;
+    const row = asRecord(raw, label);
+    const ticker = normalizeTicker(row.ticker);
+    const ownerAccount = normalizeOwnerAccount(row.ownerAccount);
+    if (!ticker || SUPPORTED_HOLDING_TICKERS[ticker].currency !== "USD") {
+      throw new Error(`${label}.ticker must identify a supported USD holding.`);
+    }
+    if (!ownerAccount) {
+      throw new Error(`${label}.ownerAccount must be Shared, Mom, Rattee, or Ryu.`);
+    }
+    const positiveNumber = (field: string) => {
+      const number = finiteNumber(row[field], `${label}.${field}`);
+      if (number <= 0) throw new Error(`${label}.${field} must be positive.`);
+      return number;
+    };
+    return {
+      ticker,
+      ownerAccount,
+      units: positiveNumber("units"),
+      entryPrice: positiveNumber("entryPrice"),
+      avgCostThb: positiveNumber("avgCostThb"),
+      importedPriceNative: positiveNumber("importedPriceNative"),
+    };
+  });
+
+  const fingerprint = (holding: AuditHoldingMetadata) =>
+    `${holding.ticker}\u0000${holding.ownerAccount}\u0000${holding.units}\u0000${holding.entryPrice}`;
+  const seen = new Set<string>();
+  for (const holding of candidates) {
+    const key = fingerprint(holding);
+    if (seen.has(key)) {
+      throw new Error(
+        `Audit settings auditHoldings contains a duplicate fingerprint for ${holding.ticker}/${holding.ownerAccount}.`,
+      );
+    }
+    seen.add(key);
+  }
+  return candidates;
+};
+
 export function validatePortfolioSettings(input: unknown): PortfolioSettings {
   const settings = asRecord(input, "Audit settings");
   if (settings.schemaVersion !== 1) {
@@ -253,6 +312,9 @@ export function validatePortfolioSettings(input: unknown): PortfolioSettings {
   if (!Array.isArray(settings.transactions)) {
     throw new Error("Audit settings transactions must be an array.");
   }
+  const auditHoldings = settings.auditHoldings === undefined
+    ? undefined
+    : validateOptionalAuditHoldings(settings.auditHoldings);
 
   return {
     schemaVersion: 1,
@@ -330,6 +392,7 @@ export function validatePortfolioSettings(input: unknown): PortfolioSettings {
         note: text(transaction.note),
       };
     }),
+    ...(auditHoldings === undefined ? {} : { auditHoldings }),
   };
 }
 
@@ -351,6 +414,17 @@ const snapshotToPortfolioSettings = (
   },
   historicalDividend: snapshot.historicalDividend,
   transactions: snapshot.transactions,
+  auditHoldings: snapshot.holdings
+    .filter((holding) => holding.currency === "USD")
+    .map((holding) => ({
+      ticker: normalizeTicker(holding.ticker)!,
+      ownerAccount: holding.category === "shared" ? "Shared" : holding.owner as SharedHoldingInput["ownerAccount"],
+      units: holding.quantity,
+      entryPrice: holding.avgCostNative ?? holding.avgCostThb / snapshot.defaultFx,
+      avgCostThb: holding.avgCostThb,
+      importedPriceNative:
+        holding.importedPriceNative ?? holding.importedPriceThb / snapshot.defaultFx,
+    })),
 });
 
 const snapshotToSharedHoldings = (snapshot: DashboardSnapshot) =>
@@ -360,7 +434,7 @@ const snapshotToSharedHoldings = (snapshot: DashboardSnapshot) =>
       ownerAccount: holding.category === "shared" ? "Shared" : holding.owner,
       entryPrice:
         holding.currency === "USD"
-          ? holding.avgCostThb / snapshot.defaultFx
+          ? holding.avgCostNative ?? holding.avgCostThb / snapshot.defaultFx
           : holding.avgCostThb,
       units: holding.quantity,
     })),
@@ -496,10 +570,23 @@ export function buildDashboardSnapshotFromSharedPortfolio(
   const holdings = validateSharedHoldings(input).map((holding) => {
     const tickerConfig = SUPPORTED_HOLDING_TICKERS[holding.ticker];
     const category = holding.ownerAccount === "Shared" ? "shared" : "personal";
-    const avgCostThb =
+    const auditHolding = tickerConfig.currency === "USD"
+      ? settings.auditHoldings?.find((audit) =>
+          audit.ticker === holding.ticker &&
+          audit.ownerAccount === holding.ownerAccount &&
+          audit.units === holding.units &&
+          audit.entryPrice === holding.entryPrice,
+        )
+      : undefined;
+    const avgCostThb = auditHolding?.avgCostThb ?? (
       tickerConfig.currency === "USD"
         ? holding.entryPrice * settings.defaultFx
-        : holding.entryPrice;
+        : holding.entryPrice
+    );
+    const importedPriceNative = auditHolding?.importedPriceNative;
+    const importedPriceThb = tickerConfig.currency === "USD" && importedPriceNative !== undefined
+      ? importedPriceNative * settings.defaultFx
+      : avgCostThb;
     return {
       ticker: holding.ticker,
       account:
@@ -511,8 +598,10 @@ export function buildDashboardSnapshotFromSharedPortfolio(
       currency: tickerConfig.currency,
       quantity: holding.units,
       avgCostThb,
-      importedPriceThb: avgCostThb,
+      importedPriceThb,
       costBasis: holding.units * avgCostThb,
+      ...(auditHolding ? { avgCostNative: holding.entryPrice } : {}),
+      ...(importedPriceNative !== undefined ? { importedPriceNative } : {}),
     } as const;
   });
 

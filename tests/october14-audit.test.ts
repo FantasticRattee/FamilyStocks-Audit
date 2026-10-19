@@ -9,8 +9,8 @@ async function load() {
 const close = (a: number, b: number) => assert.ok(Math.abs(a-b) < 0.00001, `${a} != ${b}`);
 test("records the twelve newly evidenced Shared executions and four cash events without settlement duplicates", async () => {
   const s = await load();
-  assert.equal(s.transactions.length, 196);
-  const added = s.transactions.slice(180);
+  const added = s.transactions.slice(180, 196);
+  assert.equal(added.length, 16);
   assert.deepEqual(added.filter(t => ["BUY", "SELL"].includes(t.side)).map(t => [t.date,t.ticker,t.side,t.quantity,t.priceNative,t.grossNative]), [
     ["2026-10-12","QQQ","SELL",160.5,746.28,119762.54],
     ["2026-10-12","NVDA","BUY",62,226.01,14017.93],
@@ -30,22 +30,22 @@ test("records the twelve newly evidenced Shared executions and four cash events 
   assert.equal(added.filter(t => t.side === "TRANSFER").length,1);
 });
 test("separates the QQQ close from its later buy and closes ARM using only its preceding lot cost", async () => {
-  const s=await load();const added=s.transactions.slice(180);
+  const s=await load();const added=s.transactions.slice(180,196);
   const qqqSale=added.find(t=>t.ticker==="QQQ"&&t.side==="SELL");assert.ok(qqqSale,"Expected the new QQQ close");
   close(qqqSale.realizedPnlThb,-100.69*33.254);
   const arm=added.filter(t=>t.ticker==="ARM"&&t.side==="SELL");
   close(arm[0].costProceedsThb-arm[0].realizedPnlThb,9485.90/37*17*33.254);
   close(arm[1].costProceedsThb-arm[1].realizedPnlThb,9485.90/37*20*33.254);
   close(arm.reduce((v,t)=>v+t.realizedPnlThb,0),-121.59*33.254);
-  close(s.summary.totalRealizedPnl,747143.6564236407);
+  close(s.summary.totalRealizedPnl,747143.6564236404);
   assert.equal(deriveSalePnlSummary(s.transactions,s.shareholders).rows.length,59);
-  assert.deepEqual(s.holdings.map(h=>[h.ticker,h.quantity]),[["QQQ",82],["NVDA",137],["ORCL",110],["CASH",1],["MU",13]]);
-  for(const[ticker,cost]of [["QQQ",60999.03],["NVDA",30969.92],["ORCL",15335.17],["MU",12181.96]] as const)close(s.holdings.find(h=>h.ticker===ticker)!.costBasis,cost*33.254);
+  assert.deepEqual(s.holdings.map(h=>[h.ticker,h.quantity]),[["QQQ",82],["NVDA",174],["ORCL",110],["CASH",1],["MU",13]]);
+  for(const[ticker,cost]of [["QQQ",2028461.74362],["NVDA",1305588.67675],["ORCL",509955.74318],["MU",405098.89784]] as const)close(s.holdings.find(h=>h.ticker===ticker)!.costBasis,cost);
 });
 test("uses the broker cash snapshot and retains verified shareholder capital pending deposit attribution", async () => {
-  const s=await load();const added=s.transactions.slice(180);
-  assert.equal(s.asOfDate,"14 Oct 2026");close(s.holdings.find(h=>h.ticker==="CASH")!.costBasis,6131.01338);
-  close(s.summary.sharedCapital,3634606.003945636);
+  const s=await load();const added=s.transactions.slice(180,196);
+  assert.equal(s.asOfDate,"20 Oct 2026");close(s.holdings.find(h=>h.ticker==="CASH")!.costBasis,493.82461);
+  close(s.summary.sharedCapital,3904606.003945636);
   const deposit=added.find(t=>t.side==="TRANSFER")!;close(deposit.grossNative,100);assert.match(deposit.note,/unattributed/i);
   const nonSales=added.filter(t=>!["BUY","SELL"].includes(t.side));assert.ok(nonSales.every(t=>t.realizedPnlThb===0));
   close(nonSales.filter(t=>t.side==="FEE_REFUND").reduce((v,t)=>v+t.costProceedsThb,0),2*33.254);

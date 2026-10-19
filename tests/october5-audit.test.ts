@@ -62,11 +62,18 @@ test("separates cash income from sale P&L, keeps capital unchanged, and uses evi
   assert.equal(events.length, 12);
   assert.ok(events.every(row => row.realizedPnlThb === 0 && row.quantity === 0 && row.account === "Shared-US"));
   assert.ok(snapshot.transactions.slice(0, 177).filter(row => row.side === "TRANSFER").every(row => row.date <= "2026-09-15"));
-  close(snapshot.summary.sharedCapital, 3634606.003945636);
-  // The current broker snapshot includes an explicitly unresolved THB100
-  // history difference. This is a test reconciliation, not a ledger cash entry.
-  const postAuditCashChange = snapshot.transactions.slice(177).reduce((sum, row) => sum + row.costProceedsThb, 0) + 100;
-  close(snapshot.holdings.find(row => row.ticker === "CASH")!.costBasis - postAuditCashChange, 2224.70482);
+  const laterContributions = snapshot.transactions
+    .filter(row => row.side === "TRANSFER" && row.date >= "2026-10-14")
+    .reduce((sum, row) => sum + row.costProceedsThb, 0);
+  close(snapshot.summary.sharedCapital - laterContributions, 3634606.003945636);
+  // Reconstruct the dated USD checkpoint from the verified 14Oct snapshot.
+  // Do not reverse later mixed-FX cash through one THB rate or add a gap plug.
+  const postAuditUsdChange = snapshot.transactions.slice(177,196)
+    .filter(row=>row.currency==='USD')
+    .reduce((sum,row)=>sum+(row.side==='BUY'?-row.grossNative:row.grossNative),0);
+  const october5Usd=181.47-postAuditUsdChange;
+  close(october5Usd,66.83);
+  close(october5Usd*33.254+2.34,2224.70482);
   const receipts = deriveDividendReceiptHistory(snapshot.transactions);
   assert.deepEqual(receipts.rows.map(row => [row.date, row.ticker, row.netNative]), [
     ["2026-09-19", "QQQI", 641.19], ["2026-09-15", "GOOGL", 7.48], ["2026-08-22", "QQQI", 659.29],

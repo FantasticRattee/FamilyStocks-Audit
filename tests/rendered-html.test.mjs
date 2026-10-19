@@ -412,12 +412,12 @@ test("shows the remaining cash allocation and cost basis beside P&L", async () =
   assert.match(html, /class="pnl-cost-basis"[^>]*>Cost ฿[\d,]+/i);
 });
 
-test("keeps pooled cash beside the active holdings in the 14 Oct snapshot", async () => {
+test("keeps pooled cash beside the active holdings in the 20 Oct snapshot", async () => {
   const html = await (await render()).text();
   assert.ok(html.includes("Cash balance"), "cash balance must be shown");
-  assert.match(html, /CASH: [\d.]+% · ฿6,131/, "cash must match the evidenced roll-forward (฿6,131 rounded)");
+  assert.match(html, /aria-label="Select CASH allocation &lt;0\.1%, ฿494, cash balance"/, "tiny cash must stay selectable and match the snapshot (฿494 rounded)");
   assert.doesNotMatch(html, /CASH: 100\.0%/, "cash must not represent the full portfolio");
-  for (const units of ["82 units", "137 units", "110 units", "13 units"]) {
+  for (const units of ["82 units", "174 units", "110 units", "13 units"]) {
     assert.ok(html.includes(units), `active holding ${units} must be rendered`);
   }
 });

@@ -59,10 +59,10 @@ test("keeps the past payout while adding a current-capital dividend forecast", a
 
   for (const [address, expected] of [
     ["B32", 1870000],
-    ["B33", 300000],
-    ["B34", 1464606.003945636],
-    ["B35", 3634606.003945636],
-    ["B42", 3634606.003945636],
+    ["B33", 400000],
+    ["B34", 1634606.003945636],
+    ["B35", 3904606.003945636],
+    ["B42", 3904606.003945636],
   ] as const) {
     assert.ok(Math.abs((dividends[address]?.v ?? Number.NaN) - expected) < 0.000001, address);
   }

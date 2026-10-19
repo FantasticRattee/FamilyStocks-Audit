@@ -56,18 +56,18 @@ const loadSyntheticOverlaySnapshot = async (): Promise<DashboardSnapshot> => ({
 test("imports the pooled stock-audit workbook using labels and preserves its key totals", async () => {
   const snapshot = await loadSourceSnapshot();
 
-  assert.equal(snapshot.asOfDate, "14 Oct 2026");
-  assert.equal(snapshot.defaultFx, 33.254);
-  assert.equal(snapshot.transactions.length, 196);
-  closeTo(snapshot.summary.totalMarketValue, 3998314.94834);
-  closeTo(snapshot.summary.sharedCapital, 3634606.003945636);
-  closeTo(snapshot.summary.sharedMarketValue, 3998314.94834);
-  closeTo(snapshot.summary.totalRealizedPnl, 747143.6564236407);
-  closeTo(snapshot.summary.totalUnrealizedPnl, 18793.83064);
-  closeTo(snapshot.summary.sharedUnrealizedPnl, 18793.83064);
-  closeTo(snapshot.summary.totalPnl, 765937.4870636406);
+  assert.equal(snapshot.asOfDate, "20 Oct 2026");
+  assert.equal(snapshot.defaultFx, 33.687);
+  assert.equal(snapshot.transactions.length, 200);
+  closeTo(snapshot.summary.totalMarketValue, 4292531.25058);
+  closeTo(snapshot.summary.sharedCapital, 3904606.003945636);
+  closeTo(snapshot.summary.sharedMarketValue, 4292531.25058);
+  closeTo(snapshot.summary.totalRealizedPnl, 747143.6564236404);
+  closeTo(snapshot.summary.totalUnrealizedPnl, 42932.36458);
+  closeTo(snapshot.summary.sharedUnrealizedPnl, 42932.36458);
+  closeTo(snapshot.summary.totalPnl, 790076.0210036404);
   assert.deepEqual(snapshot.holdings.map((holding) => [holding.ticker, holding.quantity]), [
-    ["QQQ", 82], ["NVDA", 137], ["ORCL", 110],
+    ["QQQ", 82], ["NVDA", 174], ["ORCL", 110],
     ["CASH", 1],
     ["MU", 13],
   ]);
@@ -77,22 +77,24 @@ test("imports the pooled stock-audit workbook using labels and preserves its key
   ));
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 6131.01338, 0.000001);
+  closeTo(cash.costBasis, 493.82461, 0.000001);
   assert.deepEqual(
     snapshot.shareholders.map((holder) => holder.owner),
     ["Mom", "Ryu", "Rattee"],
   );
   assert.equal(snapshot.transactions[0].date, "2025-02-06");
-  closeTo(snapshot.shareholders[0].poolPercent, 1870000 / 3634606.003945636, 0.000001);
+  closeTo(snapshot.shareholders[0].sharedCapital, 1870000);
+  closeTo(snapshot.shareholders[1].sharedCapital, 400000);
+  closeTo(snapshot.shareholders[0].poolPercent, 1870000 / 3904606.003945636, 0.000001);
   closeTo(
     snapshot.shareholders[0].cashPercent ?? 0,
-    1870000 / 3634606.003945636,
+    1870000 / 3904606.003945636,
     0.000001,
   );
   const rattee = snapshot.shareholders.find((holder) => holder.owner === "Rattee");
   assert.ok(rattee);
-  closeTo(rattee.sharedCapital, 1464606.003945636);
-  closeTo(rattee.totalInvested, 1464606.003945636);
+  closeTo(rattee.sharedCapital, 1634606.003945636);
+  closeTo(rattee.totalInvested, 1634606.003945636);
   closeTo(snapshot.dividend.whtRate, 0.1, 0.000001);
 });
 
@@ -142,10 +144,14 @@ test("preserves the 25 August contribution and the five earlier September trades
     ["2026-08-20", 10000, 0],
     ["2026-08-25", 5000, 0],
   ]);
-  closeTo(snapshot.summary.sharedCapital - 3309606.003945636 - 320000, 5000);
+  const laterContributions = snapshot.transactions
+    .filter((transaction) => transaction.side === "TRANSFER" && transaction.date > "2026-10-02" && transaction.date >= "2026-10-14");
+  const capitalBeforeRecentDeposits = snapshot.summary.sharedCapital - laterContributions
+    .reduce((total, transaction) => total + transaction.costProceedsThb, 0);
+  closeTo(capitalBeforeRecentDeposits - 3309606.003945636 - 320000, 5000);
   const rattee = snapshot.shareholders.find((holder) => holder.owner === "Rattee");
   assert.ok(rattee);
-  closeTo(rattee.sharedCapital - 1459606.003945636, 5000);
+  closeTo(rattee.sharedCapital - 170000 - 1459606.003945636, 5000);
 
   for (const transaction of additions.filter((row) => row.currency === "USD")) {
     const sign = transaction.side === "SELL" ? 1 : -1;
@@ -202,12 +208,12 @@ test("carries the increased pooled QQQ broker cost while retaining earlier GOOGL
   assert.ok(googlBuy.grossNative > googlBuy.quantity * googlBuy.priceNative);
   assert.equal(qqq.account, "Shared-US");
   assert.equal(qqq.quantity, 82);
-  closeTo(qqq.costBasis, 60999.03 * 33.254, 0.000001);
-  closeTo(qqq.avgCostThb, (60999.03 * 33.254) / 82, 0.000001);
+  closeTo(qqq.costBasis, 2028461.74362, 0.000001);
+  closeTo(qqq.avgCostThb, 2028461.74362 / 82, 0.000001);
   assert.equal(snapshot.holdings.length, 5);
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  closeTo(cash.costBasis, 6131.01338, 0.000001);
+  closeTo(cash.costBasis, 493.82461, 0.000001);
 });
 
 test("prices the active pooled holdings while preserving their audited cash roll-forward", async () => {
@@ -245,7 +251,7 @@ test("prices the active pooled holdings while preserving their audited cash roll
     cash.costBasis,
   );
   const expectedInvestmentMarketValue =
-    82 * 750 * 33 + 137 * 230 * 33 + 110 * 140 * 33 + 13 * 1100 * 33;
+    82 * 750 * 33 + 174 * 230 * 33 + 110 * 140 * 33 + 13 * 1100 * 33;
   const expectedSharedMarketValue = expectedInvestmentMarketValue + cash.costBasis;
   closeTo(result.totals.sharedMarketValue, expectedSharedMarketValue);
   closeTo(result.totals.personalMarketValue, 0);
@@ -268,26 +274,26 @@ test("reconciles the SPCX close and the new pooled audit values", async () => {
   closeTo(result.totals.totalPnl, snapshot.summary.totalPnl);
   closeTo(result.totals.personalMarketValue, 0);
 
-  closeTo(result.totals.marketValue, 3998314.94834, 0.000001);
-  closeTo(result.totals.unrealizedPnl, 18793.83064, 0.000001);
-  closeTo(result.totals.realizedPnl, 747143.6564236407, 0.000001);
-  closeTo(result.totals.totalPnl, 765937.4870636406, 0.000001);
+  closeTo(result.totals.marketValue, 4292531.25058, 0.000001);
+  closeTo(result.totals.unrealizedPnl, 42932.36458, 0.000001);
+  closeTo(result.totals.realizedPnl, 747143.6564236404, 0.000001);
+  closeTo(result.totals.totalPnl, 790076.0210036404, 0.000001);
 
   // Per-holding audit marks: [ticker, quantity, avg cost THB, price THB, market value THB, unrealized THB].
-  const expectedMarks: Array<[string, number, number, number, number, number]> = [
-    ["QQQ", 82, 60999.03 * 33.254 / 82, snapshot.holdings.find(row => row.ticker === "QQQ")!.importedPriceThb, snapshot.holdings.find(row => row.ticker === "QQQ")!.importedPriceThb * 82, snapshot.holdings.find(row => row.ticker === "QQQ")!.importedPriceThb * 82 - 60999.03 * 33.254],
-    ["NVDA", 137, 30969.92 * 33.254 / 137, snapshot.holdings.find(row => row.ticker === "NVDA")!.importedPriceThb, snapshot.holdings.find(row => row.ticker === "NVDA")!.importedPriceThb * 137, snapshot.holdings.find(row => row.ticker === "NVDA")!.importedPriceThb * 137 - 30969.92 * 33.254],
-    ["ORCL", 110, 15335.17 * 33.254 / 110, snapshot.holdings.find(row => row.ticker === "ORCL")!.importedPriceThb, snapshot.holdings.find(row => row.ticker === "ORCL")!.importedPriceThb * 110, snapshot.holdings.find(row => row.ticker === "ORCL")!.importedPriceThb * 110 - 15335.17 * 33.254],
-    ["MU", 13, 12181.96 * 33.254 / 13, snapshot.holdings.find(row => row.ticker === "MU")!.importedPriceThb, snapshot.holdings.find(row => row.ticker === "MU")!.importedPriceThb * 13, snapshot.holdings.find(row => row.ticker === "MU")!.importedPriceThb * 13 - 12181.96 * 33.254],
+  const expectedMarks: Array<[string, number, number, number]> = [
+    ["QQQ", 82, 2028461.74362, 743.8],
+    ["NVDA", 174, 1305588.67675, 221.12],
+    ["ORCL", 110, 509955.74318, 143.3],
+    ["MU", 13, 405098.89784, 936.91],
   ];
-  for (const [ticker, quantity, avgCostThb, priceThb, marketValue, unrealizedPnl] of expectedMarks) {
+  for (const [ticker, quantity, costBasis, nativePrice] of expectedMarks) {
     const holding = result.holdings.find((row) => row.ticker === ticker);
     assert.ok(holding, `${ticker} should be an active pooled holding`);
     assert.equal(holding.quantity, quantity);
-    closeTo(holding.avgCostThb, avgCostThb, 0.000001);
-    closeTo(holding.currentPriceThb, priceThb, 0.000001);
-    closeTo(holding.marketValue, marketValue, 0.000001);
-    closeTo(holding.unrealizedPnl, unrealizedPnl, 0.000001);
+    closeTo(holding.avgCostThb, costBasis / quantity, 0.000001);
+    closeTo(holding.currentPriceThb, nativePrice * 33.687, 0.000001);
+    closeTo(holding.marketValue, quantity * nativePrice * 33.687, 0.000001);
+    closeTo(holding.unrealizedPnl, quantity * nativePrice * 33.687 - costBasis, 0.000001);
   }
 
   // HPQ was bought on 26 Sep and sold on 28 Sep: ledger-only, realized loss, no open row.
@@ -301,9 +307,9 @@ test("reconciles the SPCX close and the new pooled audit values", async () => {
 
   const owners = calculateShareholderEquityRows(snapshot, result);
   const expectedEquity: Record<string, number> = {
-    Mom: 3998314.94834 * 1870000 / 3634606.003945636,
-    Ryu: 3998314.94834 * 300000 / 3634606.003945636,
-    Rattee: 3998314.94834 * 1464606.003945636 / 3634606.003945636,
+    Mom: 4292531.25058 * 1870000 / 3904606.003945636,
+    Ryu: 4292531.25058 * 400000 / 3904606.003945636,
+    Rattee: 4292531.25058 * 1634606.003945636 / 3904606.003945636,
   };
   for (const owner of owners) {
     closeTo(owner.estimatedEquity, expectedEquity[owner.owner], 0.000001);
@@ -365,7 +371,7 @@ test("uses total contributed capital to split a future pooled dividend forecast"
   closeTo(result.dividend.wht, 819);
   closeTo(result.dividend.net, 7371);
   assert.ok(mom);
-  closeTo(mom.net, 7371 * (1870000 / 3634606.003945636));
+  closeTo(mom.net, 7371 * (1870000 / 3904606.003945636));
 });
 
 test("allocates every active pooled asset by total contributed-capital percentage", async () => {
@@ -377,7 +383,7 @@ test("allocates every active pooled asset by total contributed-capital percentag
   closeTo(result.totals.personalMarketValue, 0);
 
   for (const owner of owners) {
-    closeTo(owner.poolPercent, owner.sharedCapital / 3634606.003945636, 0.000001);
+    closeTo(owner.poolPercent, owner.sharedCapital / 3904606.003945636, 0.000001);
     closeTo(owner.cashMarketValue, cashValue * owner.poolPercent);
     closeTo(owner.sharedInvestmentMarketValue, investmentValue * owner.poolPercent);
     closeTo(

@@ -189,7 +189,7 @@ test("keeps shared cash at its audited THB value without requesting a market quo
   const snapshot = await loadSnapshot();
   const cash = snapshot.holdings.find((holding) => holding.ticker === "CASH");
   assert.ok(cash);
-  assert.ok(Math.abs(cash.costBasis - 6131.01338) < 0.000001);
+  assert.ok(Math.abs(cash.costBasis - 493.82461) < 0.000001);
 
   const plan = liveMarket.createLiveMarketRefreshPlan(
     snapshot,

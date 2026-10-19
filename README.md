@@ -56,15 +56,27 @@ The dividend page flags current securities not covered by verified DPS and
 withholding assumptions; a zero configured forecast is not a claim that the
 whole portfolio pays no dividends.
 
-The 14 Oct reconciliation records196 transactions and59 sales, with active
-Shared QQQ82/NVDA137/ORCL110/MU13/CASH THB6131.01338. ARM37 is closed;
-registered contributor capital and percentages are unchanged by instruction.
+The20Oct reconciliation records200 transactions and59 sales, with active
+Shared QQQ82/NVDA174/ORCL110/MU13/CASH THB493.82461. ARM37 is closed.
+Rattee adds170000THB and Ryu100000; Mom is unchanged. Total contributed
+capital3904606.003945636THB determines pooled allocation percentages.
 Actual dividend receipts pair the ledger's DIVIDEND and WHT_FEE rows and
 display gross/deductions/net separately from sale P&L and future forecasts.
-Current observedUSD181.47 + THB96.41 cash uses accounting FX33.254.
-USD reconciles exactly. A100THB history gap remains explicit without a
-balancing plug; the shown100THB deposit is unattributed pooled funding.
+Current observedUSD12.03 + THB88.57 cash uses33.6870 valuation FX. Only new
+acquisition records use33.6870; historical lot FX33.254 and THB costs remain.
+Native average costs/audit prices are explicit in canonical Holdings I/J.
+Both currency bridges tie. A second distinct6Oct100THB deposit resolves
+the prior gap; both100THB credits remain unattributed pooled funding, not
+registered capital. FX conversion is an internal source schedule, not new
+funding or sale P&L; its0.80821THB approximate-rate difference is not a fee.
 FEE_REFUND credits are expense reversals, not dividends or sale profit.
+
+Canonical native cost/price columns also produce optional `auditHoldings`
+settings metadata. It preserves historical THB basis separately from native
+USD entry price and audit price through PostgreSQL import and scenario reset.
+Metadata is matched to ticker, owner, units and entry price; changed minimal
+holdings must not inherit stale basis. The minimal export remains four columns
+and does not itself carry acquisition-FX history.
 
 ### Minimal holdings workbook
 

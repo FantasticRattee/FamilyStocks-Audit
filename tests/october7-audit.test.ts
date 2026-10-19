@@ -32,18 +32,28 @@ test("closes the two BLK sales against its pre-sale lot including broker charges
   const october7Ledger = snapshot.transactions.slice(0, 180);
   assert.equal(deriveSalePnlSummary(october7Ledger, snapshot.shareholders).rows.length, 56);
   close(deriveSalePnlSummary(october7Ledger, snapshot.shareholders).netRealizedPnlThb, 754535.3555436408);
-  // Separate the known THB100 snapshot difference from evidenced cash flows;
-  // do not treat this test-only reconciliation adjustment as a deposit.
-  const laterCashChange = snapshot.transactions.slice(180).reduce((total, row) => total + row.costProceedsThb, 0) + 100;
-  close(snapshot.holdings.find(row => row.ticker === "CASH")!.costBasis - laterCashChange, 820.3884);
+  const tradeUsdChange=snapshot.transactions.slice(177,180)
+    .reduce((sum,row)=>sum+(row.side==='BUY'?-row.grossNative:row.grossNative),0);
+  close(66.83+tradeUsdChange,24.60);
 });
 
 test("rolls cash from the verified opening snapshot without treating sales as capital or dividends", async () => {
   const snapshot = await load();
   assert.equal(snapshot.transactions.slice(177, 180).at(-1)?.date, "2026-10-06");
-  const laterCashChange = snapshot.transactions.slice(180).reduce((total, row) => total + row.costProceedsThb, 0) + 100;
-  close(snapshot.holdings.find(row => row.ticker === "CASH")!.costBasis - laterCashChange, 820.3884);
-  close(snapshot.summary.sharedCapital, 3634606.003945636);
+  const laterUsdChange=snapshot.transactions.slice(180,196)
+    .filter(row=>row.currency==='USD')
+    .reduce((sum,row)=>sum+(row.side==='BUY'?-row.grossNative:row.grossNative),0);
+  const october7Usd=181.47-laterUsdChange;
+  close(october7Usd,24.60);
+  // The newly evidenced second6Oct deposit corrects the formerly incomplete
+  // THB checkpoint: both deposits100+100 less fee105.93 are real cash flows.
+  const october6ThbEvents=snapshot.transactions.filter(row=>row.date==='2026-10-06'&&row.currency==='THB'&&row.ticker==='CASH');
+  const october7Thb=2.34+october6ThbEvents.reduce((sum,row)=>sum+row.costProceedsThb,0);
+  close(october7Thb,96.41);
+  close(october7Usd*33.254+october7Thb,914.4584);
+  const laterContributions = snapshot.transactions
+    .filter(row => row.side === "TRANSFER" && row.date >= "2026-10-14");
+  close(snapshot.summary.sharedCapital - laterContributions.reduce((sum,row)=>sum+row.costProceedsThb,0), 3634606.003945636);
   assert.ok(snapshot.transactions.slice(177, 180).every(row => ["BUY", "SELL"].includes(row.side)));
   const dividends = deriveDividendReceiptHistory(snapshot.transactions);
   assert.equal(dividends.rows.length, 3);

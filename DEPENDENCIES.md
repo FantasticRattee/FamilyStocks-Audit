@@ -1,6 +1,6 @@
 # Dashboard change-impact map
 
-Updated: 2026-10-14. Use with the `impact-check` skill before changing shared
+Updated: 2026-10-20. Use with the `impact-check` skill before changing shared
 portfolio, market data, workbook, runtime, or presentation behavior.
 
 ## Canonical artifacts
@@ -95,6 +95,13 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   `% Total Capital (Pooled Allocation)`. Every active asset, including
   aggregate CASH, uses that one percentage. Owner/unit data before 5 Aug is
   historical audit context rather than active-allocation input.
+- Canonical Holdings may carry `Avg Cost (Native)` and `Cur Price (Native)`
+  columns in addition to historical THB cost/valuation columns. Optional
+  `auditHoldings` settings preserve historical THB average cost and native
+  audit marks, fingerprinted by ticker/owner/units/native entry price. Legacy
+  inputs without metadata retain the existing single-FX behavior; a changed
+  minimal holding must not inherit stale canonical cost metadata. No database
+  schema or four-column minimal workbook change is required.
 - Workbook export: exactly one `Holdings` sheet and exactly `Ticker`,
   `Owner/Account`, `Entry Price`, `Units`.
 - Holdings: supported ticker and owner mapping; positive finite native-currency
@@ -125,21 +132,23 @@ portfolio, market data, workbook, runtime, or presentation behavior.
   as V. Personal active overlays are represented by `Rattee`, `Mom`, or `Ryu`
   owner accounts and are added to the named owner's equity rather than the
   pooled allocation.
-- The 14 Oct canonical update has no active personal overlays. All current
+- The20Oct canonical update has no active personal overlays. All current
   assets are Shared; capital records stay contributor-specific. Projected
-  owner values are not paid profits. Active holdings are QQQ82, NVDA137,
-  ORCL110, MU13 and CASH THB6131.01338 (observedUSD181.47/THB96.41,
-  referenceFX33.254). ARM37 is closed. Ledger196/sales59. ORCL is added
-  to the supported USD/GoogleFinanceNYSE contract and all quote maps.
+  owner values are not paid profits. Active holdings are QQQ82, NVDA174,
+  ORCL110, MU13 and CASH THB493.82461 (observedUSD12.03/THB88.57,
+  valuationFX33.6870; old acquisition FX33.254 retained). ARM37 is closed.
+  Ledger200/sales59. ORCL is supported by the USD/GoogleFinanceNYSE contract
+  and all quote maps.
   QQQ/BLK remain in the supported
   ticker contract, audit market-key map, Google Finance NASDAQ/NYSE maps and
   PostgreSQL allow-list. Actual receipts are derived separately from sale P&L
-  and forecasts. Current cash uses the14Oct broker snapshot; USD reconciles
-  exactly but a100THB historical gap remains explicit without a plug.
+  and forecasts. Current cash uses the20Oct broker snapshot; both currency
+  bridges reconcile. The missing6Oct100THB deposit resolves the older gap.
   FEE_REFUND credits are separate from dividends and realized sale P&L.
-  The100THB deposit is unattributed pooled funding; registered capital and
-  percentages stay unchanged by user instruction. Latest attributed addition
-  15Sep. Verify capital and cash independently of live quote refresh.
+  Both6Oct100THB deposits are unattributed pooled funding outside registered
+  capital. New270000THB capital is allocated Rattee170000/Ryu100000, with
+  Mom unchanged; current percentages follow total3904606.003945636THB.
+  Verify capital and cash independently of live quote refresh.
   Historical inactive tickers remain supported for ledger parsing and audit
   traceability. Holdings rows 4-12 are fixed because `Summary` sums them, so
   older closed rows are replaced when a new update needs the space.

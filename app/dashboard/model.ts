@@ -22,6 +22,8 @@ export type Holding = {
   avgCostThb: number;
   importedPriceThb: number;
   costBasis: number;
+  avgCostNative?: number;
+  importedPriceNative?: number;
 };
 
 export type DividendLine = {
@@ -574,6 +576,11 @@ const parseHoldings = (rows: Row[], defaultFx: number): Holding[] => {
   const quantityColumn = requiredColumn(headers, [["qty"], ["quantity"]], "Quantity");
   const avgCostColumn = requiredColumn(headers, [["avg", "cost"]], "Average cost");
   const priceColumn = requiredColumn(headers, [["cur", "price"], ["current", "price"]], "Current price");
+  const nativeAverageCostColumn = findColumn(headers, [["avg", "cost", "native"]]);
+  const nativePriceColumn = findColumn(headers, [["cur", "price", "native"], ["current", "price", "native"]]);
+  if ((nativeAverageCostColumn >= 0) !== (nativePriceColumn >= 0)) {
+    throw new Error("Holdings must provide both native cost and native price columns, or neither.");
+  }
   const holdings: Holding[] = [];
 
   for (const row of rows.slice(headerRow + 1)) {
@@ -599,6 +606,21 @@ const parseHoldings = (rows: Row[], defaultFx: number): Holding[] => {
       : "THB";
     const avgCostThb = numberOr(row[avgCostColumn]);
     const importedPriceThb = numberOr(row[priceColumn]);
+    const hasNativeColumns = nativeAverageCostColumn >= 0 && nativePriceColumn >= 0;
+    const avgCostNative = currency === "USD" && hasNativeColumns
+      ? toNumber(row[nativeAverageCostColumn])
+      : undefined;
+    const importedPriceNative = currency === "USD" && hasNativeColumns
+      ? toNumber(row[nativePriceColumn])
+      : undefined;
+    if (currency === "USD" && hasNativeColumns) {
+      if (avgCostNative === undefined || avgCostNative <= 0) {
+        throw new Error(`Holdings ${ticker}: Avg Cost (Native) must be a positive finite number when native columns are present.`);
+      }
+      if (importedPriceNative === undefined || importedPriceNative <= 0) {
+        throw new Error(`Holdings ${ticker}: Cur Price (Native) must be a positive finite number when native columns are present.`);
+      }
+    }
 
     holdings.push({
       ticker,
@@ -610,6 +632,8 @@ const parseHoldings = (rows: Row[], defaultFx: number): Holding[] => {
       avgCostThb,
       importedPriceThb,
       costBasis: quantity * avgCostThb,
+      ...(avgCostNative !== undefined ? { avgCostNative } : {}),
+      ...(importedPriceNative !== undefined ? { importedPriceNative } : {}),
     });
   }
 
@@ -778,7 +802,7 @@ export function createScenario(snapshot: DashboardSnapshot): Scenario {
   for (const holding of snapshot.holdings) {
     const importedNativePrice =
       holding.currency === "USD"
-        ? holding.importedPriceThb / snapshot.defaultFx
+        ? holding.importedPriceNative ?? holding.importedPriceThb / snapshot.defaultFx
         : holding.importedPriceThb;
     const existing = prices[holding.ticker];
     if (existing === undefined) {
@@ -808,7 +832,7 @@ export function calculateDashboard(
   const holdings = snapshot.holdings.map<CalculatedHolding>((holding) => {
     const importedNativePrice =
       holding.currency === "USD"
-        ? holding.importedPriceThb / snapshot.defaultFx
+        ? holding.importedPriceNative ?? holding.importedPriceThb / snapshot.defaultFx
         : holding.importedPriceThb;
     const priceNative = scenario.prices[holding.ticker] ?? importedNativePrice;
     const currentPriceThb =

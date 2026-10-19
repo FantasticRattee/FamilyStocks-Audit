@@ -35,8 +35,8 @@ test("keeps the prior September additions and records the new Shared trades", as
   assert.ok(deposits.every(row => /Contributor: Mom/.test(row.note)));
   close(deposits.reduce((sum,row)=>sum+row.costProceedsThb,0),320000);
   close(snapshot.shareholders.find(row=>row.owner==="Mom")!.sharedCapital,1870000);
-  close(snapshot.shareholders.find(row=>row.owner==="Rattee")!.sharedCapital,1464606.003945636);
-  close(snapshot.shareholders.find(row=>row.owner==="Ryu")!.sharedCapital,300000);
+  close(snapshot.shareholders.find(row=>row.owner==="Rattee")!.sharedCapital - 170000,1464606.003945636);
+  close(snapshot.shareholders.find(row=>row.owner==="Ryu")!.sharedCapital - 100000,300000);
 });
 
 test("records all eighteen trades from the 17–22 September evidence as Shared", async () => {
@@ -63,7 +63,9 @@ test("records all eighteen trades from the 17–22 September evidence as Shared"
     ["2026-09-22","GOOGL","SELL",30,355.72,10668.81,33.254],
   ]);
   assert.ok(added.every(row => row.account === "Shared-US"));
-  close(snapshot.summary.sharedCapital, 3634606.003945636);
+  const laterContributions = snapshot.transactions
+    .filter(row => row.side === "TRANSFER" && row.date >= "2026-10-14");
+  close(snapshot.summary.sharedCapital - laterContributions.reduce((sum,row)=>sum+row.costProceedsThb,0), 3634606.003945636);
 });
 
 test("records the eleven Shared trades from the 24–29 September evidence without changing capital", async () => {
@@ -85,7 +87,9 @@ test("records the eleven Shared trades from the 24–29 September evidence witho
   assert.ok(added.every(row => row.account === "Shared-US"));
   assert.ok(added.every(row => row.order === "Limit"));
   close(added.find(row => row.ticker === "HPQ" && row.side === "SELL")!.realizedPnlThb, -3140.8403);
-  close(snapshot.summary.sharedCapital, 3634606.003945636);
+  const laterContributions = snapshot.transactions
+    .filter(row => row.side === "TRANSFER" && row.date >= "2026-10-14");
+  close(snapshot.summary.sharedCapital - laterContributions.reduce((sum,row)=>sum+row.costProceedsThb,0), 3634606.003945636);
 });
 
 test("preserves historical AVGO P&L and uses the confirmed pooled cash snapshot", async () => {
@@ -96,7 +100,7 @@ test("preserves historical AVGO P&L and uses the confirmed pooled cash snapshot"
   const avgo=snapshot.holdings.filter(row=>row.ticker==="AVGO");
   assert.equal(avgo.length,0);
   assert.deepEqual(snapshot.holdings.map(row=>row.ticker), ["QQQ","NVDA","ORCL","CASH","MU"]);
-  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,6131.01338);
+  close(snapshot.holdings.find(row=>row.ticker==="CASH")!.costBasis,493.82461);
   const result=calculateDashboard(snapshot,createScenario(snapshot));
   close(result.totals.personalMarketValue,0);
   const recent=snapshot.transactions.filter(row=>row.date==="2026-09-15" && ["BUY", "SELL", "TRANSFER"].includes(row.side)).sort(compareTransactionsNewestFirst);
